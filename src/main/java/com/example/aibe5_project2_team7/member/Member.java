@@ -1,4 +1,37 @@
 package com.example.aibe5_project2_team7.member;
 
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.data.annotation.Id;
+
+import java.time.LocalDate;
+
+@Entity
+@Getter @Setter
 public class Member {
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+    @Column(nullable = false)
+    private String name;
+    @Column(nullable = false)
+    private LocalDate birthDate;
+    @Column(nullable = false)
+    private Gender gender;
+    @Column(nullable = false)
+    private String phone; //전화번호
+    @Column(nullable = false)
+    private String email; //이메일 = 로그인 아이디
+    private String image;
+    @Column(nullable = false)
+    private String password;
+    @Column(nullable = false)
+    private MemberType memberType;
+//    private LocalDateTime createdAt;
+//    private LocalDateTime updatedAt;
+    @Column(nullable = false)
+    private Integer ratingSum;
+    @Column(nullable = false)
+    private Integer ratingCount;
 }
