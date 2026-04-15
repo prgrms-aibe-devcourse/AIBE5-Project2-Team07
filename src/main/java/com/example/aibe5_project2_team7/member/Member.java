@@ -3,7 +3,6 @@ package com.example.aibe5_project2_team7.member;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
-import org.springframework.data.annotation.Id;
 
 import java.time.LocalDate;
 
@@ -17,6 +16,7 @@ public class Member {
     private String name;
     @Column(nullable = false)
     private LocalDate birthDate;
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Gender gender;
     @Column(nullable = false)
@@ -26,6 +26,7 @@ public class Member {
     private String image;
     @Column(nullable = false)
     private String password;
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private MemberType memberType;
 //    private LocalDateTime createdAt;
