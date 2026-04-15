@@ -37,4 +37,4 @@ out/
 .vscode/
 
 ### 설정 ###
-src/resources/application.properties
+src/main/resources/application-db.properties
