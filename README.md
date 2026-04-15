@@ -30,3 +30,33 @@ git commit -m "[Feat] #12 - 여행 상세 페이지 구현"
 git commit -m "[Fix] #15 - 지도 마커 클릭 이벤트 수정"
 git commit -m "[Chore] #18 - React Bootstrap 버전 업그레이드"
 ```
+
+### Issue Templates
+
+GitHub에서 "New Issue" 클릭 시 템플릿 선택 화면이 표시됩니다.
+
+| 템플릿      | 용도                              | 라벨          |
+| ----------- | --------------------------------- | ------------- |
+| **Epic**    | 대규모 기능 단위 (여러 이슈 포함) | `epic`        |
+| **Feature** | 단일 기능 구현                    | `enhancement` |
+| **Bug**     | 버그 리포트                       | `bug`         |
+
+
+
+### PR Template
+
+```markdown
+## 🔎 What
+
+- 한 작업을 간단히 설명해주세요
+
+## 🔗 Issue
+
+- Closes: #이슈번호
+
+## ✅ 체크리스트
+
+- [ ] 브랜치 base가 적절한가요?
+- [ ] 제목이 이슈 제목과 동일한가요?
+- [ ] 최소 1명의 리뷰를 받았나요?
+```
