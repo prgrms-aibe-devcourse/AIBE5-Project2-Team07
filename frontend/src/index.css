@@ -1,0 +1,55 @@
+/* urgent-accent: 왼쪽 3px 빨간색 라인 (대타 시스템 전용) */
+.urgent-accent {
+  border-left: 3px solid #B90034;
+}
+
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  font-family: 'Pretendard', sans-serif;
+  background-color: #FFFFFF;
+  color: #1F1D1D;
+  -webkit-font-smoothing: antialiased;
+}
+
+.material-symbols-outlined {
+  font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+  vertical-align: middle;
+}
+
+.flat-border {
+  border: 1px solid #e0e0e0;
+}
+
+.hero-gradient {
+  background: linear-gradient(135deg, #1A1818 0%, #302E2D 100%);
+}
+
+.custom-container {
+  max-width: 1400px;
+  margin-left: auto;
+  margin-right: auto;
+  padding-left: 3.5rem;
+  padding-right: 3.5rem;
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+.custom-scrollbar::-webkit-scrollbar {
+  width: 4px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: #e0e0e0;
+  border-radius: 10px;
+}
+
