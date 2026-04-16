@@ -22,15 +22,14 @@ public class StompHandler implements ChannelInterceptor {
         if(StompCommand.CONNECT.equals(accessor.getCommand())){
             String ip = (String)accessor.getSessionAttributes().get("ip");
             String email = accessor.getFirstNativeHeader("email");
-
             accessor.getSessionAttributes().put("email",email);
-            log.info("🟢 [새로운 유저 접속] 이름: {}, IP: {}, SessionID: {}", email, ip, accessor.getSessionId());
+            log.info("🟢 [채팅접속] 이메일: {}, IP: {}, SessionID: {}", email, ip, accessor.getSessionId());
             // 이후코드 jwt 작업 공간
-
         }
         else if(StompCommand.DISCONNECT.equals(accessor.getCommand())){
             String email = (String)accessor.getSessionAttributes().get("email");
-            log.info("🔴 [유저 접속 종료]  SessionID: {} , 유저아이디 : {}", accessor.getSessionId(),email);
+            String ip = (String)accessor.getSessionAttributes().get("ip");
+            log.info("🔴 [채팅종료]  , 이메일 : {} ,ip : {},SessionID: {} ", email,ip,accessor.getSessionId());
         }
 
         return message;

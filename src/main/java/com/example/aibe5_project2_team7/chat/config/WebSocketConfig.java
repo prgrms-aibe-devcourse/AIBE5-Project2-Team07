@@ -17,7 +17,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws-connect")// connect 주소
-                //.addInterceptors(new CustomHandshakeInterceptor())//ip 추출기
+                .addInterceptors(new CustomHandshakeInterceptor())//ip 추출기
                 .setAllowedOriginPatterns("*")
                 .withSockJS();//http 통신허용
     }
