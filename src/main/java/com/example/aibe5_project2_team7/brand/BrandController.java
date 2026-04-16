@@ -25,4 +25,23 @@ public class BrandController {
         List<BrandSearchAutoCompleteDto> results = brandService.getSearchList(q.trim());
         return ResponseEntity.ok(results);
     }
+
+    @GetMapping(value = "/api/brand/random")
+    public @ResponseBody ResponseEntity<List<BrandRandomDto>> getRandom8Brands() {
+        List<BrandRandomDto> results = brandService.getRandom8Brands();
+        return ResponseEntity.ok(results);
+    }
+
+    @GetMapping(value = "/api/brand/modal/right")
+    public @ResponseBody ResponseEntity<List<BrandRecruitCountDto>> getBrandAndRecruitCounts(
+            @RequestParam(name = "businessType") com.example.aibe5_project2_team7.recruit.constant.BusinessTypeName businessType) {
+        List<BrandRecruitCountDto> results = brandService.getBrandAndRecruitCounts(businessType);
+        return ResponseEntity.ok(results);
+    }
+
+    @GetMapping(value = "/api/brand/urgent")
+    public @ResponseBody ResponseEntity<List<BrandUrgentDto>> getRandom3UrgentBrands() {
+        List<BrandUrgentDto> results = brandService.getRandom3UrgentBrands();
+        return ResponseEntity.ok(results);
+    }
 }

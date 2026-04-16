@@ -1,5 +1,6 @@
 package com.example.aibe5_project2_team7.brand;
 
+import com.example.aibe5_project2_team7.recruit.constant.BusinessTypeName;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -18,8 +19,10 @@ public class Brand {
     private String name;
 
     @Column(nullable = false)
-    private Integer business_type;
+    @Enumerated(EnumType.STRING)
+    private BusinessTypeName business_type;
 
+    @Column
     private String logo_img;
 
     @Column(nullable = false)
