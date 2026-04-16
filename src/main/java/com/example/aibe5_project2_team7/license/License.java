@@ -12,8 +12,8 @@ public class License {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(nullable = false)
-    private Long member_id;
+    @Column(name = "member_id", nullable = false)
+    private Long memberId;
     @Column(nullable = false)
     private String licenseName;
     @Column(nullable = false)

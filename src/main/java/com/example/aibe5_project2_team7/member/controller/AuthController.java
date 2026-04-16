@@ -8,10 +8,11 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDate;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/auth")
+@RequestMapping("/api/auth")
 @RequiredArgsConstructor
 public class AuthController {
 
@@ -19,10 +20,38 @@ public class AuthController {
     private final JwtUtil jwtUtil;
 
     @PostMapping("/register")
-    public ResponseEntity<?> register(@RequestBody Member member) {
+    public ResponseEntity<?> register(@RequestBody Map<String, Object> payload) {
         try {
-            Member registeredMember = memberService.registerMember(member);
-            return ResponseEntity.ok(Map.of("message", "Registration successful"));
+
+            Member member = new Member();
+            member.setName((String) payload.get("name"));
+            member.setEmail((String) payload.get("email"));
+            member.setPhone((String) payload.get("phone"));
+            member.setPassword((String) payload.get("password"));
+            Object birth = payload.get("birthDate");
+            if (birth != null) member.setBirthDate(LocalDate.parse(birth.toString()));
+            Object gender = payload.get("gender");
+            if (gender != null) member.setGender(com.example.aibe5_project2_team7.member.Gender.valueOf(gender.toString()));
+            Object type = payload.get("memberType");
+            if (type != null) member.setMemberType(MemberType.valueOf(type.toString()));
+
+            member.setImage((String) payload.getOrDefault("image", null));
+            member.setRatingSum(Integer.parseInt(payload.getOrDefault("ratingSum", 0).toString()));
+            member.setRatingCount(Integer.parseInt(payload.getOrDefault("ratingCount", 0).toString()));
+
+            Map<String, Object> businessExtra = null;
+            if (member.getMemberType() == MemberType.BUSINESS) {
+                Object be = payload.get("businessProfile");
+                if (be instanceof Map) {
+
+                    businessExtra = (Map<String, Object>) be;
+                } else {
+                    return ResponseEntity.badRequest().body(Map.of("error", "businessProfile data required for BUSINESS registration"));
+                }
+            }
+
+            Member registered = memberService.registerMember(member, businessExtra);
+            return ResponseEntity.ok(Map.of("message", "Registration successful", "memberId", registered.getId()));
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
@@ -44,6 +73,7 @@ public class AuthController {
             }
 
             Member member = memberService.authenticate(email, password);
+
 
             if (requestedType != null && member.getMemberType() != requestedType) {
                 return ResponseEntity.badRequest().body(Map.of("error", "Member type mismatch"));

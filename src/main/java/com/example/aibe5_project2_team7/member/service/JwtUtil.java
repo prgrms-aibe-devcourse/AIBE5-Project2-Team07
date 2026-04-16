@@ -42,7 +42,7 @@ public class JwtUtil {
             byte[] decoded = Base64.getDecoder().decode(secretBase64);
             this.key = Keys.hmacShaKeyFor(decoded);
         } catch (IllegalArgumentException e) {
-            // invalid base64 input
+
             log.warn("Invalid jwt.secret provided — must be Base64. Falling back to generated key. Error: {}", e.getMessage());
             this.key = Keys.secretKeyFor(io.jsonwebtoken.SignatureAlgorithm.HS256);
         }

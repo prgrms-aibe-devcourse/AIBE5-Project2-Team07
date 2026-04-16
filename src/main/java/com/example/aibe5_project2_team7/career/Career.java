@@ -12,14 +12,15 @@ public class Career {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(nullable = false)
-    private Long member_id;
-    private Long brand_id; // null 가능
+    @Column(name = "member_id", nullable = false)
+    private Long memberId;
+    @Column(name = "brand_id")
+    private Long brandId; // null 가능
     @Column(nullable = false)
     private String company;
     @Column(nullable = false)
     private String role;
     @Column(nullable = false)
-    private LocalDate staartDate;
+    private LocalDate startDate;
     private LocalDate endDate; // null 가능
 }

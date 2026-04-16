@@ -29,8 +29,6 @@ public class Member {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private MemberType memberType;
-//    private LocalDateTime createdAt;
-//    private LocalDateTime updatedAt;
     @Column(nullable = false)
     private Integer ratingSum;
     @Column(nullable = false)
