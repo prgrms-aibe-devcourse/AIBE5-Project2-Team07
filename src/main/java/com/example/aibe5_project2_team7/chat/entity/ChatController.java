@@ -1,5 +1,6 @@
 package com.example.aibe5_project2_team7.chat.entity;
 
+import com.example.aibe5_project2_team7.chat.dto.ChatMessageDto;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.messaging.handler.annotation.MessageMapping;
@@ -14,7 +15,7 @@ public class ChatController {
     private final SimpMessageSendingOperations messagingTemplate;
 
     @MessageMapping("/chat/message")
-    public void message(@Payload ChatMessage message){
+    public void message(@Payload ChatMessageDto message){
         //방으로 들어올때 모든 메시지 읽음처리
         if ("ENTER".equals(message.getType())) {
             message.setContent(message.getContent() + "님이 입장하셨습니다.");
