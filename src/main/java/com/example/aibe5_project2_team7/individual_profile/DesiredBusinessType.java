@@ -1,20 +1,18 @@
-package com.example.aibe5_project2_team7.highest_education;
+package com.example.aibe5_project2_team7.individual_profile;
 
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import org.hibernate.annotations.ColumnDefault;
 
 @Entity
 @Getter@Setter
-public class HighestEducation {
+public class DesiredBusinessType {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @Column(nullable = false)
     private Long member_id;
     @Column(nullable = false)
-    private String schoolName;
-    @Column(nullable = false)
-    private String schoolType; //ex) 대학교, 대학원, 고등학교
-    private String major;
+    private String type; // 희망 업직종
 }
