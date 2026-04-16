@@ -17,7 +17,7 @@ public class ChatMessage {
     private Long senderId;
     private String content;
     private LocalDateTime sent_at = LocalDateTime.now();
-
+    private String roomId;
     @Enumerated(EnumType.STRING)
     MessageType type;
 }
