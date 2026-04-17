@@ -6,5 +6,5 @@ public enum BusinessTypeName {
     RETAIL_STORE,       // 매장관리·판매 (편의점, 피시방)
     SERVICE,            // 서비스
     DELIVERY_DRIVER,    // 운전·배달 (배달 플랫폼 라이더)
-    MANUAL_LABOR      // 현장단순노무 (물류/상하차)
+    MANUAL_LABOR;        // 현장단순노무 (물류/상하차)
 }
