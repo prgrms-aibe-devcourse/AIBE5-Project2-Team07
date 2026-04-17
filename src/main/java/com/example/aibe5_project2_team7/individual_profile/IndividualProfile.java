@@ -13,8 +13,8 @@ public class IndividualProfile {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-    @Column(nullable = false)
-    private Long member_id;
+    @Column(name = "member_id", nullable = false)
+    private Long memberId;
     @ColumnDefault("false")
     private Boolean isActive; // 실시간 활동 여부
     @ColumnDefault("false")

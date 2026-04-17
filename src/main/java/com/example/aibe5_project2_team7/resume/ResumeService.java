@@ -42,7 +42,7 @@ public class ResumeService {
         List<ResumeSummaryDto> dtos = resumes.stream().map(r -> {
             Member m = r.getMember();
             if (m == null) {
-                m = memberRepository.findById(r.getMember_id()).orElse(null);
+                m = memberRepository.findById(r.getMemberId()).orElse(null);
             }
             String name = m != null ? m.getName() : null;
             Double avg = null;
@@ -56,7 +56,7 @@ public class ResumeService {
                 List<DesiredBusinessType> dts = desiredBusinessTypeRepository.findByMemberId(m.getId());
                 desiredTypes = dts.stream().map(DesiredBusinessType::getType).collect(Collectors.toList());
             }
-            return new ResumeSummaryDto(r.getId(), r.getMember_id(), r.getTitle(), r.getUpdatedAt(), name, avg, desiredTypes);
+            return new ResumeSummaryDto(r.getId(), r.getMemberId(), r.getTitle(), r.getUpdatedAt(), name, avg, desiredTypes);
         }).collect(Collectors.toList());
 
         return new PageImpl<>(dtos, pageable, resumes.getTotalElements());
@@ -68,12 +68,12 @@ public class ResumeService {
         Page<Resume> resumes = resumeRepository.findByVisibilityTrue(pageable);
 
         List<ResumeSummaryDto> dtos = resumes.stream().filter(r -> {
-            IndividualProfile p = individualProfileRepository.findByMemberId(r.getMember_id()).orElse(null);
+            IndividualProfile p = individualProfileRepository.findByMemberId(r.getMemberId()).orElse(null);
             return p != null && Boolean.TRUE.equals(p.getIsActive());
         }).map(r -> {
             Member m = r.getMember();
             if (m == null) {
-                m = memberRepository.findById(r.getMember_id()).orElse(null);
+                m = memberRepository.findById(r.getMemberId()).orElse(null);
             }
             String name = m != null ? m.getName() : null;
             Double avg = null;
@@ -87,7 +87,7 @@ public class ResumeService {
                 List<DesiredBusinessType> dts = desiredBusinessTypeRepository.findByMemberId(m.getId());
                 desiredTypes = dts.stream().map(DesiredBusinessType::getType).collect(Collectors.toList());
             }
-            return new ResumeSummaryDto(r.getId(), r.getMember_id(), r.getTitle(), r.getUpdatedAt(), name, avg, desiredTypes);
+            return new ResumeSummaryDto(r.getId(), r.getMemberId(), r.getTitle(), r.getUpdatedAt(), name, avg, desiredTypes);
         }).collect(Collectors.toList());
 
         return new PageImpl<>(dtos, pageable, dtos.size());
@@ -99,12 +99,12 @@ public class ResumeService {
         Page<Resume> resumes = resumeRepository.findByVisibilityTrue(pageable);
 
         List<ResumeSummaryDto> dtos = resumes.stream().filter(r -> {
-            IndividualProfile p = individualProfileRepository.findByMemberId(r.getMember_id()).orElse(null);
+            IndividualProfile p = individualProfileRepository.findByMemberId(r.getMemberId()).orElse(null);
             return p != null && Boolean.TRUE.equals(p.getIsSpecial());
         }).map(r -> {
             Member m = r.getMember();
             if (m == null) {
-                m = memberRepository.findById(r.getMember_id()).orElse(null);
+                m = memberRepository.findById(r.getMemberId()).orElse(null);
             }
             String name = m != null ? m.getName() : null;
             Double avg = null;
@@ -118,7 +118,7 @@ public class ResumeService {
                 List<DesiredBusinessType> dts = desiredBusinessTypeRepository.findByMemberId(m.getId());
                 desiredTypes = dts.stream().map(DesiredBusinessType::getType).collect(Collectors.toList());
             }
-            return new ResumeSummaryDto(r.getId(), r.getMember_id(), r.getTitle(), r.getUpdatedAt(), name, avg, desiredTypes);
+            return new ResumeSummaryDto(r.getId(), r.getMemberId(), r.getTitle(), r.getUpdatedAt(), name, avg, desiredTypes);
         }).collect(Collectors.toList());
 
         return new PageImpl<>(dtos, pageable, dtos.size());
@@ -138,7 +138,7 @@ public class ResumeService {
         }
 
         Resume r = new Resume();
-        r.setMember_id(memberId);
+        r.setMemberId(memberId);
         r.setTitle(title);
         r.setVisibility(visibility);
         r.setContent(content);
@@ -181,7 +181,7 @@ public class ResumeService {
         Resume r = resumeRepository.findById(resumeId).orElseThrow(() -> new RuntimeException("Resume not found"));
         Member m = r.getMember();
         if (m == null) {
-            m = memberRepository.findById(r.getMember_id()).orElse(null);
+            m = memberRepository.findById(r.getMemberId()).orElse(null);
         }
         String name = m != null ? m.getName() : null;
         Double avg = null;
@@ -228,9 +228,70 @@ public class ResumeService {
         }).collect(Collectors.toList());
 
         ResumeDetailDto dto = new ResumeDetailDto(
-                r.getId(), r.getMember_id(), r.getTitle(), r.getContent(), r.getUpdatedAt(), name, avg, desiredTypes, careers, licenses, educations
+                r.getId(), r.getMemberId(), r.getTitle(), r.getContent(), r.getUpdatedAt(), name, avg, desiredTypes, careers, licenses, educations
         );
 
         return dto;
+    }
+
+    // 업직종별 인재 조회
+    public Page<ResumeSummaryDto> getResumesByDesiredBusinessTypes(List<String> types, int page) {
+        Pageable pageable = PageRequest.of(page, 20, org.springframework.data.domain.Sort.by("updatedAt").descending());
+
+        if (types == null || types.isEmpty()) {
+            return new PageImpl<>(List.of(), pageable, 0);
+        }
+
+        List<Long> memberIds = desiredBusinessTypeRepository.findDistinctMemberIdByTypeIn(types);
+        if (memberIds == null || memberIds.isEmpty()) {
+            return new PageImpl<>(List.of(), pageable, 0);
+        }
+
+        Page<Resume> resumes = resumeRepository.findPublicByMemberIds(memberIds, pageable);
+        List<ResumeSummaryDto> dtos = resumes.stream()
+                .map(this::mapToSummary)
+                .collect(Collectors.toList());
+
+        return new PageImpl<>(dtos, pageable, resumes.getTotalElements());
+    }
+
+    public Page<ResumeSummaryDto> getResumesByPreferredRegions(List<Long> regionIds, int page) {
+        Pageable pageable = PageRequest.of(page, 20, org.springframework.data.domain.Sort.by("updatedAt").descending());
+
+        if (regionIds == null || regionIds.isEmpty()) {
+            return new PageImpl<>(List.of(), pageable, 0);
+        }
+
+        List<Long> memberIds = memberRepository.findDistinctIdByPreferredRegionsIdIn(regionIds);
+        if (memberIds == null || memberIds.isEmpty()) {
+            return new PageImpl<>(List.of(), pageable, 0);
+        }
+
+        Page<Resume> resumes = resumeRepository.findPublicByMemberIds(memberIds, pageable);
+        List<ResumeSummaryDto> dtos = resumes.stream()
+                .map(this::mapToSummary)
+                .collect(Collectors.toList());
+
+        return new PageImpl<>(dtos, pageable, resumes.getTotalElements());
+    }
+
+    private ResumeSummaryDto mapToSummary(Resume r) {
+        Member m = r.getMember();
+        if (m == null) {
+            m = memberRepository.findById(r.getMemberId()).orElse(null);
+        }
+        String name = m != null ? m.getName() : null;
+        Double avg = null;
+        List<String> desiredTypes = new ArrayList<>();
+        if (m != null) {
+            if (m.getRatingCount() != null && m.getRatingCount() > 0) {
+                avg = m.getRatingSum() / (double) m.getRatingCount();
+            } else {
+                avg = 0.0;
+            }
+            List<DesiredBusinessType> dts = desiredBusinessTypeRepository.findByMemberId(m.getId());
+            desiredTypes = dts.stream().map(DesiredBusinessType::getType).collect(Collectors.toList());
+        }
+        return new ResumeSummaryDto(r.getId(), r.getMemberId(), r.getTitle(), r.getUpdatedAt(), name, avg, desiredTypes);
     }
 }

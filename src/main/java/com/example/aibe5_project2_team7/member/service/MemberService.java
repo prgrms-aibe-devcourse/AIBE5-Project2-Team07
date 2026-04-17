@@ -42,7 +42,7 @@ public class MemberService {
 
         if (saved.getMemberType() == MemberType.INDIVIDUAL) {
             IndividualProfile p = new IndividualProfile();
-            p.setMember_id(saved.getId());
+            p.setMemberId(saved.getId());
 
             individualProfileRepository.save(p);
         } else if (saved.getMemberType() == MemberType.BUSINESS) {
@@ -51,7 +51,7 @@ public class MemberService {
                 throw new RuntimeException("Business registration requires business profile data");
             }
             BusinessProfile bp = new BusinessProfile();
-            bp.setMember_id(saved.getId());
+            bp.setMemberId(saved.getId());
             Object companyName = extra.get("companyName");
             Object foundedDate = extra.get("foundedDate");
             Object businessNumber = extra.get("businessNumber");
