@@ -21,4 +21,7 @@ public class IndividualProfile {
     @ColumnDefault("false")
     @Column(name = "is_special")
     private Boolean isSpecial; // 스페셜 인재 여부 (리뷰 평균 4점 이상인 회원)
+    @ColumnDefault("false")
+    @Column(name = "is_phone_public")
+    private Boolean isPhonePublic; // 휴대번호 공개 여부
 }

@@ -13,4 +13,6 @@ public interface ResumeRepository extends JpaRepository<Resume, Long> {
 
     @Query("select r from Resume r where r.visibility = true and r.memberId in :memberIds")
     Page<Resume> findPublicByMemberIds(@Param("memberIds") List<Long> memberIds, Pageable pageable);
+
+    List<Resume> findByMemberId(Long memberId);
 }

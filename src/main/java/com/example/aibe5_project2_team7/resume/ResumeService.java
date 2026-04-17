@@ -317,4 +317,67 @@ public class ResumeService {
         }
         return new ResumeSummaryDto(r.getId(), r.getMemberId(), r.getTitle(), r.getUpdatedAt(), name, avg, desiredTypes);
     }
+    // 이력서 조회
+    public ResumeDetailDto getOwnResume(Long memberId) {
+        Resume r = resumeRepository.findByMemberId(memberId).stream().findFirst().orElseThrow(() -> new RuntimeException("Resume not found for member"));
+        return getResumeDetail(r.getId());
+    }
+    // 이력서 수정
+    public Resume patchOwnResume(Long memberId, Map<String, Object> payload) {
+        Resume r = resumeRepository.findByMemberId(memberId).stream().findFirst().orElseThrow(() -> new RuntimeException("Resume not found for member"));
+
+        // update simple fields
+        if (payload.containsKey("title")) {
+            r.setTitle(payload.get("title") != null ? payload.get("title").toString() : null);
+        }
+        if (payload.containsKey("content")) {
+            r.setContent(payload.get("content") != null ? payload.get("content").toString() : null);
+        }
+        if (payload.containsKey("visibility")) {
+            r.setVisibility(Boolean.valueOf(payload.get("visibility").toString()));
+        }
+
+
+        if (payload.containsKey("careerIds")) {
+            List<Long> careerIds = payload.get("careerIds") instanceof List ? (List<Long>) payload.get("careerIds") : new ArrayList<>();
+            r.getCareers().clear();
+            if (!careerIds.isEmpty()) {
+                List found = careerRepository.findAllById(careerIds);
+                r.getCareers().addAll(found);
+            }
+        }
+        if (payload.containsKey("licenseIds")) {
+            List<Long> licenseIds = payload.get("licenseIds") instanceof List ? (List<Long>) payload.get("licenseIds") : new ArrayList<>();
+            r.getLicenses().clear();
+            if (!licenseIds.isEmpty()) {
+                List found = licenseRepository.findAllById(licenseIds);
+                r.getLicenses().addAll(found);
+            }
+        }
+        if (payload.containsKey("educationIds")) {
+            List<Long> educationIds = payload.get("educationIds") instanceof List ? (List<Long>) payload.get("educationIds") : new ArrayList<>();
+            r.getEducations().clear();
+            if (!educationIds.isEmpty()) {
+                List found = highestEducationRepository.findAllById(educationIds);
+                r.getEducations().addAll(found);
+            }
+        }
+
+
+        if (payload.containsKey("isPhonePublic")) {
+            Boolean flag = payload.get("isPhonePublic") != null ? Boolean.valueOf(payload.get("isPhonePublic").toString()) : false;
+            IndividualProfile p = individualProfileRepository.findByMemberId(memberId).orElse(null);
+            if (p != null) {
+                p.setIsPhonePublic(flag);
+                individualProfileRepository.save(p);
+            }
+        }
+
+        return resumeRepository.save(r);
+    }
+    // 이력서 삭제
+    public void deleteOwnResume(Long memberId){
+        Resume r = resumeRepository.findByMemberId(memberId).stream().findFirst().orElseThrow(() -> new RuntimeException("Resume not found for member"));
+        resumeRepository.delete(r);
+    }
 }
