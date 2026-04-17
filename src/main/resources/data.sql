@@ -191,3 +191,32 @@ INSERT IGNORE INTO region (sido, sigungu) VALUES
 
 -- 제주특별자치도
 ('제주특별자치도','제주시'),('제주특별자치도','서귀포시');
+
+
+
+-- 리뷰 라벨
+
+-- 개인 회원 라벨 (긍정)
+INSERT INTO review_label (name, target_type) VALUES
+('답변 속도가 빠르다', 'INDIVIDUAL'),
+('펑크를 내지 않는다', 'INDIVIDUAL'),
+('시간 약속을 잘 지킨다', 'INDIVIDUAL'),
+('근무를 성실히 한다', 'INDIVIDUAL'),
+
+-- 개인 회원 라벨 (부정)
+('답변 속도가 느리다', 'INDIVIDUAL'),
+('펑크를 낸다', 'INDIVIDUAL'),
+('시간 약속을 잘 지키지 않는다', 'INDIVIDUAL'),
+('근무를 성실히 하지 않는다', 'INDIVIDUAL'),
+
+-- 사업자 회원 라벨 (긍정)
+('정산이 빠르다', 'BUSINESS'),
+('친절해요', 'BUSINESS'),
+('업무를 자세하게 알려줘요', 'BUSINESS'),
+('근무환경이 쾌적해요', 'BUSINESS'),
+
+-- 사업자 회원 라벨 (부정)
+('정산이 느리다', 'BUSINESS'),
+('불친절해요', 'BUSINESS'),
+('업무 설명이 부족해요', 'BUSINESS'),
+('근무환경이 좋지 않아요', 'BUSINESS');
