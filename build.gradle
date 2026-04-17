@@ -17,7 +17,9 @@ java {
 repositories {
     mavenCentral()
 }
-
+ext {
+    querydslVersion = '5.1.0'
+}
 dependencies {
     implementation 'org.springframework.boot:spring-boot-starter-data-jpa'
     implementation 'org.springframework.boot:spring-boot-starter-webmvc'
@@ -33,6 +35,30 @@ dependencies {
     testRuntimeOnly 'org.junit.platform:junit-platform-launcher'
     testAnnotationProcessor 'org.projectlombok:lombok'
 
+    // QueryDSL 의존성 (Spring Boot 3.x 용)
+    implementation "com.querydsl:querydsl-jpa:${querydslVersion}:jakarta"
+    annotationProcessor "com.querydsl:querydsl-apt:${querydslVersion}:jakarta"
+
+    // java.lang.NoClassDefFoundError (javax.annotation.Generated) 에러 방지
+    annotationProcessor "jakarta.annotation:jakarta.annotation-api"
+    // java.lang.NoClassDefFoundError (javax.persistence.Entity) 에러 방지
+    annotationProcessor "jakarta.persistence:jakarta.persistence-api"
+
+}
+
+// 2. Q클래스가 생성될 디렉토리 경로 설정
+def querydslDir = layout.buildDirectory.dir("generated/querydsl").get().asFile
+// 3. 빌드 시 Q클래스 디렉토리를 sourceSet에 추가하여 컴파일 대상에 포함
+sourceSets {
+    main.java.srcDirs += [ querydslDir ]
+}
+// 4. 자바 컴파일 시 Q클래스 생성 위치 지정
+tasks.withType(JavaCompile) {
+    options.getGeneratedSourceOutputDirectory().set(file(querydslDir))
+}
+// 5. gradle clean 실행 시 Q클래스 디렉토리 삭제 (충돌 방지)
+clean {
+    delete file(querydslDir)
 }
 
 tasks.named('test') {
