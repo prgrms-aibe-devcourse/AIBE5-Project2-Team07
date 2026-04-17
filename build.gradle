@@ -46,21 +46,6 @@ dependencies {
 
 }
 
-// 2. Q클래스가 생성될 디렉토리 경로 설정
-def querydslDir = layout.buildDirectory.dir("generated/querydsl").get().asFile
-// 3. 빌드 시 Q클래스 디렉토리를 sourceSet에 추가하여 컴파일 대상에 포함
-sourceSets {
-    main.java.srcDirs += [ querydslDir ]
-}
-// 4. 자바 컴파일 시 Q클래스 생성 위치 지정
-tasks.withType(JavaCompile) {
-    options.getGeneratedSourceOutputDirectory().set(file(querydslDir))
-}
-// 5. gradle clean 실행 시 Q클래스 디렉토리 삭제 (충돌 방지)
-clean {
-    delete file(querydslDir)
-}
-
 tasks.named('test') {
     useJUnitPlatform()
 }
