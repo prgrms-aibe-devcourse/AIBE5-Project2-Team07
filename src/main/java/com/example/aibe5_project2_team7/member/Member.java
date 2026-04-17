@@ -4,6 +4,7 @@ import com.example.aibe5_project2_team7.region.Region;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+//import org.springframework.data.annotation.Id;
 
 import java.time.LocalDate;
 import java.util.LinkedHashSet;

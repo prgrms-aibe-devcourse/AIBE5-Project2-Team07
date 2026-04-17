@@ -1,6 +1,6 @@
 package com.example.aibe5_project2_team7.recruit.entity;
 
-import com.example.aibe5_project2_team7.brand.Brand;
+import com.example.aibe5_project2_team7.brand.entity.Brand;
 import com.example.aibe5_project2_team7.common.BaseEntity;
 import com.example.aibe5_project2_team7.recruit.constant.RecruitStatus;
 import com.example.aibe5_project2_team7.recruit.constant.SalaryType;

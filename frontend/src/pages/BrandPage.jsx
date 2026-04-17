@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import TopNavBar from '../components/TopNavBar';
 import MobileBottomNav from '../components/MobileBottomNav';
@@ -102,6 +102,41 @@ const allBrands = [
 export default function BrandPage() {
   const navigate = useNavigate();
 
+  // Autocomplete state
+  const [q, setQ] = useState('');
+  const [suggestions, setSuggestions] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  useEffect(() => {
+    if (!q || !q.trim()) {
+      setSuggestions([]);
+      setShowSuggestions(false);
+      return;
+    }
+
+    const handle = setTimeout(() => {
+      setLoading(true);
+      fetch(`/api/brand/search/autocomplete?q=${encodeURIComponent(q.trim())}`)
+        .then((res) => {
+          if (!res.ok) throw new Error('Network response was not ok');
+          return res.json();
+        })
+        .then((data) => {
+          setSuggestions(Array.isArray(data) ? data : []);
+          setShowSuggestions(true);
+        })
+        .catch((err) => {
+          console.error('autocomplete fetch error', err);
+          setSuggestions([]);
+          setShowSuggestions(false);
+        })
+        .finally(() => setLoading(false));
+    }, 350); // debounce 350ms
+
+    return () => clearTimeout(handle);
+  }, [q]);
+
   return (
     <>
       <TopNavBar />
@@ -113,11 +148,44 @@ export default function BrandPage() {
               <div className="absolute inset-y-0 left-6 flex items-center pointer-events-none">
                 <span className="material-symbols-outlined text-on-surface-variant">search</span>
               </div>
-              <input
-                className="w-full bg-[#f9f9f9] border-none focus:ring-2 focus:ring-primary/20 rounded-2xl py-6 pl-16 pr-28 text-xl font-medium transition-all placeholder:text-on-surface-variant/50 shadow-sm"
-                placeholder="브랜드 검색 (예: 스타벅스, 쿠팡)"
-                type="text"
-              />
+              <div className="relative">
+                <input
+                  className="w-full bg-[#f9f9f9] border-none focus:ring-2 focus:ring-primary/20 rounded-2xl py-6 pl-16 pr-28 text-xl font-medium transition-all placeholder:text-on-surface-variant/50 shadow-sm"
+                  placeholder="브랜드 검색 (예: 스타벅스, 쿠팡)"
+                  type="text"
+                  value={q}
+                  onChange={(e) => setQ(e.target.value)}
+                  onFocus={() => { if (suggestions.length) setShowSuggestions(true); }}
+                />
+
+                {/* suggestions dropdown */}
+                {showSuggestions && (
+                  <div className="absolute left-0 right-0 mt-2 bg-white rounded-lg shadow-lg z-50 max-h-56 overflow-auto">
+                    {loading ? (
+                      <div className="p-3 text-sm text-center">로딩 중...</div>
+                    ) : suggestions.length ? (
+                      <ul>
+                        {suggestions.map((s) => (
+                          <li
+                            key={s.id}
+                            className="px-4 py-3 hover:bg-gray-100 cursor-pointer flex justify-between items-center"
+                            onMouseDown={() => {
+                              // onMouseDown to prevent input blur before click
+                              setQ(s.name);
+                              setShowSuggestions(false);
+                            }}
+                          >
+                            <span className="text-sm">{s.name}</span>
+                            <span className="text-xs text-on-surface-variant">{s.id}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    ) : (
+                      <div className="p-3 text-sm text-center text-on-surface-variant">검색 결과가 없습니다.</div>
+                    )}
+                  </div>
+                )}
+              </div>
               <div className="absolute right-4 top-1/2 -translate-y-1/2 flex items-center gap-2">
                 <CommonButton size="sm" className="px-4 py-2.5 text-xs">검색</CommonButton>
               </div>
