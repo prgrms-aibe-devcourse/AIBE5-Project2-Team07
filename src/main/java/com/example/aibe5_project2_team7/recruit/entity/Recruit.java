@@ -9,7 +9,7 @@ import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -25,9 +25,9 @@ public class Recruit extends BaseEntity {
     @Column(nullable = false)
     private String title; //제목
 
-    @ManyToOne(fetch = FetchType.LAZY, optional = true)
-    @JoinColumn(name = "brand_id", nullable = true)
-    private Brand brand; //브랜드 여부
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "brand_id")
+    private Brand brand; //브랜드 여부 (null 가능)
 
     @Column(name = "is_urgent", nullable = false)
     private boolean isUrgent; //대타 공고 여부
@@ -37,7 +37,7 @@ public class Recruit extends BaseEntity {
     private RecruitStatus status; //공고 상태
 
     @Column(nullable = false)
-    private LocalDateTime deadline; //마감일, (대타 공고일 경우 근로일)
+    private LocalDate deadline; //마감일, (대타 공고일 경우 근로일)
 
     @Column(nullable = false)
     private int salary; //급여

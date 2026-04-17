@@ -6,6 +6,12 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
+@Table(
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_business_type_recruit_type",
+                columnNames = {"recruit_id", "type"}
+        )
+)
 @Getter @Setter
 public class BusinessType {
     @Id

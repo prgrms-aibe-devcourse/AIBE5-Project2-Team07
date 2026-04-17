@@ -7,5 +7,5 @@ public enum Period {
     ThreeMonths, //세 달 이하
     SixMonths, //여섯 달 이하
     OneYear, //1년 이하
-    MoreThanOneYear; //1년 이상
+    MoreThanOneYear //1년 이상
 }

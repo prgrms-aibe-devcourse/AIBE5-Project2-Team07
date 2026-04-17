@@ -6,6 +6,12 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
+@Table(
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_work_period_recruit_period",
+                columnNames = {"recruit_id", "period"}
+        )
+)
 @Getter @Setter
 public class WorkPeriod {
     @Id

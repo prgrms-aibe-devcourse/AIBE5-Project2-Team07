@@ -9,5 +9,5 @@ public enum Times {
     AFTERNOON_EVENING, // 오후~저녁
     EVENING_NIGHT, // 저녁~새벽
     NIGHT_MORNING, // 새벽~오전
-    FULLTIME; // 8시간 이상 풀타임
+    FULLTIME // 8시간 이상 풀타임
 }

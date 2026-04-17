@@ -8,9 +8,9 @@ import lombok.Getter;
 @Table(
         name="region",
         uniqueConstraints = {
-                @UniqueConstraint(
-                        name = "unique_region_sido_sigungu",
-                        columnNames = {"sido", "sigungu"})
+            @UniqueConstraint(
+                    name = "unique_region_sido_sigungu",
+                    columnNames = {"sido", "sigungu"})
         }
 )
 public class Region {
