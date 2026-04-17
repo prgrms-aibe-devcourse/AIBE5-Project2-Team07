@@ -62,7 +62,20 @@ public class ResumeController {
         Page<ResumeSummaryDto> res = resumeService.getResumesByPreferredRegions(ids, page);
         return ResponseEntity.ok(res);
     }
-    // 인재 상새 보기
+    // 브랜드별 인재 조회
+    @GetMapping("/human-resource/brands")
+    public ResponseEntity<?> searchByBrands(@RequestParam String brandIds,
+                                            @RequestParam(defaultValue = "0") int page) {
+        List<Long> ids = Arrays.stream(brandIds.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .map(Long::valueOf)
+                .collect(Collectors.toList());
+
+        Page<ResumeSummaryDto> res = resumeService.getResumesByBrandIds(ids, page);
+        return ResponseEntity.ok(res);
+    }
+    // 인재 상세 보기
     @GetMapping("/human-resource/{id}")
     public ResponseEntity<?> getResumeDetail(@PathVariable Long id) {
         try {

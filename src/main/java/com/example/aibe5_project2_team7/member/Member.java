@@ -17,7 +17,7 @@ public class Member {
     private Long id;
     @Column(nullable = false)
     private String name;
-    @Column(nullable = false)
+    @Column(name = "birth_date", nullable = false)
     private LocalDate birthDate;
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
@@ -30,11 +30,11 @@ public class Member {
     @Column(nullable = false)
     private String password;
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, name = "member_type")
     private MemberType memberType;
-    @Column(nullable = false)
+    @Column(name = "rating_sum", nullable = false)
     private Integer ratingSum;
-    @Column(nullable = false)
+    @Column(name = "rating_count", nullable = false)
     private Integer ratingCount;
 
     @ManyToMany

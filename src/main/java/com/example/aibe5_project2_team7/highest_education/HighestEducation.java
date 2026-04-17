@@ -12,9 +12,9 @@ public class HighestEducation {
     private Long id;
     @Column(name = "member_id", nullable = false)
     private Long memberId;
-    @Column(nullable = false)
+    @Column(name = "school_name", nullable = false)
     private String schoolName;
-    @Column(nullable = false)
+    @Column(name = "school_type", nullable = false)
     private String schoolType; //ex) 대학교, 대학원, 고등학교
     private String major;
 }

@@ -1,5 +1,6 @@
 package com.example.aibe5_project2_team7.common;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.EntityListeners;
 import jakarta.persistence.MappedSuperclass;
 import lombok.Getter;
@@ -15,8 +16,10 @@ import java.time.LocalDateTime;
 public abstract class BaseEntity {
 
     @CreatedDate
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 
     @LastModifiedDate
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 }

@@ -16,7 +16,9 @@ public class IndividualProfile {
     @Column(name = "member_id", nullable = false)
     private Long memberId;
     @ColumnDefault("false")
+    @Column(name = "is_active")
     private Boolean isActive; // 실시간 활동 여부
     @ColumnDefault("false")
+    @Column(name = "is_special")
     private Boolean isSpecial; // 스페셜 인재 여부 (리뷰 평균 4점 이상인 회원)
 }

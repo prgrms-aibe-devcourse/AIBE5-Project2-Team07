@@ -14,12 +14,14 @@ public class License {
     private Long id;
     @Column(name = "member_id", nullable = false)
     private Long memberId;
-    @Column(nullable = false)
+    @Column(name = "license_name", nullable = false)
     private String licenseName;
-    @Column(nullable = false)
+    @Column(name = "license_number", nullable = false)
     private String licenseNumber;
-    @Column(nullable = false)
+    @Column(name = "acquisition_date", nullable = false)
     private LocalDate acquisitionDate;
+    @Column(name = "issued_by")
     private String issuedBy;
+    @Column(name = "license_file_url")
     private String licenseFileUrl;
 }
