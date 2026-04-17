@@ -1,6 +1,5 @@
 package com.example.aibe5_project2_team7.recruit;
 
-import com.example.aibe5_project2_team7.recruit.constant.RecruitStatus;
 import com.example.aibe5_project2_team7.recruit.dto.RecruitDetailResponseDto;
 import com.example.aibe5_project2_team7.recruit.dto.RecruitListResponseDto;
 import com.example.aibe5_project2_team7.recruit.dto.RecruitRequestDto;

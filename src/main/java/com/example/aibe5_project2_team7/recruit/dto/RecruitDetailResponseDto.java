@@ -4,9 +4,7 @@ import com.example.aibe5_project2_team7.recruit.constant.*;
 import lombok.Builder;
 import lombok.Getter;
 
-import java.lang.reflect.Array;
 import java.time.LocalDate;
-import java.util.ArrayList;
 import java.util.List;
 
 @Getter
