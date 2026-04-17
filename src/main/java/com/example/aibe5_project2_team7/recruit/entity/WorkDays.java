@@ -20,7 +20,7 @@ public class WorkDays {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "recruit_id", nullable = false)
-    private com.example.aibe5_project2_team7.recruit.entity.Recruit recruit; // recruit_id FK
+    private Recruit recruit; // recruit_id FK
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)

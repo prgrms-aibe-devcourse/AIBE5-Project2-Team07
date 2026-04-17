@@ -1,12 +1,17 @@
 package com.example.aibe5_project2_team7.recruit.entity;
 
 import com.example.aibe5_project2_team7.recruit.constant.Period;
-
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 
 @Entity
+@Table(
+        uniqueConstraints = @UniqueConstraint(
+                name = "uk_work_period_recruit_period",
+                columnNames = {"recruit_id", "period"}
+        )
+)
 @Getter @Setter
 public class WorkPeriod {
     @Id
