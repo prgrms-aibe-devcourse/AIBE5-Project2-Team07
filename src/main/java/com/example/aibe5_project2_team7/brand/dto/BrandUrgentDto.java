@@ -1,13 +1,12 @@
-package com.example.aibe5_project2_team7.brand;
+package com.example.aibe5_project2_team7.brand.dto;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 
 @Getter
 @AllArgsConstructor
-public class BrandRecruitCountDto {
+public class BrandUrgentDto {
     private Long brandId;
     private String brandName;
     private Long urgentCount;
-    private Long normalCount;
 }

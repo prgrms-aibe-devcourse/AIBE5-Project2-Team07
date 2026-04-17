@@ -1,5 +1,6 @@
-package com.example.aibe5_project2_team7.brand;
+package com.example.aibe5_project2_team7.brand.dto;
 
+import com.example.aibe5_project2_team7.brand.entity.Brand;
 import jakarta.validation.constraints.NotBlank;
 import lombok.Getter;
 import lombok.Setter;
@@ -11,7 +12,7 @@ public class BrandRandomDto {
     private Long id;
     @NotBlank(message = "브랜드 이름은 필수 입력 값입니다.")
     private String name;
-    private String logo_img;
+    private String logoImg;
 
     private static ModelMapper modelMapper = new ModelMapper();
     public static BrandRandomDto of(Brand brand) {

@@ -1,5 +1,6 @@
-package com.example.aibe5_project2_team7.brand;
+package com.example.aibe5_project2_team7.brand.dto;
 
+import com.example.aibe5_project2_team7.brand.entity.Brand;
 import lombok.Getter;
 import lombok.Setter;
 import jakarta.validation.constraints.NotBlank;
