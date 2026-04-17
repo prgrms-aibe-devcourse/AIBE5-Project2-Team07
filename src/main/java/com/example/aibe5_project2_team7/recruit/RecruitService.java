@@ -1,7 +1,7 @@
 package com.example.aibe5_project2_team7.recruit;
 
-import com.example.aibe5_project2_team7.brand.Brand;
 import com.example.aibe5_project2_team7.brand.BrandRepository;
+import com.example.aibe5_project2_team7.brand.entity.Brand;
 import com.example.aibe5_project2_team7.business_profile.BusinessProfile;
 import com.example.aibe5_project2_team7.business_profile.BusinessProfileRepository;
 import com.example.aibe5_project2_team7.recruit.constant.*;
