@@ -1183,6 +1183,158 @@ function InfoEditContent() {
 }
 
 /* ─────────────────────────────────────────────
+   스크랩한 공고 탭
+───────────────────────────────────────────── */
+const SCRAP_JOBS = [
+  {
+    id: 1,
+    company: '강남역 카페 테라스',
+    title: '주말 바리스타 단기 알바 모집',
+    tags: ['바리스타', '주말', '단기'],
+    pay: '시급 12,000원',
+    location: '서울 강남구',
+    deadline: '2026-04-25',
+    logo: null,
+  },
+  {
+    id: 2,
+    company: '역삼동 피트니스 센터',
+    title: '오전 헬스 트레이너 파트타임',
+    tags: ['트레이너', '오전', '파트타임'],
+    pay: '시급 15,000원',
+    location: '서울 강남구',
+    deadline: '2026-04-30',
+    logo: null,
+  },
+  {
+    id: 3,
+    company: '성수동 팝업스토어',
+    title: '팝업 행사 스태프 모집 (5일)',
+    tags: ['행사스태프', '단기', '5일'],
+    pay: '일급 100,000원',
+    location: '서울 성동구',
+    deadline: '2026-05-03',
+    logo: null,
+  },
+  {
+    id: 4,
+    company: '홍대 이자카야 다이닝',
+    title: '홀 서빙 야간 근무자 구합니다',
+    tags: ['홀서빙', '야간', '장기'],
+    pay: '시급 13,000원',
+    location: '서울 마포구',
+    deadline: '2026-05-10',
+    logo: null,
+  },
+];
+
+function ScrapContent() {
+  const [scraps, setScraps] = React.useState(SCRAP_JOBS);
+
+  const removeScrap = (id) => {
+    setScraps((prev) => prev.filter((j) => j.id !== id));
+  };
+
+  return (
+    <section className="flex-grow space-y-6">
+      {/* 헤더 */}
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-black text-[#1F1D1D] mb-1">스크랩한 공고</h1>
+          <p className="text-sm text-[#6B6766]">관심 있는 공고를 저장하고 한눈에 확인하세요.</p>
+        </div>
+        <span className="bg-[#FFF0F3] text-primary text-sm font-bold px-4 py-2 rounded-xl border border-primary/10">
+          총 {scraps.length}개
+        </span>
+      </div>
+
+      {scraps.length === 0 ? (
+        <div className="bg-white border border-[#EAE5E3] rounded-2xl p-16 flex flex-col items-center justify-center text-center shadow-sm">
+          <div className="w-16 h-16 bg-[#FFF0F3] rounded-2xl flex items-center justify-center mb-4">
+            <span className="material-symbols-outlined text-3xl text-primary">bookmark</span>
+          </div>
+          <p className="font-bold text-[#1F1D1D] mb-1">스크랩한 공고가 없습니다</p>
+          <p className="text-sm text-[#6B6766]">마음에 드는 공고를 스크랩해 보세요.</p>
+        </div>
+      ) : (
+        <div className="space-y-4">
+          {scraps.map((job) => (
+            <div
+              key={job.id}
+              className="bg-white border border-[#EAE5E3] rounded-2xl p-6 hover:border-primary/30 hover:shadow-md transition-all group shadow-sm"
+            >
+              <div className="flex items-start gap-4">
+                {/* 로고 */}
+                <div className="w-12 h-12 bg-[#FFF0F3] rounded-xl flex items-center justify-center flex-shrink-0 border border-primary/10">
+                  <span className="material-symbols-outlined text-primary text-2xl">apartment</span>
+                </div>
+
+                {/* 내용 */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-xs text-[#6B6766] font-medium mb-0.5">{job.company}</p>
+                  <h3 className="font-bold text-[#1F1D1D] group-hover:text-primary transition-colors text-base leading-snug mb-2">
+                    {job.title}
+                  </h3>
+                  <div className="flex flex-wrap gap-1.5 mb-3">
+                    {job.tags.map((tag) => (
+                      <span key={tag} className="text-[11px] font-bold bg-[#FFF0F3] text-primary px-2.5 py-0.5 rounded-full">
+                        {tag}
+                      </span>
+                    ))}
+                  </div>
+                  <div className="flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-[#6B6766] font-medium">
+                    <span className="flex items-center gap-1">
+                      <span className="material-symbols-outlined text-sm text-primary">payments</span>
+                      {job.pay}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span className="material-symbols-outlined text-sm text-[#6B6766]">location_on</span>
+                      {job.location}
+                    </span>
+                    <span className="flex items-center gap-1">
+                      <span className="material-symbols-outlined text-sm text-[#6B6766]">calendar_today</span>
+                      마감 {job.deadline}
+                    </span>
+                  </div>
+                </div>
+
+                {/* 액션 */}
+                <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                  <button
+                    onClick={() => removeScrap(job.id)}
+                    className="p-2 rounded-xl hover:bg-[#FFF0F3] transition-colors group/btn"
+                    title="스크랩 해제"
+                  >
+                    <span
+                      className="material-symbols-outlined text-primary text-xl"
+                      style={{ fontVariationSettings: "'FILL' 1" }}
+                    >
+                      bookmark
+                    </span>
+                  </button>
+                  <button className="text-xs font-bold text-[#6B6766] hover:text-primary transition-colors flex items-center gap-0.5">
+                    상세 보기
+                    <span className="material-symbols-outlined text-xs">chevron_right</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* 안내 */}
+      <div className="p-5 rounded-2xl bg-[#FFF0F3]/50 border border-primary/10 flex items-start gap-3">
+        <span className="material-symbols-outlined text-primary mt-0.5 text-sm">info</span>
+        <p className="text-xs text-[#6B6766] font-medium leading-relaxed">
+          북마크 아이콘을 클릭하면 스크랩이 해제됩니다. 마감된 공고는 자동으로 목록에서 제거됩니다.
+        </p>
+      </div>
+    </section>
+  );
+}
+
+/* ─────────────────────────────────────────────
    메인 페이지 컴포넌트
 ───────────────────────────────────────────── */
 export default function PersonalMyPage() {
@@ -1193,6 +1345,7 @@ export default function PersonalMyPage() {
     { key: 'work',      label: '근무 관리',  icon: 'work_history' },
     { key: 'resume',    label: '이력서 관리', icon: 'description' },
     { key: 'review',    label: '리뷰 관리',  icon: 'rate_review' },
+    { key: 'scrap',     label: '스크랩 공고', icon: 'bookmark' },
     { key: 'info',      label: '정보 수정',  icon: 'person_edit' },
   ];
 
@@ -1202,6 +1355,7 @@ export default function PersonalMyPage() {
       case 'work':      return <WorkContent />;
       case 'resume':    return <ResumeContent />;
       case 'review':    return <ReviewContent />;
+      case 'scrap':     return <ScrapContent />;
       case 'info':      return <InfoEditContent />;
       default:          return <DashboardContent />;
     }
