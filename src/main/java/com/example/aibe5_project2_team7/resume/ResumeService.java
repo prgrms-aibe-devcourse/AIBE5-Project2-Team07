@@ -125,21 +125,23 @@ public class ResumeService {
         return new PageImpl<>(dtos, pageable, dtos.size());
     }
 
-    public Resume createResume(Map<String, Object> payload) {
+    public Resume createResume(Long id, Map<String, Object> payload) {
+        if (resumeRepository.findByMemberId(id).isPresent()) {
+            throw new RuntimeException("이미 이력서가 존재합니다");
+        }
 
-        Long memberId = Long.valueOf(payload.get("memberId").toString());
         String title = (String) payload.get("title");
         Boolean visibility = payload.get("visibility") != null ? Boolean.valueOf(payload.get("visibility").toString()) : false;
         String content = payload.get("content") != null ? payload.get("content").toString() : null;
 
 
-        Member m = memberRepository.findById(memberId).orElseThrow(() -> new RuntimeException("Member not found"));
+        Member m = memberRepository.findById(id).orElseThrow(() -> new RuntimeException("Member not found"));
         if (m.getMemberType() == null || !m.getMemberType().name().equals("INDIVIDUAL")) {
             throw new RuntimeException("Only individual members can create resumes");
         }
 
         Resume r = new Resume();
-        r.setMemberId(memberId);
+        r.setMemberId(id);
         r.setTitle(title);
         r.setVisibility(visibility);
         r.setContent(content);
@@ -149,7 +151,7 @@ public class ResumeService {
         List<Long> licenseIds = payload.get("licenseIds") instanceof List ? (List<Long>) payload.get("licenseIds") : new ArrayList<>();
         List<Long> educationIds = payload.get("educationIds") instanceof List ? (List<Long>) payload.get("educationIds") : new ArrayList<>();
 
-        // save resume first to get id
+
         Resume saved = resumeRepository.save(r);
 
         if (!careerIds.isEmpty()) {
@@ -169,12 +171,12 @@ public class ResumeService {
         List<String> desiredTypes = payload.get("desiredBusinessTypes") instanceof List ? (List<String>) payload.get("desiredBusinessTypes") : new ArrayList<>();
         for (String t : desiredTypes) {
             DesiredBusinessType dbt = new DesiredBusinessType();
-            dbt.setMemberId(memberId);
+            dbt.setMemberId(id);
             try {
                 dbt.setType(BusinessTypeName.valueOf(t));
                 desiredBusinessTypeRepository.save(dbt);
             } catch (IllegalArgumentException ex) {
-                // ignore invalid business type names
+
             }
         }
 
@@ -247,7 +249,7 @@ public class ResumeService {
             return new PageImpl<>(List.of(), pageable, 0);
         }
 
-        // convert input strings to enum names if necessary; these input strings are expected to match enum names
+
         List<String> normalized = types.stream().map(String::trim).filter(s -> !s.isEmpty()).collect(Collectors.toList());
 
         List<Long> memberIds = desiredBusinessTypeRepository.findDistinctMemberIdByTypeIn(normalized);
@@ -319,7 +321,8 @@ public class ResumeService {
     }
     // 이력서 조회
     public ResumeDetailDto getOwnResume(Long memberId) {
-        Resume r = resumeRepository.findByMemberId(memberId).stream().findFirst().orElseThrow(() -> new RuntimeException("Resume not found for member"));
+        Resume r = resumeRepository.findByMemberId(memberId)
+                .orElseThrow(() -> new RuntimeException("Resume not found"));
         return getResumeDetail(r.getId());
     }
     // 이력서 수정
@@ -333,7 +336,7 @@ public class ResumeService {
         if (payload.containsKey("content")) {
             r.setContent(payload.get("content") != null ? payload.get("content").toString() : null);
         }
-        if (payload.containsKey("visibility")) {
+        if (payload.containsKey("visibility") && payload.get("visibility") != null) {
             r.setVisibility(Boolean.valueOf(payload.get("visibility").toString()));
         }
 

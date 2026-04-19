@@ -45,4 +45,5 @@ public class Member {
             inverseJoinColumns = @JoinColumn(name="region_id")
     )
     private Set<Region> preferredRegions = new LinkedHashSet<>();
+
 }

@@ -13,6 +13,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
+@Table(
+        name = "resume",
+        uniqueConstraints = {
+                @UniqueConstraint(name = "unique_member_resume", columnNames = "member_id")
+        }
+)
 @Getter@Setter
 public class Resume extends BaseEntity {
     @Id
