@@ -1,6 +1,7 @@
 package com.example.aibe5_project2_team7.member.controller;
 
 import com.example.aibe5_project2_team7.member.CustomUser;
+import com.example.aibe5_project2_team7.member.Member;
 import com.example.aibe5_project2_team7.member.service.MemberService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -39,6 +40,19 @@ public class MemberController {
             return ResponseEntity.ok("회원 정보 수정 완료");
         } catch (RuntimeException e){
             return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
+    // 회원 정보 조회
+    @GetMapping("/account")
+    public ResponseEntity<?> getAccountInfo(
+            @AuthenticationPrincipal CustomUser user
+    ){
+        try{
+            Member info = memberService.getMember(user.getId());
+            return ResponseEntity.ok(info);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
     }
 }

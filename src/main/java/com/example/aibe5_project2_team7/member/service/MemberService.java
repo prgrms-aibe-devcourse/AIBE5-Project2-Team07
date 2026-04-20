@@ -154,4 +154,10 @@ public class MemberService {
         }
         memberRepository.save(member);
     }
+
+    // 회원정보 조회
+    public Member getMember(Long memberId){
+        return memberRepository.findById(memberId)
+                .orElseThrow(() -> new RuntimeException("member not found"));
+    }
 }

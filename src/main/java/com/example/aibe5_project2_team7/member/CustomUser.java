@@ -29,7 +29,7 @@ public class CustomUser implements UserDetails {
         return password;
     }
 
-    // 권한은 지금 안 쓰니까 간단히
+
     @Override
     public Collection<? extends GrantedAuthority> getAuthorities() {
         return null;
