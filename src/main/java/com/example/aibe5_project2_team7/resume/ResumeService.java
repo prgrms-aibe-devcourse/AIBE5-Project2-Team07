@@ -380,4 +380,16 @@ public class ResumeService {
         Resume r = resumeRepository.findByMemberId(memberId).stream().findFirst().orElseThrow(() -> new RuntimeException("Resume not found for member"));
         resumeRepository.delete(r);
     }
+
+    // 스크랩한 회원들의 공개 이력서 목록 페이징 조회
+    public Page<ResumeSummaryDto> getResumesByMemberIds(List<Long> memberIds, int page, int size) {
+        if (memberIds == null || memberIds.isEmpty()) {
+            Pageable emptyPageable = PageRequest.of(page, size, org.springframework.data.domain.Sort.by("updatedAt").descending());
+            return new PageImpl<>(List.of(), emptyPageable, 0);
+        }
+        Pageable pageable = PageRequest.of(Math.max(page, 0), Math.max(size, 1), org.springframework.data.domain.Sort.by("updatedAt").descending());
+        Page<Resume> resumes = resumeRepository.findPublicByMemberIds(memberIds, pageable);
+        List<ResumeSummaryDto> dtos = resumes.stream().map(this::mapToSummary).collect(Collectors.toList());
+        return new PageImpl<>(dtos, pageable, resumes.getTotalElements());
+    }
 }

@@ -24,5 +24,7 @@ public class RecruitListResponseDto { //공고 목록 조회할 때
     private Integer regionId;           // 지역 ID
     private String regionName;          // 지역명 (sido + sigungu)
     private LocalDate createdAt;        // 등록일
-    private RecruitStatus status;       // 공고 상태
+    private RecruitStatus status;       // 怨듦퀬 ?곹깭
+    private String companyImageUrl;     // 회사 로고 이미지
+    private String detailAddress;       // 상세 주소
 }

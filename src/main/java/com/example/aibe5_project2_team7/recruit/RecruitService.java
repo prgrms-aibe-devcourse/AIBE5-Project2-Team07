@@ -143,19 +143,18 @@ public class RecruitService {
         }
     }
 
-    //엔티티를 목록조회용dto로 변환
-    private RecruitListResponseDto toListResponse(Recruit recruit){
-        // 사업자 프로필에서 기업명 조회
+    //엔티티를 목록조회용dto로 변환 (공개 메서드 - 다른 서비스에서 재사용 가능)
+    public RecruitListResponseDto toListResponse(Recruit recruit){
         BusinessProfile profile = businessProfileRepository
                 .findByMemberId(recruit.getBusinessMemberId())
                 .orElse(null);
-        // 지역명 조합 (sido + sigungu)
         String regionName = recruit.getRegion().getSido() + " " + recruit.getRegion().getSigungu();
 
         return RecruitListResponseDto.builder()
                 .id(recruit.getId())
                 .title(recruit.getTitle())
                 .companyName(profile != null ? profile.getCompanyName() : null)
+                .companyImageUrl(profile != null ? profile.getCompanyImageUrl() : null)
                 .isUrgent(recruit.isUrgent())
                 .salary(recruit.getSalary())
                 .salaryType(recruit.getSalaryType())
@@ -166,6 +165,7 @@ public class RecruitService {
                 .deadline(recruit.getDeadline())
                 .regionId(recruit.getRegion().getId())
                 .regionName(regionName)
+                .detailAddress(recruit.getDetailAddress())
                 .createdAt(recruit.getCreatedAt() != null ? recruit.getCreatedAt().toLocalDate() : null)
                 .status(recruit.getStatus())
                 .build();
