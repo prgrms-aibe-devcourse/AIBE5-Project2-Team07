@@ -8,6 +8,7 @@ import com.example.aibe5_project2_team7.region.Region;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -15,6 +16,7 @@ import java.util.List;
 
 @Entity
 @Getter @Setter
+@ToString(exclude = {"brand", "region", "workPeriod", "workDays", "workTime", "businessType"})
 public class Recruit extends BaseEntity {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
