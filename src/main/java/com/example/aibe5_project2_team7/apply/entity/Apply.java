@@ -19,7 +19,7 @@ public class Apply {
     private Long id;
 
     @Column(name = "individual_id", nullable = false)
-    private Long individualId;
+    private Long individualId; // ==memberid랑 동일
 
     @Column(name = "recruit_id", nullable = false)
     private Long recruitId;

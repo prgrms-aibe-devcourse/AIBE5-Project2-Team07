@@ -46,4 +46,7 @@ public interface RecruitRepository extends JpaRepository<Recruit, Long> {
             @Param("memberId") Long memberId,
             Pageable pageable
     );
+
+    @Query("SELECT r.id FROM Recruit r WHERE r.businessMemberId = :businessMemberId")
+    List<Long> findIdsByBusinessMemberId(@Param("businessMemberId") Long businessMemberId);
 }
