@@ -5,6 +5,6 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.Optional;
 
 public interface MemberAddressRepository extends JpaRepository<MemberAddress, Long> {
-    Optional<MemberAddress> findByMemberId_Id(Long memberId);
+    Optional<MemberAddress> findByMemberId(Long memberId);
 }
 

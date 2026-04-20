@@ -1,6 +1,7 @@
 package com.example.aibe5_project2_team7.business_profile;
 
 import com.example.aibe5_project2_team7.business_profile.request.BusinessCompanyEditRequest;
+import com.example.aibe5_project2_team7.business_profile.request.BusinessDeleteRequest;
 import com.example.aibe5_project2_team7.business_profile.request.BusinessMemberEditRequest;
 import com.example.aibe5_project2_team7.business_profile.response.BusinessProfileResponse;
 import com.example.aibe5_project2_team7.brand.entity.Brand;
@@ -49,7 +50,7 @@ public class BusinessProfileService {
 		BusinessProfile profile = businessProfileRepository.findByMemberId(member.getId())
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "사업자 프로필을 찾을 수 없습니다."));
 
-		MemberAddress memberAddress = memberAddressRepository.findByMemberId_Id(member.getId())
+		MemberAddress memberAddress = memberAddressRepository.findByMemberId(member.getId())
 				.orElse(null);
 
 		String brandName = null;
@@ -93,10 +94,10 @@ public class BusinessProfileService {
 
 		member.setPhone(phone);
 
-		MemberAddress memberAddress = memberAddressRepository.findByMemberId_Id(member.getId())
+		MemberAddress memberAddress = memberAddressRepository.findByMemberId(member.getId())
 				.orElseGet(() -> {
 					MemberAddress newAddress = new MemberAddress();
-					newAddress.setMemberId(member);
+					newAddress.setMemberId(member.getId());
 					return newAddress;
 				});
 
@@ -175,5 +176,27 @@ public class BusinessProfileService {
 		profile.setBusinessNumber(businessNumber);
 
 		businessProfileRepository.save(profile);
+	}
+
+	public void deleteMyAccountByEmail(String email, BusinessDeleteRequest request) {
+		if (email == null || email.isBlank()) {
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증 정보가 없습니다.");
+		}
+		if (request == null || request.getPassword() == null || request.getPassword().isBlank()) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "비밀번호를 입력하세요.");
+		}
+
+		Member member = memberRepository.findByEmail(email)
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "회원 정보를 찾을 수 없습니다."));
+
+		if (member.getMemberType() != MemberType.BUSINESS) {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "사업자 회원만 삭제할 수 있습니다.");
+		}
+
+		if (!passwordEncoder.matches(request.getPassword(), member.getPassword())) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "비밀번호가 일치하지 않습니다.");
+		}
+
+		memberRepository.delete(member);
 	}
 }

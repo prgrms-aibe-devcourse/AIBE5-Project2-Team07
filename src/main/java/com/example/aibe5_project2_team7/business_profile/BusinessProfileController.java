@@ -3,15 +3,13 @@ package com.example.aibe5_project2_team7.business_profile;
 import com.example.aibe5_project2_team7.business_profile.request.BusinessCompanyEditRequest;
 import com.example.aibe5_project2_team7.business_profile.request.BusinessMemberEditRequest;
 import com.example.aibe5_project2_team7.business_profile.request.BusinessPasswordEditRequest;
+import com.example.aibe5_project2_team7.business_profile.request.BusinessDeleteRequest;
 import com.example.aibe5_project2_team7.business_profile.response.BusinessProfileResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PatchMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 import org.springframework.web.server.ResponseStatusException;
 
 @RestController
@@ -67,5 +65,14 @@ public class BusinessProfileController {
         return ResponseEntity.noContent().build();
     }
 
-    // 회원 탈퇴 (DELETE /business/account/delete)
+    @DeleteMapping("/business/account/delete")
+    public ResponseEntity<Void> deleteMyAccount(
+            Authentication authentication,
+            @RequestBody BusinessDeleteRequest request
+    ) {
+        String email = extractEmail(authentication);
+        businessProfileService.deleteMyAccountByEmail(email, request);
+        return ResponseEntity.noContent().build();
+    }
+
 }
