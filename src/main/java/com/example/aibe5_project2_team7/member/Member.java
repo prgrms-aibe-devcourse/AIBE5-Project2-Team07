@@ -1,14 +1,11 @@
 package com.example.aibe5_project2_team7.member;
 
-import com.example.aibe5_project2_team7.region.Region;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
 //import org.springframework.data.annotation.Id;
 
 import java.time.LocalDate;
-import java.util.LinkedHashSet;
-import java.util.Set;
 
 @Entity
 @Getter @Setter
@@ -37,13 +34,4 @@ public class Member {
     private Integer ratingSum;
     @Column(name = "rating_count", nullable = false)
     private Integer ratingCount;
-
-    @ManyToMany
-    @JoinTable(
-            name="member_preferred_region",
-            joinColumns = @JoinColumn(name="member_id"),
-            inverseJoinColumns = @JoinColumn(name="region_id")
-    )
-    private Set<Region> preferredRegions = new LinkedHashSet<>();
-
 }

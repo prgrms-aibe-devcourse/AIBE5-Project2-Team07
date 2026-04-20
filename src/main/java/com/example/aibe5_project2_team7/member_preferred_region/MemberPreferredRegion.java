@@ -1,5 +1,6 @@
 package com.example.aibe5_project2_team7.member_preferred_region;
 
+import com.example.aibe5_project2_team7.member.Member;
 import com.example.aibe5_project2_team7.region.Region;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -12,7 +13,9 @@ public class MemberPreferredRegion {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    private Long memberId;
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "member_id")
+    private Member member;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "region_id")

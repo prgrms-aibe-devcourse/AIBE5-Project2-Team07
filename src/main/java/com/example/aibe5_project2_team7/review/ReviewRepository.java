@@ -8,8 +8,6 @@ import java.util.List;
 import java.util.Optional;
 
 public interface ReviewRepository extends JpaRepository<Review, Long> {
-    List<ReviewLabel> findByTargetType(MemberType targetType);
-
     boolean existsByApplyId(Long applyId);
 
     @EntityGraph(attributePaths = {"labels"})

@@ -223,7 +223,7 @@ public class ResumeService {
             return new PageImpl<>(List.of(), pageable, 0);
         }
 
-        List<Long> memberIds = memberRepository.findDistinctIdByPreferredRegionsIdIn(regionIds);
+        List<Long> memberIds = memberPreferredRegionRepository.findMemberIdsByRegionIds(regionIds);
         if (memberIds == null || memberIds.isEmpty()) {
             return new PageImpl<>(List.of(), pageable, 0);
         }
