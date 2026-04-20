@@ -46,4 +46,7 @@ public interface RecruitRepository extends JpaRepository<Recruit, Long> {
             @Param("memberId") Long memberId,
             Pageable pageable
     );
+
+    @Override
+    List<Recruit> findAll();
 }
