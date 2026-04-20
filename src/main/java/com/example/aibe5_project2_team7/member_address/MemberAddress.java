@@ -1,5 +1,6 @@
 package com.example.aibe5_project2_team7.member_address;
 
+import com.example.aibe5_project2_team7.member.Member;
 import com.example.aibe5_project2_team7.region.Region;
 import jakarta.persistence.*;
 import lombok.Getter;
@@ -13,8 +14,9 @@ public class MemberAddress {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(name="member_id", nullable = false)
-    private Long memberId;
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name="member_id", nullable = false)
+    private Member memberId;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name="region_id", nullable = false)
