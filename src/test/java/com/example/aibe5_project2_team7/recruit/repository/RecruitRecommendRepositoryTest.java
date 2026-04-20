@@ -1,21 +1,9 @@
 package com.example.aibe5_project2_team7.recruit.repository;
-import com.example.aibe5_project2_team7.recruit.constant.BusinessTypeName;
-import com.example.aibe5_project2_team7.recruit.constant.Days;
-import com.example.aibe5_project2_team7.recruit.constant.Period;
-import com.example.aibe5_project2_team7.recruit.constant.RecruitStatus;
-import com.example.aibe5_project2_team7.recruit.constant.SalaryType;
-import com.example.aibe5_project2_team7.recruit.constant.Times;
-import com.example.aibe5_project2_team7.recruit.dto.RecruitDto;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.PersistenceContext;
-import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.transaction.annotation.Transactional;
-
-import java.util.List;
-import java.util.stream.IntStream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -23,8 +11,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 @Transactional
 class RecruitRecommendRepositoryTest {
 
-    @Autowired
-    private RecruitRepository recuitRepository;
+//    @Autowired
+//    private RecruitRepository recuitRepository;
 
     @PersistenceContext
     private EntityManager em;
