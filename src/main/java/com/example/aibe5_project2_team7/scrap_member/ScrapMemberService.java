@@ -4,13 +4,10 @@ import com.example.aibe5_project2_team7.business_profile.BusinessProfile;
 import com.example.aibe5_project2_team7.business_profile.BusinessProfileRepository;
 import com.example.aibe5_project2_team7.individual_profile.IndividualProfile;
 import com.example.aibe5_project2_team7.individual_profile.IndividualProfileRepository;
-import com.example.aibe5_project2_team7.member.repository.MemberRepository;
-import com.example.aibe5_project2_team7.resume.ResumeRepository;
 import com.example.aibe5_project2_team7.resume.ResumeService;
 import com.example.aibe5_project2_team7.resume.dto.ResumeSummaryDto;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
-import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
