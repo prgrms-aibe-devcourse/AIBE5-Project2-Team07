@@ -16,6 +16,7 @@ import BusinessMyPage from './pages/BusinessMyPage';
 import BusinessCompanyEditPage from './pages/BusinessCompanyEditPage';
 import BusinessRecruitCreatePage from './pages/BusinessRecruitCreatePage';
 import PersonalMyPage from './pages/PersonalMyPage';
+import TalentProfilePage from './pages/TalentProfilePage';
 import GlobalAiChatbotButton from './components/GlobalAiChatbotButton';
 import './index.css';
 
@@ -40,6 +41,7 @@ function App() {
         <Route path="/dashboard/company-edit" element={<BusinessCompanyEditPage />} />
         <Route path="/dashboard/recruit-create" element={<BusinessRecruitCreatePage />} />
         <Route path="/my-page" element={<PersonalMyPage />} />
+        <Route path="/talent-profile" element={<TalentProfilePage />} />
       </Routes>
       <GlobalAiChatbotButton />
     </Router>

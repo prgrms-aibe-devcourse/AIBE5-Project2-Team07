@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import TopNavBar from '../components/TopNavBar';
 import AppFooter from '../components/AppFooter';
 import CommonButton from '../components/CommonButton';
@@ -114,6 +115,7 @@ const talentList = [
 export default function HumanInformationPage() {
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showSearchPage, setShowSearchPage] = useState(false);
+  const navigate = useNavigate();
 
   return (
     <>
@@ -234,7 +236,7 @@ export default function HumanInformationPage() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {talentList.map((talent) => (
-                <div key={talent.name} className="bg-white p-6 rounded-xl border border-outline flex flex-col gap-5 group cursor-pointer hover:shadow-md transition-all" onClick={() => setShowSearchPage(true)}>
+                <div key={talent.name} className="bg-white p-6 rounded-xl border border-outline flex flex-col gap-5 group cursor-pointer hover:shadow-md transition-all" onClick={() => navigate('/talent-profile')}>
                   <div className="flex items-start justify-between">
                     <div className="w-16 h-16 rounded-xl bg-gray-100 overflow-hidden shrink-0">
                       <img alt={talent.name} className="w-full h-full object-cover" src={talent.image} />
@@ -336,7 +338,7 @@ export default function HumanInformationPage() {
                         </div>
                       </div>
                     </div>
-                    <button onClick={() => setShowLoginModal(true)} className="w-full py-3 bg-gray-50 text-on-surface font-bold rounded-lg group-hover:bg-primary group-hover:text-white transition-colors text-sm">제의하기</button>
+                    <button onClick={() => navigate('/talent-profile')} className="w-full py-3 bg-gray-50 text-on-surface font-bold rounded-lg group-hover:bg-primary group-hover:text-white transition-colors text-sm">제의하기</button>
                   </div>
                 ))}
               </div>
