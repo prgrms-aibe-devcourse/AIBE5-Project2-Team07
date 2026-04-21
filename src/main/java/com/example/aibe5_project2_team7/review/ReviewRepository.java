@@ -6,5 +6,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import java.util.List;
 
 public interface ReviewRepository extends JpaRepository<Review, Long> {
-    List<ReviewLabel> findByTargetType(MemberType targetType);
+    List<Review> findByTargetType(MemberType targetType);
+    List<Review> findByTargetIdAndTargetType(Long targetId, MemberType targetType);
+    List<Review> findTop3ByTargetIdAndTargetTypeOrderByCreatedAtDesc(Long targetId, MemberType targetType);
 }

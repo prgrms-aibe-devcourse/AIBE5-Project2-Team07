@@ -4,12 +4,18 @@ import com.example.aibe5_project2_team7.business_profile.request.BusinessCompany
 import com.example.aibe5_project2_team7.business_profile.request.BusinessDeleteRequest;
 import com.example.aibe5_project2_team7.business_profile.request.BusinessMemberEditRequest;
 import com.example.aibe5_project2_team7.business_profile.response.BusinessProfileResponse;
+import com.example.aibe5_project2_team7.business_profile.response.CompanyInfoResponse;
 import com.example.aibe5_project2_team7.brand.entity.Brand;
 import com.example.aibe5_project2_team7.member.Member;
 import com.example.aibe5_project2_team7.member.MemberType;
 import com.example.aibe5_project2_team7.member.repository.MemberRepository;
 import com.example.aibe5_project2_team7.member_address.MemberAddress;
 import com.example.aibe5_project2_team7.member_address.MemberAddressRepository;
+import com.example.aibe5_project2_team7.recruit.RecruitRepository;
+import com.example.aibe5_project2_team7.recruit.constant.RecruitStatus;
+import com.example.aibe5_project2_team7.recruit.entity.Recruit;
+import com.example.aibe5_project2_team7.review.Review;
+import com.example.aibe5_project2_team7.review.ReviewRepository;
 import com.example.aibe5_project2_team7.region.Region;
 import com.example.aibe5_project2_team7.region.RegionRepository;
 import lombok.RequiredArgsConstructor;
@@ -19,6 +25,10 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.util.Comparator;
+import java.util.Map;
+import java.util.stream.Collectors;
+
 @Service
 @Transactional
 @RequiredArgsConstructor
@@ -27,7 +37,103 @@ public class BusinessProfileService {
 	private final BusinessProfileRepository businessProfileRepository;
 	private final MemberAddressRepository memberAddressRepository;
 	private final RegionRepository regionRepository;
+	private final RecruitRepository recruitRepository;
+	private final ReviewRepository reviewRepository;
 	private final BCryptPasswordEncoder passwordEncoder;
+
+	@Transactional(readOnly = true)
+	public CompanyInfoResponse getBusinessProfileById(Long businessId) {
+		if (businessId == null) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "businessId는 필수입니다.");
+		}
+
+		Member member = memberRepository.findById(businessId)
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "회원 정보를 찾을 수 없습니다."));
+
+		if (member.getMemberType() != MemberType.BUSINESS) {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "사업자 회원만 조회할 수 있습니다.");
+		}
+
+		BusinessProfile profile = businessProfileRepository.findByMemberId(member.getId())
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "사업자 프로필을 찾을 수 없습니다."));
+
+		Brand brand = profile.getBrandId();
+		CompanyInfoResponse response = new CompanyInfoResponse();
+		response.setId(profile.getId());
+		response.setMemberId(member.getId());
+		response.setCompanyName(profile.getCompanyName());
+		response.setFoundedDate(profile.getFoundedDate());
+		response.setCompanyPhone(profile.getCompanyPhone());
+		response.setHomepageUrl(profile.getHomepageUrl());
+		response.setBrandId(brand != null ? brand.getId() : null);
+		response.setBrandName(brand != null ? brand.getName() : null);
+		response.setCompanyAddress(profile.getCompanyAddress());
+		response.setRatingSum(member.getRatingSum());
+		response.setRatingCount(member.getRatingCount());
+
+		recruitRepository.findTop3ByBusinessMemberIdAndStatusOrderByCreatedAtDesc(member.getId(), RecruitStatus.OPEN)
+				.stream()
+				.map(this::toRecruitSummary)
+				.forEach(response.getRecruits()::add);
+
+		reviewRepository.findTop3ByTargetIdAndTargetTypeOrderByCreatedAtDesc(member.getId(), MemberType.BUSINESS)
+				.stream()
+				.map(this::toReviewSummary)
+				.forEach(response.getReviews()::add);
+
+		reviewRepository.findByTargetIdAndTargetType(member.getId(), MemberType.BUSINESS)
+				.stream()
+				.map(Review::getLabel)
+				.filter(label -> label != null)
+				.collect(Collectors.groupingBy(label -> label, Collectors.counting()))
+				.entrySet()
+				.stream()
+				.sorted(
+						Comparator.<Map.Entry<com.example.aibe5_project2_team7.review.ReviewLabel, Long>>comparingLong(Map.Entry::getValue)
+								.reversed()
+								.thenComparing(entry -> entry.getKey().getId())
+				)
+				.limit(2)
+				.map(this::toTopLabelSummary)
+				.forEach(response.getTopLabels()::add);
+		return response;
+	}
+
+	private CompanyInfoResponse.RecruitSummary toRecruitSummary(Recruit recruit) {
+		CompanyInfoResponse.RecruitSummary summary = new CompanyInfoResponse.RecruitSummary();
+		summary.setId(recruit.getId());
+		summary.setUrgent(recruit.isUrgent());
+		summary.setTitle(recruit.getTitle());
+		summary.setSalary(recruit.getSalary());
+		summary.setSalaryType(recruit.getSalaryType());
+		summary.setCreatedAt(recruit.getCreatedAt());
+		recruit.getWorkPeriod().stream()
+				.map(workPeriod -> workPeriod.getPeriod())
+				.forEach(summary.getWorkPeriod()::add);
+		return summary;
+	}
+
+	private CompanyInfoResponse.ReviewSummary toReviewSummary(Review review) {
+		CompanyInfoResponse.ReviewSummary summary = new CompanyInfoResponse.ReviewSummary();
+		summary.setId(review.getId());
+		summary.setApplyId(review.getApplyId());
+		summary.setWriterId(review.getWriterId());
+		summary.setTargetId(review.getTargetId());
+		summary.setTargetType(review.getTargetType());
+		summary.setRating(review.getRating());
+		summary.setContent(review.getContent());
+		summary.setLabelId(review.getLabel() != null ? review.getLabel().getId() : null);
+		summary.setCreatedAt(review.getCreatedAt());
+		summary.setUpdatedAt(review.getUpdatedAt());
+		return summary;
+	}
+
+	private CompanyInfoResponse.TopLabelSummary toTopLabelSummary(Map.Entry<com.example.aibe5_project2_team7.review.ReviewLabel, Long> entry) {
+		CompanyInfoResponse.TopLabelSummary summary = new CompanyInfoResponse.TopLabelSummary();
+		summary.setLabelId(entry.getKey().getId());
+		summary.setLabelName(entry.getKey().getName());
+		return summary;
+	}
 
 	@Transactional(readOnly = true)
 	public BusinessProfileResponse getMyProfileByEmail(String email) {

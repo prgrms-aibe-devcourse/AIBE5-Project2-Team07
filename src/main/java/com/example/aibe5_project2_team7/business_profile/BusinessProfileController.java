@@ -5,6 +5,7 @@ import com.example.aibe5_project2_team7.business_profile.request.BusinessMemberE
 import com.example.aibe5_project2_team7.business_profile.request.BusinessPasswordEditRequest;
 import com.example.aibe5_project2_team7.business_profile.request.BusinessDeleteRequest;
 import com.example.aibe5_project2_team7.business_profile.response.BusinessProfileResponse;
+import com.example.aibe5_project2_team7.business_profile.response.CompanyInfoResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -16,6 +17,13 @@ import org.springframework.web.server.ResponseStatusException;
 @RequiredArgsConstructor
 public class BusinessProfileController {
     private final BusinessProfileService businessProfileService;
+
+    // 기업 정보 조회
+    @GetMapping("/business/profile/{businessId}")
+    public ResponseEntity<CompanyInfoResponse> getBusinessProfile(@PathVariable Long businessId) {
+        CompanyInfoResponse response = businessProfileService.getBusinessProfileById(businessId);
+        return ResponseEntity.ok(response);
+    }
 
     // 본인 정보 조회
     @GetMapping("/business/account/me")

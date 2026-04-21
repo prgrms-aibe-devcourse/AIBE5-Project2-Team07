@@ -3,6 +3,7 @@ package com.example.aibe5_project2_team7.recruit;
 import com.example.aibe5_project2_team7.recruit.constant.BusinessTypeName;
 import com.example.aibe5_project2_team7.recruit.constant.Days;
 import com.example.aibe5_project2_team7.recruit.constant.Period;
+import com.example.aibe5_project2_team7.recruit.constant.RecruitStatus;
 import com.example.aibe5_project2_team7.recruit.constant.Times;
 import com.example.aibe5_project2_team7.recruit.entity.Recruit;
 import org.springframework.data.domain.Page;
@@ -16,6 +17,7 @@ import java.util.List;
 
 public interface RecruitRepository extends JpaRepository<Recruit, Long> {
     List<Recruit> findByBusinessMemberId(Long businessMemberId);
+    List<Recruit> findTop3ByBusinessMemberIdAndStatusOrderByCreatedAtDesc(Long businessMemberId, RecruitStatus status);
 
     // 필터 조건 조회 (동적 쿼리)
     @Query("SELECT DISTINCT r FROM Recruit r " +
