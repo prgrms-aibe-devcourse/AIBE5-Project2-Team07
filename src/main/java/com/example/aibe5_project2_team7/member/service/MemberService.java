@@ -91,4 +91,9 @@ public class MemberService {
         }
         return member;
     }
+
+    public Member findByEmail(String email) {
+        return memberRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Member not found"));
+    }
 }

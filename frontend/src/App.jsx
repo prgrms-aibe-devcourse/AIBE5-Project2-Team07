@@ -16,6 +16,7 @@ import BusinessMyPage from './pages/BusinessMyPage';
 import BusinessCompanyEditPage from './pages/BusinessCompanyEditPage';
 import BusinessRecruitCreatePage from './pages/BusinessRecruitCreatePage';
 import PersonalMyPage from './pages/PersonalMyPage';
+import KakaoOAuthCallbackPage from './pages/KakaoOAuthCallbackPage';
 import GlobalAiChatbotButton from './components/GlobalAiChatbotButton';
 import './index.css';
 
@@ -34,6 +35,7 @@ function App() {
         <Route path="/apply-form" element={<ApplyFormPage />} />
         <Route path="/apply-complete" element={<ApplyCompletePage />} />
         <Route path="/login" element={<LoginPage />} />
+        <Route path="/login/oauth2/callback" element={<KakaoOAuthCallbackPage />} />
         <Route path="/signup/personal" element={<PersonalSignUpPage />} />
         <Route path="/signup/business" element={<BusinessSignUpPage />} />
         <Route path="/dashboard" element={<BusinessMyPage />} />
