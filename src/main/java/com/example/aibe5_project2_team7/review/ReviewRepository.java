@@ -18,4 +18,6 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     @EntityGraph(attributePaths = {"labels"})
     List<Review> findAllByWriterId(Long writerId);
+
+    List<Review> findAllByTargetIdAndTargetTypeOrderByCreatedAtDesc(Long targetId, ReviewTargetType targetType);
 }

@@ -14,6 +14,10 @@ import com.example.aibe5_project2_team7.recruit.constant.BusinessTypeName;
 import com.example.aibe5_project2_team7.region.RegionResponseDto;
 import com.example.aibe5_project2_team7.resume.dto.ResumeDetailDto;
 import com.example.aibe5_project2_team7.resume.dto.ResumeSummaryDto;
+import com.example.aibe5_project2_team7.review.Review;
+import com.example.aibe5_project2_team7.review.ReviewRepository;
+import com.example.aibe5_project2_team7.review.ReviewTargetType;
+import com.example.aibe5_project2_team7.review.dto.ReviewResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
@@ -22,6 +26,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -38,6 +43,7 @@ public class ResumeService {
     private final DesiredBusinessTypeRepository desiredBusinessTypeRepository;
     private final IndividualProfileRepository individualProfileRepository;
     private final MemberPreferredRegionRepository memberPreferredRegionRepository;
+    private final ReviewRepository reviewRepository;
 
     public Page<ResumeSummaryDto> getPublicResumes(int page) {
         Pageable pageable = PageRequest.of(page, 20, org.springframework.data.domain.Sort.by("updatedAt").descending());
@@ -52,26 +58,54 @@ public class ResumeService {
 
     // 실시간 활동 인재 조회
     public Page<ResumeSummaryDto> getResumesByIndividualActive(int page) {
-        Pageable pageable = PageRequest.of(page, 20, org.springframework.data.domain.Sort.by("updatedAt").descending());
-        Page<Resume> resumes = resumeRepository.findByVisibilityTrue(pageable);
+        Pageable pageable = PageRequest.of(
+                page,
+                20,
+                org.springframework.data.domain.Sort.by("updatedAt").descending()
+        );
+
+        List<Long> activeMemberIds = individualProfileRepository.findByIsActiveTrue()
+                .stream()
+                .map(IndividualProfile::getMemberId)
+                .collect(Collectors.toList());
+
+        if (activeMemberIds.isEmpty()) {
+            return new PageImpl<>(Collections.emptyList(), pageable, 0);
+        }
+
+        Page<Resume> resumes = resumeRepository.findByVisibilityTrueAndMemberIdIn(activeMemberIds, pageable);
 
         List<ResumeSummaryDto> dtos = resumes.stream()
                 .map(this::mapToSummary)
                 .collect(Collectors.toList());
 
-        return new PageImpl<>(dtos, pageable, dtos.size());
+        return new PageImpl<>(dtos, pageable, resumes.getTotalElements());
     }
 
     // 스페셜 인재 조회
     public Page<ResumeSummaryDto> getResumesByIndividualSpecial(int page) {
-        Pageable pageable = PageRequest.of(page, 20, org.springframework.data.domain.Sort.by("updatedAt").descending());
-        Page<Resume> resumes = resumeRepository.findByVisibilityTrue(pageable);
+        Pageable pageable = PageRequest.of(
+                page,
+                20,
+                org.springframework.data.domain.Sort.by("updatedAt").descending()
+        );
+
+        List<Long> specialMemberIds = individualProfileRepository.findByIsSpecialTrue()
+                .stream()
+                .map(IndividualProfile::getMemberId)
+                .collect(Collectors.toList());
+
+        if (specialMemberIds.isEmpty()) {
+            return new PageImpl<>(Collections.emptyList(), pageable, 0);
+        }
+
+        Page<Resume> resumes = resumeRepository.findByVisibilityTrueAndMemberIdIn(specialMemberIds, pageable);
 
         List<ResumeSummaryDto> dtos = resumes.stream()
                 .map(this::mapToSummary)
                 .collect(Collectors.toList());
 
-        return new PageImpl<>(dtos, pageable, dtos.size());
+        return new PageImpl<>(dtos, pageable, resumes.getTotalElements());
     }
 
     public Resume createResume(Long id, Map<String, Object> payload) {
@@ -134,62 +168,84 @@ public class ResumeService {
 
     // 이력서 상세보기
     public ResumeDetailDto getResumeDetail(Long resumeId) {
-        Resume r = resumeRepository.findById(resumeId).orElseThrow(() -> new RuntimeException("Resume not found"));
+        Resume r = resumeRepository.findById(resumeId)
+                .orElseThrow(() -> new RuntimeException("Resume not found"));
+
         Member m = r.getMember();
         if (m == null) {
             m = memberRepository.findById(r.getMemberId()).orElse(null);
         }
+
         String name = m != null ? m.getName() : null;
-        Double avg = null;
+        Double avg = 0.0;
         List<String> desiredTypes = new ArrayList<>();
+        List<ReviewResponse> reviews = new ArrayList<>();
+
         if (m != null) {
             if (m.getRatingCount() != null && m.getRatingCount() > 0) {
                 avg = m.getRatingSum() / (double) m.getRatingCount();
-            } else {
-                avg = 0.0;
             }
+
+            // 희망 업종
             List<DesiredBusinessType> dts = desiredBusinessTypeRepository.findByMemberId(m.getId());
-            desiredTypes = dts.stream().map(d -> d.getType().name()).collect(Collectors.toList());
+            desiredTypes = dts.stream()
+                    .map(d -> d.getType().name())
+                    .collect(Collectors.toList());
+
+            // 리뷰
+            List<Review> reviewEntities =
+                    reviewRepository.findAllByTargetIdAndTargetTypeOrderByCreatedAtDesc(
+                            m.getId(),
+                            ReviewTargetType.INDIVIDUAL
+                    );
+
+            reviews = reviewEntities.stream()
+                    .map(ReviewResponse::from)
+                    .collect(Collectors.toList());
         }
 
+        List<Object> careers = r.getCareers().stream().map(c -> Map.of(
+                "id", c.getId(),
+                "company", c.getCompany(),
+                "role", c.getRole(),
+                "startDate", c.getStartDate(),
+                "endDate", c.getEndDate()
+        )).collect(Collectors.toList());
 
-        List<Object> careers = r.getCareers().stream().map(c -> {
-            return Map.of(
-                    "id", c.getId(),
-                    "company", c.getCompany(),
-                    "role", c.getRole(),
-                    "startDate", c.getStartDate(),
-                    "endDate", c.getEndDate()
-            );
-        }).collect(Collectors.toList());
+        List<Object> licenses = r.getLicenses().stream().map(l -> Map.of(
+                "id", l.getId(),
+                "licenseName", l.getLicenseName(),
+                "licenseNumber", l.getLicenseNumber(),
+                "acquisitionDate", l.getAcquisitionDate(),
+                "issuedBy", l.getIssuedBy(),
+                "licenseFileUrl", l.getLicenseFileUrl()
+        )).collect(Collectors.toList());
 
-        List<Object> licenses = r.getLicenses().stream().map(l -> {
-            return Map.of(
-                    "id", l.getId(),
-                    "licenseName", l.getLicenseName(),
-                    "licenseNumber", l.getLicenseNumber(),
-                    "acquisitionDate", l.getAcquisitionDate(),
-                    "issuedBy", l.getIssuedBy(),
-                    "licenseFileUrl", l.getLicenseFileUrl()
-            );
-        }).collect(Collectors.toList());
+        List<Object> educations = r.getEducations().stream().map(e -> Map.of(
+                "id", e.getId(),
+                "schoolName", e.getSchoolName(),
+                "schoolType", e.getSchoolType(),
+                "major", e.getMajor()
+        )).collect(Collectors.toList());
 
-        List<Object> educations = r.getEducations().stream().map(e -> {
-            return Map.of(
-                    "id", e.getId(),
-                    "schoolName", e.getSchoolName(),
-                    "schoolType", e.getSchoolType(),
-                    "major", e.getMajor()
-            );
-        }).collect(Collectors.toList());
-
+        // 선호 지역
         List<RegionResponseDto> preferredRegions = getPreferredRegions(r.getMemberId());
 
-        ResumeDetailDto dto = new ResumeDetailDto(
-                r.getId(), r.getMemberId(), r.getTitle(), r.getContent(), r.getUpdatedAt(), name, avg, desiredTypes, careers, licenses, educations,preferredRegions
+        return new ResumeDetailDto(
+                r.getId(),
+                r.getMemberId(),
+                r.getTitle(),
+                r.getContent(),
+                r.getUpdatedAt(),
+                name,
+                avg,
+                desiredTypes,
+                careers,
+                licenses,
+                educations,
+                preferredRegions,
+                reviews
         );
-
-        return dto;
     }
 
     // 업직종별 인재 조회

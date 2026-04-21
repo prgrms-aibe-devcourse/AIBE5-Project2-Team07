@@ -3,6 +3,10 @@ package com.example.aibe5_project2_team7.review;
 import com.example.aibe5_project2_team7.apply.entity.Apply;
 import com.example.aibe5_project2_team7.apply.ApplyRepository;
 import com.example.aibe5_project2_team7.apply.entity.ApplyStatus;
+import com.example.aibe5_project2_team7.individual_profile.IndividualProfile;
+import com.example.aibe5_project2_team7.individual_profile.IndividualProfileRepository;
+import com.example.aibe5_project2_team7.member.Member;
+import com.example.aibe5_project2_team7.member.repository.MemberRepository;
 import com.example.aibe5_project2_team7.recruit.RecruitRepository;
 import com.example.aibe5_project2_team7.recruit.entity.Recruit;
 import com.example.aibe5_project2_team7.review.dto.ReviewCreateRequest;
@@ -22,6 +26,8 @@ public class ReviewService {
     private final ReviewRepository reviewRepository;
     private final ApplyRepository applyRepository;
     private final RecruitRepository recruitRepository;
+    private final MemberRepository memberRepository;
+    private final IndividualProfileRepository individualProfileRepository;
 
     @Transactional
     public ReviewResponse createReview(Long userId, ReviewCreateRequest request) {
@@ -64,7 +70,15 @@ public class ReviewService {
                 labels
         );
 
-        return ReviewResponse.from(reviewRepository.save(review));
+        Review saved = reviewRepository.save(review);
+
+        updateMemberRating(
+                saved.getTargetId(),
+                saved.getRating(),
+                1
+        );
+
+        return ReviewResponse.from(saved);
     }
     public ReviewResponse getReview(Long reviewId) {
         Review review = reviewRepository.findWithLabelsById(reviewId)
@@ -102,10 +116,18 @@ public class ReviewService {
                 .distinct()
                 .toList();
 
+        int oldRating = review.getRating();
+
         review.update(
                 request.getRating(),
                 request.getContent(),
                 labels
+        );
+
+        updateMemberRating(
+                review.getTargetId(),
+                request.getRating() - oldRating,
+                0
         );
 
         return ReviewResponse.from(review);
@@ -121,7 +143,16 @@ public class ReviewService {
             throw new ReviewException("본인이 작성한 리뷰만 삭제할 수 있습니다.");
         }
 
+        int rating = review.getRating();
+        Long targetId = review.getTargetId();
+
         reviewRepository.delete(review);
+
+        updateMemberRating(
+                targetId,
+                -rating,
+                -1
+        );
     }
 
     private void validateCreatableReview(Apply apply, Integer rating, List<String> labelNames) {
@@ -171,5 +202,26 @@ public class ReviewService {
                 throw new ReviewException("리뷰 대상 개인 회원 정보가 올바르지 않습니다.");
             }
         }
+    }
+
+    //
+    private void updateMemberRating(Long memberId, int diffSum, int diffCount) {
+
+        Member member = memberRepository.findById(memberId)
+                .orElseThrow(() -> new ReviewException("회원을 찾을 수 없습니다."));
+
+        int newSum = member.getRatingSum() + diffSum;
+        int newCount = member.getRatingCount() + diffCount;
+
+        member.setRatingSum(newSum);
+        member.setRatingCount(newCount);
+
+        double avg = newCount == 0 ? 0 : (double) newSum / newCount;
+
+        // individual profile 업데이트
+        IndividualProfile profile = individualProfileRepository.findByMemberId(memberId)
+                .orElseThrow(() -> new ReviewException("개인 프로필이 존재하지 않습니다."));
+
+        profile.setIsSpecial(avg >= 4.0);
     }
 }

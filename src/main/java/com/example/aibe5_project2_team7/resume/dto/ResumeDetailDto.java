@@ -1,6 +1,7 @@
 package com.example.aibe5_project2_team7.resume.dto;
 
 import com.example.aibe5_project2_team7.region.RegionResponseDto;
+import com.example.aibe5_project2_team7.review.dto.ReviewResponse;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -21,8 +22,9 @@ public class ResumeDetailDto {
     private List<Object> licenses;
     private List<Object> educations;
     private List<RegionResponseDto> preferredRegions;
+    private List<ReviewResponse> reviews;
 
-    public ResumeDetailDto(Long resumeId, Long memberId, String title, String content, LocalDateTime updatedAt, String memberName, Double ratingAverage, List<String> desiredBusinessTypes, List<Object> careers, List<Object> licenses, List<Object> educations,List<RegionResponseDto> preferredRegions) {
+    public ResumeDetailDto(Long resumeId, Long memberId, String title, String content, LocalDateTime updatedAt, String memberName, Double ratingAverage, List<String> desiredBusinessTypes, List<Object> careers, List<Object> licenses, List<Object> educations,List<RegionResponseDto> preferredRegions,List<ReviewResponse> reviews) {
         this.resumeId = resumeId;
         this.memberId = memberId;
         this.title = title;
@@ -35,6 +37,7 @@ public class ResumeDetailDto {
         this.licenses = licenses;
         this.educations = educations;
         this.preferredRegions = preferredRegions;
+        this.reviews = reviews;
     }
 
 }
