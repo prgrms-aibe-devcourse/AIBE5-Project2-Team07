@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import TopNavBar from '../components/TopNavBar';
 import AppFooter from '../components/AppFooter';
 import CommonButton from '../components/CommonButton';
+import AddressSearchField from '../components/AddressSearchField';
 
 export default function BusinessSignUpPage() {
   const [allAgree, setAllAgree] = useState(false);
@@ -16,6 +17,7 @@ export default function BusinessSignUpPage() {
     companyName: '',
     ceoName: '',
     foundedDate: '',
+    companyPostalCode: '',
     companyAddress: '',
     companyAddressDetail: '',
   });
@@ -39,6 +41,15 @@ export default function BusinessSignUpPage() {
   const handleAgreePrivacy = (checked) => {
     setAgreePrivacy(checked);
     setAllAgree(checked && agreeTerms);
+  };
+
+  const handleCompanyAddressSelect = ({ zonecode, address }) => {
+    setForm((prev) => ({
+      ...prev,
+      companyPostalCode: zonecode,
+      companyAddress: address,
+      companyAddressDetail: '',
+    }));
   };
 
   const isFormValid = useMemo(() => {
@@ -150,14 +161,19 @@ export default function BusinessSignUpPage() {
                   </div>
                 </div>
 
-                <div className="flex flex-col gap-3">
-                  <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">회사 주소</label>
-                  <div className="flex gap-3">
-                    <input name="companyAddress" value={form.companyAddress} onChange={handleChange} className="flex-1 bg-background border border-outline rounded-xl py-3.5 px-4 text-base placeholder:text-on-surface-variant/40 focus:bg-white transition-colors" placeholder="주소 검색을 클릭하세요" type="text" />
-                    <button className="bg-on-surface text-white px-6 py-3 rounded-lg font-bold text-sm hover:bg-black transition-colors" type="button">주소 검색</button>
-                  </div>
-                  <input name="companyAddressDetail" value={form.companyAddressDetail} onChange={handleChange} className="w-full bg-background border border-outline rounded-xl py-3.5 px-4 text-base placeholder:text-on-surface-variant/40 focus:bg-white transition-colors" placeholder="상세 주소를 입력하세요" type="text" />
-                </div>
+                <AddressSearchField
+                  label="회사 주소"
+                  addressName="companyAddress"
+                  detailName="companyAddressDetail"
+                  addressValue={form.companyAddress}
+                  detailValue={form.companyAddressDetail}
+                  onChange={handleChange}
+                  onAddressSelect={handleCompanyAddressSelect}
+                  required
+                  className="flex flex-col gap-3"
+                  addressPlaceholder="주소 검색 버튼을 눌러 회사 주소를 선택하세요"
+                  detailPlaceholder="상세 주소를 입력하세요"
+                />
               </div>
             </section>
 

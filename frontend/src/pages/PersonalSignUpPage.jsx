@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import TopNavBar from '../components/TopNavBar';
 import AppFooter from '../components/AppFooter';
 import CommonButton from '../components/CommonButton';
+import AddressSearchField from '../components/AddressSearchField';
 
 export default function PersonalSignUpPage() {
   const [allAgree, setAllAgree] = useState(false);
@@ -17,6 +18,9 @@ export default function PersonalSignUpPage() {
     birth: '',
     gender: '',
     phone: '',
+    postalCode: '',
+    address: '',
+    addressDetail: '',
   });
 
   const handleChange = (e) => {
@@ -38,6 +42,15 @@ export default function PersonalSignUpPage() {
   const handleAgreePrivacy = (checked) => {
     setAgreePrivacy(checked);
     setAllAgree(checked && agreeTerms);
+  };
+
+  const handleAddressSelect = ({ zonecode, address }) => {
+    setForm((prev) => ({
+      ...prev,
+      postalCode: zonecode,
+      address,
+      addressDetail: '',
+    }));
   };
 
   const isFormValid = useMemo(() => {
@@ -154,6 +167,20 @@ export default function PersonalSignUpPage() {
                 <div className="flex flex-col gap-2">
                   <label className="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Phone Number <span className="text-primary">*</span></label>
                   <input name="phone" value={form.phone} onChange={handleChange} className="w-full bg-background border border-outline rounded-xl py-3.5 px-4 text-base placeholder:text-on-surface-variant/40 focus:bg-white transition-colors" placeholder="01012345678" type="tel" />
+                </div>
+                <div className="md:col-span-2">
+                  <AddressSearchField
+                    label="주소"
+                    addressName="address"
+                    detailName="addressDetail"
+                    addressValue={form.address}
+                    detailValue={form.addressDetail}
+                    onChange={handleChange}
+                    onAddressSelect={handleAddressSelect}
+                    required
+                    addressPlaceholder="주소 검색 버튼을 눌러 주소를 선택하세요"
+                    detailPlaceholder="상세 주소를 입력하세요"
+                  />
                 </div>
               </div>
             </section>

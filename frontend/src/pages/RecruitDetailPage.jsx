@@ -4,6 +4,7 @@ import TopNavBar from '../components/TopNavBar';
 import MobileBottomNav from '../components/MobileBottomNav';
 import AppFooter from '../components/AppFooter';
 import CommonButton from '../components/CommonButton';
+import KakaoMap from '../components/KakaoMap';
 
 export default function RecruitDetailPage() {
   // 로그인 상태 (실제 서비스에서는 전역 상태/context로 관리)
@@ -128,7 +129,7 @@ export default function RecruitDetailPage() {
           <section>
             <h3 className="font-headline text-2xl font-bold mb-6">근무지 위치</h3>
             <div className="bg-surface-container rounded-2xl overflow-hidden relative mb-4 h-[400px] border border-outline">
-              <img className="w-full h-full object-cover" alt="professional digital map interface showing location pin" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBWfqHvpyvWqF5UJ4001KlN67pQM007ECBKkQYn48K--58Vm9LbpQOxTp7xxdhkyzmfbG9_FHARWN87pl9Ahq3nwGea1k-T9Raf2SkVrmf3cBQv5ZJgSH1w3-1cnuwNPjNNtRnPWOkACBVgwwzT3evE91bFh9pKNDerpCg_Jfk3_QpSaLYZep2rMVMGl5XHX5IAtOX5vmTD9eRCtYobFNkO_JX-0UvN2M4dlmLYSUqS3CJo7GHyHYdWK_6VPmzykPANOwclPR8pVLo" />
+              <KakaoMap lat={37.5665} lng={126.9780} level={3} />
               <div className="absolute bottom-4 left-4 bg-white/90 backdrop-blur-md px-4 py-2 rounded-lg text-xs font-bold flex items-center gap-2 border border-outline shadow-none">
                 <span className="material-symbols-outlined text-primary text-sm">location_on</span>
                 서울 서초구 반포대로 123
