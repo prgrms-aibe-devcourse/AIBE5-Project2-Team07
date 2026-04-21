@@ -2,9 +2,12 @@ package com.example.aibe5_project2_team7.brand;
 
 import com.example.aibe5_project2_team7.brand.dto.*;
 import com.example.aibe5_project2_team7.brand.response.BrandRecruitListResponse;
+import com.example.aibe5_project2_team7.region.Region;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
+import jakarta.persistence.EntityNotFoundException;
 
 import java.util.Collections;
 import java.util.List;
@@ -47,6 +50,17 @@ public class BrandController {
         return ResponseEntity.ok(results);
     }
 
+    @GetMapping(value = "/api/brand/{brandId}/summary")
+    public @ResponseBody ResponseEntity<BrandSummaryDto> getBrandSummary(@PathVariable(name = "brandId") Long brandId) {
+        BrandSummaryDto result = brandService.getBrandSummary(brandId);
+        return ResponseEntity.ok(result);
+    }
+
+    @ExceptionHandler(EntityNotFoundException.class)
+    public ResponseEntity<String> handleEntityNotFound(EntityNotFoundException ex) {
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body("Resource not found");
+    }
+
     @GetMapping(value = "/api/brand/{brandId}/recruits/short")
     public @ResponseBody ResponseEntity<BrandRecruitListResponse<BrandShortRecruitDto>> getBrandShortRecruits(
             @PathVariable(name = "brandId") Long brandId,
@@ -54,8 +68,9 @@ public class BrandController {
             @RequestParam(name = "region_id", required = false) Long regionId,
             @RequestParam(name = "work_date", required = false) List<String> workDate,
             @RequestParam(name = "work_time", required = false) List<String> workTime,
+            @RequestParam(name = "urgent_only", required = false) Boolean urgentOnly,
             @RequestParam(name = "sort", required = false) String sort) {
-        BrandRecruitListResponse<BrandShortRecruitDto> results = brandService.getBrandShortRecruitList(brandId, page, regionId, workDate, workTime, sort);
+        BrandRecruitListResponse<BrandShortRecruitDto> results = brandService.getBrandShortRecruitList(brandId, page, regionId, workDate, workTime, urgentOnly, sort);
         return ResponseEntity.ok(results);
     }
 
@@ -70,5 +85,10 @@ public class BrandController {
             @RequestParam(name = "sort", required = false) String sort) {
         BrandRecruitListResponse<BrandLongRecruitDto> results = brandService.getBrandLongRecruits(brandId, page, regionId, workPeriod, workTime, workDays, sort);
         return ResponseEntity.ok(results);
+    }
+
+    @GetMapping(value = "/api/brand/regionFilter/{sido}")
+    public @ResponseBody List<Region> getRegionsBySido(@PathVariable String sido) {
+        return brandService.getRegionsBySido(sido);
     }
 }

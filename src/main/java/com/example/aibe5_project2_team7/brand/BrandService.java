@@ -3,10 +3,13 @@ package com.example.aibe5_project2_team7.brand;
 import com.example.aibe5_project2_team7.brand.dto.*;
 import com.example.aibe5_project2_team7.brand.response.BrandRecruitListResponse;
 import com.example.aibe5_project2_team7.brand.entity.Brand;
+import com.example.aibe5_project2_team7.region.Region;
+import com.example.aibe5_project2_team7.region.RegionRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import jakarta.persistence.EntityManager;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.persistence.Query;
 
 import java.util.ArrayList;
@@ -17,16 +20,32 @@ import java.util.List;
 @RequiredArgsConstructor
 public class BrandService {
     private final BrandRepository brandRepository;
+    private final RegionRepository regionRepository;
     private final EntityManager entityManager;
 
     public List<BrandSearchAutoCompleteDto> getSearchList(String query) {
-        List<Brand> brandList;
-        brandList = brandRepository.findTop4ByNameContainingIgnoreCaseOrderByNameAsc(query);
-        List<BrandSearchAutoCompleteDto> brandSearchAutoCompleteDtoList = new ArrayList<>();
-        for(Brand brand : brandList) {
-            brandSearchAutoCompleteDtoList.add(BrandSearchAutoCompleteDto.of(brand));
-        }
-        return brandSearchAutoCompleteDtoList;
+        // if query is null or blank return empty list
+        if (query == null || query.trim().isEmpty()) return new ArrayList<>();
+
+        String q = query.trim();
+
+        // Single native query: prefer names that start with the query, then containing ones
+        // Uses parameter binding to avoid SQL injection
+        String sql = "SELECT * FROM Brand " +
+                "WHERE LOWER(name) LIKE LOWER(:prefix) OR LOWER(name) LIKE LOWER(:contains) " +
+                "ORDER BY CASE WHEN LOWER(name) LIKE LOWER(:prefix) THEN 0 ELSE 1 END, name ASC " +
+                "LIMIT 4";
+
+        Query nativeQ = entityManager.createNativeQuery(sql, Brand.class);
+        nativeQ.setParameter("prefix", q + "%");
+        nativeQ.setParameter("contains", "%" + q + "%");
+
+        @SuppressWarnings("unchecked")
+        List<Brand> list = nativeQ.getResultList();
+
+        List<BrandSearchAutoCompleteDto> dtoList = new ArrayList<>();
+        for (Brand brand : list) dtoList.add(BrandSearchAutoCompleteDto.of(brand));
+        return dtoList;
     }
 
     public List<BrandRandomDto> getRandom8Brands() {
@@ -53,16 +72,25 @@ public class BrandService {
         }
         return results;
     }
+
+    public BrandSummaryDto getBrandSummary(Long brandId) {
+        Brand brand = brandRepository.findBrandById(brandId)
+                .orElseThrow(EntityNotFoundException::new);
+        return BrandSummaryDto.of(brand);
+    }
     
-    public BrandRecruitListResponse<BrandShortRecruitDto> getBrandShortRecruitList(Long brandId, int page, Long regionId, List<String> workDates, List<String> workTimes, String sort) {
+    public BrandRecruitListResponse<BrandShortRecruitDto> getBrandShortRecruitList(Long brandId, int page, Long regionId, List<String> workDates, List<String> workTimes, Boolean urgentOnly, String sort) {
         int pageIndex = Math.max(1, page) - 1;
         final int size = 20;
         int limit = size;
         int offset = pageIndex * size;
 
-        String orderSql = "r.salary DESC"; // default SALARY desc
-        if (sort != null && sort.equalsIgnoreCase("DEADLINE")) {
-            orderSql = "r.deadline ASC";
+        // default sort: LATEST (created_at DESC)
+        String orderSql = "r.created_at DESC";
+        if (sort != null) {
+            if (sort.equalsIgnoreCase("SALARY")) orderSql = "r.salary DESC";
+            else if (sort.equalsIgnoreCase("DEADLINE")) orderSql = "r.deadline ASC";
+            else if (sort.equalsIgnoreCase("LATEST")) orderSql = "r.created_at DESC";
         }
 
         // parse workDates -> List<java.sql.Date>
@@ -110,6 +138,10 @@ public class BrandService {
         fromWhere.append(" JOIN region rg ON r.region_id = rg.id ");
         fromWhere.append(" WHERE r.brand_id = :brandId AND r.recruit_status = 'OPEN' ");
         fromWhere.append(" AND (:regionId IS NULL OR r.region_id = :regionId) ");
+
+        if (Boolean.TRUE.equals(urgentOnly)) {
+            fromWhere.append(" AND r.is_urgent = TRUE ");
+        }
 
         if (!dateParams.isEmpty()) {
             fromWhere.append(" AND DATE(r.deadline) IN (");
@@ -208,8 +240,11 @@ public class BrandService {
             results.add(dto);
         }
 
-        // wrap results and totalCount
-        BrandRecruitListResponse<BrandShortRecruitDto> resp = new BrandRecruitListResponse<>(results, totalCount);
+        int currentPage = Math.max(1, page);
+        int totalPages = totalCount == 0 ? 0 : (int) ((totalCount + size - 1) / size);
+
+        // wrap results and pagination metadata
+        BrandRecruitListResponse<BrandShortRecruitDto> resp = new BrandRecruitListResponse<>(results, totalCount, currentPage, totalPages, size);
         return resp;
     }
 
@@ -398,7 +433,14 @@ public class BrandService {
             }
         }
 
-        BrandRecruitListResponse<BrandLongRecruitDto> resp = new BrandRecruitListResponse<>(results, totalCount);
+        int currentPage = Math.max(1, page);
+        int totalPages = totalCount == 0 ? 0 : (int) ((totalCount + size - 1) / size);
+
+        BrandRecruitListResponse<BrandLongRecruitDto> resp = new BrandRecruitListResponse<>(results, totalCount, currentPage, totalPages, size);
         return resp;
+    }
+
+    public List<Region> getRegionsBySido(String sido) {
+        return regionRepository.findBySido(sido);
     }
 }
