@@ -200,4 +200,67 @@ public class RecruitRecommendRepositoryImpl implements RecruitRecommendRepositor
                 .when(recruit.isUrgent.eq(urgent)).then(1)
                 .otherwise(0);
     }
+
+    @Override
+    public List<Recruit> findNearbyRecruits(Double userLat, Double userLng, Double radiusKm) {
+
+        if (userLat == null || userLng == null || radiusKm == null || radiusKm <= 0) {
+            return List.of();
+        }
+
+        double latRange = radiusKm / 111.0; //위도 1도 대략 111km
+        double lngRange = radiusKm / (111.0 * Math.cos(Math.toRadians(userLat)));
+
+        NumberExpression<Double> distanceExpression = Expressions.numberTemplate(
+                Double.class,
+                """
+                6371 * acos(
+                    least(1.0, greatest(-1.0,
+                        cos(radians({0})) * cos(radians({1})) *
+                        cos(radians({2}) - radians({3})) +
+                        sin(radians({0})) * sin(radians({1}))
+                    ))
+                )
+                """,
+                userLat, recruit.latitude, recruit.longitude, userLng
+        );
+        //사각형구조
+        return queryFactory
+                .selectFrom(recruit)
+                .where(
+                        recruit.status.eq(RecruitStatus.OPEN),
+                        recruit.latitude.isNotNull(),
+                        recruit.longitude.isNotNull(),
+                        //between 내지점에서 해당사각형 내로 필터링 bounding box화
+                        recruit.latitude.between(userLat - latRange, userLat + latRange),
+                        recruit.longitude.between(userLng - lngRange, userLng + lngRange),
+                        // 2. 계산된 거리가 내가 지정한 원의 반경 radiusKm 이하인 것만 필터링
+                        distanceExpression.loe(radiusKm)
+                )
+                .orderBy(distanceExpression.asc(), recruit.id.desc())
+                .limit(20)
+                .fetch();
+
+        //        //원의범위
+        //        // 하버사인 공식 (지구의 반경 6371km를 기준으로 두 좌표 사이의 거리를 계산)
+        //        NumberExpression<Double> distanceExpression = Expressions.numberTemplate(Double.class,
+        //                "6371 * acos(cos(radians({0})) * cos(radians({1})) * cos(radians({2}) - radians({3})) + sin(radians({0})) * sin(radians({1})))",
+        //                userLat, recruit.latitude, recruit.longitude, userLng);
+
+        //기준점으로 원
+//        return queryFactory
+//                .selectFrom(recruit)
+//                .where(
+//                        // 1. 위도/경도가 null이 아닌 데이터만
+//                        recruit.latitude.isNotNull(),
+//                        recruit.longitude.isNotNull(),
+//
+//                        distanceExpression.loe(radiusKm)
+//                )
+//                // 3. 거리가 가까운 순(오름차순)으로 정렬
+//                .orderBy(distanceExpression.asc())
+//                // 4. 최대 20개까지만 가져오기
+//                .limit(20)
+//                .fetch();
+    }
 }

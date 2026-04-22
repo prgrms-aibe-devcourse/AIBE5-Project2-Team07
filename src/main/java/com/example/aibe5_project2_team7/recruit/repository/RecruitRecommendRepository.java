@@ -7,4 +7,6 @@ import java.util.List;
 
 public interface RecruitRecommendRepository {
     List<Recruit> getRecommendFieldSearch(RecruitRecommendConditionRequestDto condition);
+
+    public List<Recruit> findNearbyRecruits(Double userLat, Double userLng, Double radiusKm);
 }
