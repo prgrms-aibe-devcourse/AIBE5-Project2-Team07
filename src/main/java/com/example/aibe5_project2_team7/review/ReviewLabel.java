@@ -6,7 +6,15 @@ import lombok.Getter;
 
 @Entity
 @Getter
-@Table(name = "review_label")
+@Table(
+        name="review_label",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "unique_review_label_name_targetType",
+                        columnNames = {"name", "target_type"})
+        }
+)
+
 public class ReviewLabel {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
