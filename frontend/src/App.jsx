@@ -16,6 +16,7 @@ import BusinessMyPage from './pages/BusinessMyPage';
 import BusinessCompanyEditPage from './pages/BusinessCompanyEditPage';
 import BusinessRecruitCreatePage from './pages/BusinessRecruitCreatePage';
 import PersonalMyPage from './pages/PersonalMyPage';
+import TalentProfilePage from './pages/TalentProfilePage';
 import GlobalAiChatbotButton from './components/GlobalAiChatbotButton';
 import TalentProfilePage from './pages/TalentProfilePage';
 import MyPageRouter from './pages/MyPageRouter';

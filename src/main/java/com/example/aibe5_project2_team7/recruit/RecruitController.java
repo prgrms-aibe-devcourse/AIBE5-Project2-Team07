@@ -5,6 +5,7 @@ import com.example.aibe5_project2_team7.recruit.dto.RecruitListResponseDto;
 import com.example.aibe5_project2_team7.recruit.dto.RecruitRequestDto;
 import com.example.aibe5_project2_team7.recruit.dto.RecruitSearchConditionDto;
 import com.example.aibe5_project2_team7.recruit.dto.RecruitStatusUpdateDto;
+import com.example.aibe5_project2_team7.region.RegionService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
 import org.springframework.http.HttpStatus;
@@ -17,7 +18,7 @@ import java.util.List;
 public class RecruitController {
 	private final RecruitService recruitService;
 
-	@GetMapping("/recruits") // 전체/단기/중장기 공고 리스트 조회
+	@GetMapping("/api/recruits") // 전체/단기/중장기/마감 공고 리스트 조회
 	public Page<RecruitListResponseDto> getRecruitList(
 			@ModelAttribute RecruitSearchConditionDto condition,
 			@RequestParam(defaultValue = "1") int page,

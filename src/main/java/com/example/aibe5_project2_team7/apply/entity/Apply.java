@@ -19,7 +19,7 @@ public class Apply {
     private Long id;
 
     @Column(name = "individual_id", nullable = false)
-    private Long individualId;
+    private Long individualId; // ==memberid랑 동일
 
     @Column(name = "recruit_id", nullable = false)
     private Long recruitId;
@@ -39,4 +39,14 @@ public class Apply {
 
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
+
+    @Column(name = "type", nullable = false)
+    @Enumerated(EnumType.STRING)
+    private ApplyType type; //제안 or 제의
+
+    @Enumerated(EnumType.STRING)
+    @Column(name="method", nullable = false)
+    private ApplyMethod method; //온라인 or 이메일
+
+
 }
