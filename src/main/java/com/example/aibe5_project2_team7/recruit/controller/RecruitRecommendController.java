@@ -2,6 +2,7 @@ package com.example.aibe5_project2_team7.recruit.controller;
 
 
 import com.example.aibe5_project2_team7.recruit.dto.RecruitNearbyRequestDto;
+import com.example.aibe5_project2_team7.recruit.dto.RecruitNearbyResponseDto;
 import com.example.aibe5_project2_team7.recruit.dto.RecruitRecommendConditionRequestDto;
 import com.example.aibe5_project2_team7.recruit.dto.RecruitRecommendResponseDto;
 import com.example.aibe5_project2_team7.recruit.service.RecruitNearbyService;
@@ -25,8 +26,9 @@ public class RecruitRecommendController {
     }
 
     @PostMapping("/nearby")
-    public List<RecruitRecommendResponseDto> findNearbyRecruits(
+    public List<RecruitNearbyResponseDto> findNearbyRecruits(
             @RequestBody RecruitNearbyRequestDto requestDto){
+
         return recruitNearbyService.findNearbyRecruits(requestDto);
 
     }

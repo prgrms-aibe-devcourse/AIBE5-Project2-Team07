@@ -1,11 +1,7 @@
 package com.example.aibe5_project2_team7.recruit.dto;
 
-
 import com.example.aibe5_project2_team7.recruit.constant.*;
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
+import lombok.*;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -37,6 +33,7 @@ public class RecruitNearbyResponseDto {
 
     private Double latitude;
     private Double longitude;
+    private Double distanceKm;
 
     private List<Period> workPeriod;
     private List<Days> workDays;

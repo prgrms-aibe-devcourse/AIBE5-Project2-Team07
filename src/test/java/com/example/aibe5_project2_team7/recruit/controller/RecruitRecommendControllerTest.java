@@ -5,6 +5,7 @@ import com.example.aibe5_project2_team7.recruit.constant.BusinessTypeName;
 import com.example.aibe5_project2_team7.recruit.constant.Days;
 import com.example.aibe5_project2_team7.recruit.constant.Period;
 import com.example.aibe5_project2_team7.recruit.dto.RecruitNearbyRequestDto;
+import com.example.aibe5_project2_team7.recruit.dto.RecruitNearbyResponseDto;
 import com.example.aibe5_project2_team7.recruit.dto.RecruitRecommendConditionRequestDto;
 import com.example.aibe5_project2_team7.recruit.dto.RecruitRecommendResponseDto;
 import com.mysema.commons.lang.Assert;
@@ -108,43 +109,22 @@ class RecruitRecommendControllerTest {
         System.out.println("========== 응답 JSON ==========");
         System.out.println(responseBody);
 
-        List<RecruitRecommendResponseDto> list = objectMapper.readValue(
+        List<RecruitNearbyResponseDto> list = objectMapper.readValue(
                 responseBody,
-                new TypeReference<List<RecruitRecommendResponseDto>>() {}
+                new TypeReference<List<RecruitNearbyResponseDto>>() {}
         );
 
         System.out.println("========== 파싱된 응답 DTO ==========");
         System.out.println("result size = " + list.size());
 
         for (int i = 0; i < list.size(); i++) {
-            RecruitRecommendResponseDto dto = list.get(i);
-
-            System.out.println("----- [" + (i + 1) + "] -----");
-            System.out.println("recruitId       = " + dto.getRecruitId());
-            System.out.println("businessMemberId= " + dto.getBusinessMemberId());
-            System.out.println("title           = " + dto.getTitle());
-            System.out.println("urgent          = " + dto.isUrgent());
-            System.out.println("status          = " + dto.getStatus());
-            System.out.println("deadline        = " + dto.getDeadline());
-            System.out.println("salary          = " + dto.getSalary());
-            System.out.println("salaryType      = " + dto.getSalaryType());
-            System.out.println("headCount       = " + dto.getHeadCount());
-            System.out.println("regionId        = " + dto.getRegionId());
-            System.out.println("sido            = " + dto.getSido());
-            System.out.println("sigungu         = " + dto.getSigungu());
-            System.out.println("detailAddress   = " + dto.getDetailAddress());
-            System.out.println("description     = " + dto.getDescription());
-            System.out.println("resumeFormUrl   = " + dto.getResumeFormUrl());
-            System.out.println("workPeriod      = " + dto.getWorkPeriod());
-            System.out.println("workDays        = " + dto.getWorkDays());
-            System.out.println("workTime        = " + dto.getWorkTime());
-            System.out.println("businessType    = " + dto.getBusinessType());
+            System.out.println(list.get(i));
         }
 
         assertThat(list).isNotNull();
         assertThat(list.size()).isLessThanOrEqualTo(20);
 
-        for (RecruitRecommendResponseDto dto : list) {
+        for (RecruitNearbyResponseDto dto : list) {
             assertThat(dto.getRecruitId()).isNotNull();
             assertThat(dto.getBusinessMemberId()).isNotNull();
             assertThat(dto.getTitle()).isNotBlank();
@@ -153,6 +133,7 @@ class RecruitRecommendControllerTest {
             assertThat(dto.getSido()).isNotBlank();
             assertThat(dto.getSigungu()).isNotBlank();
             assertThat(dto.getDetailAddress()).isNotBlank();
+            assertThat(dto.getDistanceKm()).isNotNull();
         }
     }
 

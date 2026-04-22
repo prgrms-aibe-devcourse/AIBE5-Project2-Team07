@@ -2,9 +2,10 @@ package com.example.aibe5_project2_team7.recruit.service;
 
 import com.example.aibe5_project2_team7.recruit.constant.*;
 import com.example.aibe5_project2_team7.recruit.dto.RecruitNearbyRequestDto;
-import com.example.aibe5_project2_team7.recruit.dto.RecruitRecommendResponseDto;
+import com.example.aibe5_project2_team7.recruit.dto.RecruitNearbyResponseDto;
 import com.example.aibe5_project2_team7.recruit.entity.*;
 import com.example.aibe5_project2_team7.recruit.repository.*;
+import com.example.aibe5_project2_team7.recruit.util.DistanceUtils;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -24,7 +25,7 @@ public class RecruitNearbyService {
     private final WorkTimeRepository workTimeRepository;
     private final BusinessTypeRepository businessTypeRepository;
 
-    public List<RecruitRecommendResponseDto> findNearbyRecruits(RecruitNearbyRequestDto request) {
+    public List<RecruitNearbyResponseDto> findNearbyRecruits(RecruitNearbyRequestDto request) {
         validateRequest(request);
 
         List<Recruit> recruits = recruitRecommendRepository.findNearbyRecruits(
@@ -68,6 +69,8 @@ public class RecruitNearbyService {
         return recruits.stream()
                 .map(recruit -> toResponseDto(
                         recruit,
+                        request.getLatitude(),
+                        request.getLongitude(),
                         workPeriodMap,
                         workDaysMap,
                         workTimeMap,
@@ -86,8 +89,10 @@ public class RecruitNearbyService {
         }
     }
 
-    private RecruitRecommendResponseDto toResponseDto(
+    private RecruitNearbyResponseDto toResponseDto(
             Recruit recruit,
+            Double userLat,
+            Double userLng,
             Map<Long, List<Period>> workPeriodMap,
             Map<Long, List<Days>> workDaysMap,
             Map<Long, List<Times>> workTimeMap,
@@ -95,7 +100,18 @@ public class RecruitNearbyService {
     ) {
         Long recruitId = recruit.getId();
 
-        return RecruitRecommendResponseDto.builder()
+        if (recruit.getLatitude() == null || recruit.getLongitude() == null) {
+            throw new IllegalStateException("거리 추천 대상 공고의 위도/경도가 없습니다. recruitId=" + recruitId);
+        }
+
+        double distanceKm = DistanceUtils.haversine(
+                userLat,
+                userLng,
+                recruit.getLatitude(),
+                recruit.getLongitude()
+        );
+
+        return RecruitNearbyResponseDto.builder()
                 .recruitId(recruitId)
                 .businessMemberId(recruit.getBusinessMemberId())
                 .title(recruit.getTitle())
@@ -111,6 +127,9 @@ public class RecruitNearbyService {
                 .detailAddress(recruit.getDetailAddress())
                 .description(recruit.getDescription())
                 .resumeFormUrl(recruit.getResumeFormUrl())
+                .latitude(recruit.getLatitude())
+                .longitude(recruit.getLongitude())
+                .distanceKm(DistanceUtils.round3(distanceKm))
                 .workPeriod(workPeriodMap.getOrDefault(recruitId, List.of()))
                 .workDays(workDaysMap.getOrDefault(recruitId, List.of()))
                 .workTime(workTimeMap.getOrDefault(recruitId, List.of()))
