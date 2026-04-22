@@ -1,5 +1,7 @@
 package com.example.aibe5_project2_team7.recruit.controller;
 
+import com.example.aibe5_project2_team7.member.Member;
+import com.example.aibe5_project2_team7.member.dto.MemberResponseDto;
 import com.example.aibe5_project2_team7.naverapi.service.NaverMapService;
 import com.example.aibe5_project2_team7.recruit.constant.BusinessTypeName;
 import com.example.aibe5_project2_team7.recruit.constant.Days;
@@ -24,7 +26,9 @@ import tools.jackson.databind.ObjectMapper;
 import java.util.List;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultHandlers.print;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -134,6 +138,27 @@ class RecruitRecommendControllerTest {
             assertThat(dto.getSigungu()).isNotBlank();
             assertThat(dto.getDetailAddress()).isNotBlank();
             assertThat(dto.getDistanceKm()).isNotNull();
+        }
+    }
+
+
+    @Test
+    @DisplayName("멤버정보 평균 1점대 추천")
+    void showMemberList() throws Exception{
+        MemberResponseDto responseDto= new MemberResponseDto();
+        MvcResult mvcResult = mockMvc.perform(get("/recommend/individual")
+                        .contentType(MediaType.APPLICATION_JSON)
+                .param("score",String.valueOf(1))
+                )
+                .andExpect(status().isOk())
+                .andReturn();
+
+        String responseBody= mvcResult.getResponse().getContentAsString();
+        List<MemberResponseDto> list = objectMapper.readValue(responseBody, new TypeReference<List<MemberResponseDto>>(){});
+
+        System.out.println("list:size = " + list.size());
+        for(MemberResponseDto dto : list){
+            System.out.println(dto);
         }
     }
 
