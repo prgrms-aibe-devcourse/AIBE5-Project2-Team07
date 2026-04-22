@@ -1,7 +1,7 @@
 import useKakaoMap from '../hooks/useKakaoMap';
 
-export default function KakaoMap({ lat, lng, level }) {
-  const { mapRef } = useKakaoMap({ lat, lng, level });
+export default function KakaoMap({ lat, lng, level, address }) {
+  const { mapRef } = useKakaoMap({ lat, lng, level, address });
 
   return (
     <div

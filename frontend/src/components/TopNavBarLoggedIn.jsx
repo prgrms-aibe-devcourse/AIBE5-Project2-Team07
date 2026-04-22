@@ -6,6 +6,9 @@ export default function TopNavBarLoggedIn() {
 
   const isActive = (path) => {
     if (location.pathname === '/') return false;
+    if (path === '/recruit-information' && (location.pathname === '/recruit-detail' || location.pathname.startsWith('/recruit-detail'))) {
+      return true;
+    }
     return location.pathname === path;
   };
 

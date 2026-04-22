@@ -55,6 +55,8 @@ public class RecruitService {
                 cond.getWorkTime(),
                 cond.getBusinessType(),
                 cond.getMemberId(),
+                cond.isUrgent(),
+                RecruitStatus.EXPIRED,
                 pageable
         ).map(this::toListResponse);
     }
@@ -154,7 +156,8 @@ public class RecruitService {
                 .id(recruit.getId())
                 .title(recruit.getTitle())
                 .companyName(profile != null ? profile.getCompanyName() : null)
-                .companyImageUrl(profile != null ? profile.getCompanyImageUrl() : null)
+                // 상세 페이지와 동일하게 브랜드 공고면 브랜드 로고 우선 사용
+                .companyImageUrl(recruit.getBrand() != null ? recruit.getBrand().getLogoImg() : (profile != null ? profile.getCompanyImageUrl() : null))
                 .isUrgent(recruit.isUrgent())
                 .salary(recruit.getSalary())
                 .salaryType(recruit.getSalaryType())
@@ -183,7 +186,8 @@ public class RecruitService {
                 .title(recruit.getTitle())
                 .companyName(profile != null ? profile.getCompanyName() : null)
                 .businessType(recruit.getBusinessType().stream().map(BusinessType::getType).toList())
-                .logoImg(profile != null ? profile.getCompanyImageUrl() : null)
+                // 상세 페이지 정책: 브랜드 공고(brandId 존재)인 경우에만 로고 제공
+                .logoImg(recruit.getBrand() != null ? recruit.getBrand().getLogoImg() : null)
                 .isUrgent(recruit.isUrgent())
                 .status(recruit.getStatus())
                 .salary(recruit.getSalary())
@@ -193,14 +197,15 @@ public class RecruitService {
                 .workTime(recruit.getWorkTime().stream().map(WorkTime::getTimes).toList())
                 .headCount(recruit.getHeadCount())
                 .deadline(recruit.getDeadline())
-                .regionId(recruit.getRegion().getId())
-                .detailAddress(recruit.getDetailAddress())
+                .fullAddress(recruit.getRegion().getSido() + recruit.getRegion().getSigungu() + recruit.getDetailAddress())
                 .description(recruit.getDescription())
                 .resumeFormUrl(recruit.getResumeFormUrl())
                 .brandId(recruit.getBrand() != null ? recruit.getBrand().getId() : null)
                 .brandName(recruit.getBrand() != null ? recruit.getBrand().getName() : null)
                 .companyPhone(profile != null ? profile.getCompanyPhone() : null)
                 .homepageUrl(profile != null ? profile.getHomepageUrl() : null)
+                .latitude(recruit.getLatitude())      // 엔티티에 latitude 필드 있으면 추가
+                .longitude(recruit.getLongitude())    // 엔티티에 longitude 필드 있으면 추가
                 // reviewSummary → 리뷰 기능 구현 후 추가 예정
                 // applyStatus  → 로그인/지원 기능 구현 후 추가 예정
                 .build();

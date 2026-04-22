@@ -10,6 +10,9 @@ export default function TopNavBar() {
     // MainPage(/)에서는 하이라이팅 없음
     // 다른 페이지에서만 해당 경로가 활성화될 때 하이라이팅
     if (location.pathname === '/') return false;
+    if (path === '/recruit-information' && (location.pathname === '/recruit-detail' || location.pathname.startsWith('/recruit-detail'))) {
+      return true;
+    }
     return location.pathname === path;
   };
 
