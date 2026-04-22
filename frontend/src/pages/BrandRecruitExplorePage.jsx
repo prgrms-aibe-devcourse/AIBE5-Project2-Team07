@@ -177,10 +177,10 @@ export default function BrandRecruitExplorePage() {
     { label: '토', value: 'SAT' },
     { label: '일', value: 'SUN' },
   ];
-  // 근무 기간 필터: '단기' | '중장기'
-  const [termFilter, setTermFilter] = useState('단기');
+  // 근무 기간 필터: '전체' | '단기' | '중장기'
+  const [termFilter, setTermFilter] = useState('전체');
   // 헤더 표시는 실제 화면에 렌더된 목록 타입 기준으로 관리
-  const [displayedRecruitType, setDisplayedRecruitType] = useState('short');
+  const [displayedRecruitType, setDisplayedRecruitType] = useState('all');
   // API에서 받아온 공고 목록/상태
   const [recruitJobs, setRecruitJobs] = useState([]);
   const [recruitTotalCount, setRecruitTotalCount] = useState(0);
@@ -312,7 +312,7 @@ export default function BrandRecruitExplorePage() {
       return;
     }
 
-    const endpoint = termFilter === '중장기' ? 'long' : 'short';
+    const endpoint = termFilter === '전체' ? 'all' : (termFilter === '중장기' ? 'long' : 'short');
     const query = new URLSearchParams();
     const activePage = Math.max(1, pageOverride || currentPage);
     query.set('page', String(activePage));
@@ -320,9 +320,11 @@ export default function BrandRecruitExplorePage() {
     if (applyFilters) {
       if (selectedRegionId) query.set('region_id', String(selectedRegionId));
 
-      if (endpoint === 'short') {
+      if (endpoint === 'short' || endpoint === 'all') {
         workDates.forEach((d) => query.append('work_date', d));
-      } else {
+      }
+
+      if (endpoint === 'long' || endpoint === 'all') {
         longPeriodFilters.forEach((p) => query.append('work_period', p));
         longDayFilters.forEach((d) => query.append('work_days', d));
       }
@@ -332,7 +334,7 @@ export default function BrandRecruitExplorePage() {
         .forEach((w) => query.append('work_time', w));
     }
 
-    // 급구 필터는 단기에서만 적용
+    // 급구 필터는 단기/전체에서 전달(백엔드에서 단기에만 적용)
     const activeUrgentOnly = typeof urgentOnlyOverride === 'boolean' ? urgentOnlyOverride : urgentOnly;
     if (endpoint === 'short' && activeUrgentOnly) {
       query.set('urgent_only', 'true');
@@ -346,7 +348,8 @@ export default function BrandRecruitExplorePage() {
     if (sortParam) query.set('sort', sortParam);
 
     const queryString = query.toString();
-    const url = `/api/brand/${encodeURIComponent(brandId)}/recruits/${endpoint}${queryString ? `?${queryString}` : ''}`;
+    const recruitPath = endpoint === 'all' ? 'recruits' : `recruits/${endpoint}`;
+    const url = `/api/brand/${encodeURIComponent(brandId)}/${recruitPath}${queryString ? `?${queryString}` : ''}`;
 
     setIsRecruitLoading(true);
     setRecruitError('');
@@ -389,8 +392,15 @@ export default function BrandRecruitExplorePage() {
             MONTHLY: '월급',
           };
           const normalizedSalaryType = typeof r?.salaryType === 'string' ? r.salaryType.trim().toUpperCase() : '';
-          const payLabelText = endpoint === 'long'
+          const recruitTypeRaw = String(r?.recruitType || r?.recruit_type || '').toLowerCase();
+          const resolvedRecruitType = endpoint === 'all'
+            ? (recruitTypeRaw === 'long' ? 'long' : 'short')
+            : endpoint;
+          const payLabelText = resolvedRecruitType === 'long'
             ? (salaryTypeLabelMap[normalizedSalaryType] || '급여')
+            : '시급';
+          const payTypeBadgeText = resolvedRecruitType === 'long'
+            ? (salaryTypeLabelMap[normalizedSalaryType] || '')
             : '시급';
            const scheduleText = [deadlineText, workTimeText].filter(Boolean).join(' / ');
            const workDateRaw = r?.workDate || r?.deadline || '';
@@ -479,21 +489,47 @@ export default function BrandRecruitExplorePage() {
            const longWorkPeriodText = normalizedWorkPeriods.length > 0
              ? [...new Set(normalizedWorkPeriods)].map((p) => longPeriodLabelMap[p]).join(', ')
              : '-';
+           const deadlineRaw = r?.deadline || r?.workDate || '';
+           let deadlineDateText = '-';
+           if (typeof deadlineRaw === 'string' && deadlineRaw.trim()) {
+             const datePart = deadlineRaw.trim().split(' ')[0].replace(/\./g, '-');
+             const match = datePart.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+             deadlineDateText = match ? `${match[1]}.${match[2]}.${match[3]}` : datePart.replace(/-/g, '.');
+           }
+           const postedRaw = r?.createdAt;
+           let postedDateText = '-';
+           if (typeof postedRaw === 'string' && postedRaw.trim()) {
+             const trimmed = postedRaw.trim();
+             const match = trimmed.match(/^(\d{4}[-.]\d{2}[-.]\d{2})/);
+             postedDateText = match ? match[1].replace(/-/g, '.') : trimmed;
+           } else if (postedRaw) {
+             postedDateText = String(postedRaw);
+           }
+
+           // const longWorkTimeLabel = [
+           //   longWorkDaysText && longWorkDaysText !== '-' ? longWorkDaysText : null,
+           //   workTimeText || null,
+           // ].filter(Boolean).join('\n');
 
            return {
              brand: r?.companyName || '기업',
              title: r?.title || '공고 제목',
              location: r?.regionName || '지역 정보 없음',
              payLabel: payLabelText,
+             payTypeBadge: payTypeBadgeText,
              pay: typeof r?.salary === 'number' ? `${r.salary.toLocaleString()}원` : (r?.salary || '-'),
              schedule: scheduleText || '-',
-             posted: r?.createdAt || '-',
+             posted: postedDateText,
              urgent: r?.isUrgent === 'Y',
-             recruitType: endpoint,
+             recruitType: resolvedRecruitType,
              workDate: workDateText,
+             // workTimeLabel: resolvedRecruitType === 'long'
+             //   ? (longWorkTimeLabel || '-')
+             //   : (workTimeText || '-'),
              workTimeLabel: workTimeText || '-',
              longWorkDays: longWorkDaysText,
              longWorkPeriod: longWorkPeriodText,
+             deadlineDate: deadlineDateText,
              // 아이콘/로고는 보류: 기존 카드 스타일 유지를 위해 기본값만 사용
              icon: r?.isUrgent === 'Y' ? 'notifications_active' : 'bookmark',
              logo: urgentJobs[0]?.logo,
@@ -614,7 +650,7 @@ export default function BrandRecruitExplorePage() {
                     {/* 기간 필터 (전체 / 단기 / 중장기) */}
                     <nav className="mb-4">
                       <div className="flex gap-6">
-                        {['단기', '중장기'].map((t) => (
+                        {['전체', '단기', '중장기'].map((t) => (
                           <button
                             key={t}
                             type="button"
@@ -623,7 +659,9 @@ export default function BrandRecruitExplorePage() {
                               if (t === '중장기') {
                                 setWorkDates([]);
                                 setUrgentOnly(false);
-                              } else {
+                              } else if (t === '전체') {
+                                setUrgentOnly(false);
+                              } else if (t === '단기') {
                                 // when switching to 단기, clear long-term-only filters
                                 setLongPeriodFilters([]);
                                 setLongDayFilters([]);
@@ -669,7 +707,7 @@ export default function BrandRecruitExplorePage() {
                 <div className="ml-auto flex items-center gap-3">
                   <label className="relative flex items-center cursor-pointer gap-2">
                     <input
-                      className="sr-only peer"
+                      className="sr-only"
                       type="checkbox"
                       checked={urgentOnly}
                       onChange={(e) => {
@@ -679,8 +717,8 @@ export default function BrandRecruitExplorePage() {
                         loadRecruits({ applyFilters: true, pageOverride: 1, urgentOnlyOverride: next });
                       }}
                     />
-                    <div className="w-6 h-6 border-2 border-outline rounded-md flex items-center justify-center peer-checked:bg-primary peer-checked:border-primary transition-all">
-                      <span className="material-symbols-outlined text-[16px] text-white hidden peer-checked:block">check</span>
+                    <div className={`w-6 h-6 border-2 rounded-md flex items-center justify-center transition-all ${urgentOnly ? 'bg-primary border-primary' : 'border-outline'}`}>
+                      {urgentOnly && <span className="material-symbols-outlined text-[16px] text-white">check</span>}
                     </div>
                     <span className="text-sm font-bold text-primary">급구만 보기</span>
                   </label>
@@ -693,8 +731,8 @@ export default function BrandRecruitExplorePage() {
             {/* region selector: shown when 지역 버튼 toggled; when 근무조건 is opened show empty same-sized box */}
             {isWorkConditionOpen ? (
               termFilter === '단기' ? (
-                <div className="bg-white rounded-2xl border-[0.5px] border-outline shadow-[0_4px_20px_-2px_rgba(0,0,0,0.05)] overflow-hidden grid grid-rows-2 h-72">
-                  <div className="bg-[#f9f9f9] overflow-y-auto border-b border-outline p-4">
+                <div className="bg-white rounded-2xl border-[0.5px] border-outline shadow-[0_4px_20px_-2px_rgba(0,0,0,0.05)] p-4 space-y-6">
+                  <div>
                     <label className="block text-sm font-medium text-on-surface-variant mb-2">근무일자 선택</label>
                     <div className="flex items-center gap-2">
                       <input
@@ -717,35 +755,14 @@ export default function BrandRecruitExplorePage() {
                             setTempDate('');
                           }
                         }}
-                        className="px-3 py-2 bg-primary text-white rounded-md text-sm font-medium"
+                        className="px-4 py-2 bg-primary text-white rounded-md text-sm font-medium"
                       >
                         추가
                       </button>
                     </div>
-
-                    <div className="mt-4">
-                      <div className="text-xs text-on-surface-variant mb-2">선택된 근무일자</div>
-                      <div className="flex flex-wrap gap-2">
-                        {workDates.length === 0 && (
-                          <div className="text-sm text-on-surface-variant">선택된 날짜가 없습니다.</div>
-                        )}
-                        {workDates.map((d) => (
-                          <div key={d} className="flex items-center gap-2 px-2 py-1 bg-white border border-outline rounded-md text-sm">
-                            <span>{d}</span>
-                            <button
-                              type="button"
-                              onClick={() => setWorkDates((prev) => prev.filter((x) => x !== d))}
-                              className="text-on-surface-variant hover:text-on-surface"
-                              aria-label="날짜 삭제"
-                            >
-                              <span className="material-symbols-outlined text-[16px]">close</span>
-                            </button>
-                          </div>
-                        ))}
-                      </div>
-                    </div>
                   </div>
-                  <div className="bg-white overflow-y-auto p-4">
+
+                  <div>
                     <label className="block text-sm font-medium text-on-surface-variant mb-2">근무시간</label>
                     <div className="flex flex-wrap gap-1.5">
                       {shiftOptions.map((opt) => (
@@ -755,7 +772,75 @@ export default function BrandRecruitExplorePage() {
                           onClick={() => {
                             setShiftFilters((prev) => (prev.includes(opt) ? prev.filter((x) => x !== opt) : [...prev, opt]));
                           }}
-                          className={`px-2 py-1.5 rounded-sm text-xs font-medium transition-colors border flex items-center justify-center whitespace-nowrap ${
+                          className={`px-3 py-2 rounded-md text-sm font-medium transition-colors border flex items-center justify-center whitespace-nowrap ${
+                            shiftFilters.includes(opt)
+                              ? 'bg-primary text-white border-primary'
+                              : 'bg-white border-outline text-on-surface-variant hover:bg-gray-50'
+                          }`}
+                        >
+                          {opt}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : termFilter === '중장기' ? (
+                <div className="bg-white rounded-2xl border-[0.5px] border-outline shadow-[0_4px_20px_-2px_rgba(0,0,0,0.05)] p-4 space-y-6">
+                  <div>
+                    <label className="block text-sm font-medium text-on-surface-variant mb-3">근무기간</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {longPeriodOptions.map((opt) => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => {
+                            setLongPeriodFilters((prev) => (prev.includes(opt.value) ? prev.filter((x) => x !== opt.value) : [...prev, opt.value]));
+                          }}
+                          className={`px-3 py-2 rounded-md text-sm font-medium transition-colors border whitespace-nowrap ${
+                            longPeriodFilters.includes(opt.value)
+                              ? 'bg-primary text-white border-primary'
+                              : 'bg-white border-outline text-on-surface-variant hover:bg-gray-50'
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-on-surface-variant mb-3">근무요일</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {longDayOptions.map((opt) => (
+                        <button
+                          key={opt.value}
+                          type="button"
+                          onClick={() => {
+                            setLongDayFilters((prev) => (prev.includes(opt.value) ? prev.filter((x) => x !== opt.value) : [...prev, opt.value]));
+                          }}
+                          className={`px-3 py-2 rounded-md text-sm font-medium transition-colors border whitespace-nowrap ${
+                            longDayFilters.includes(opt.value)
+                              ? 'bg-primary text-white border-primary'
+                              : 'bg-white border-outline text-on-surface-variant hover:bg-gray-50'
+                          }`}
+                        >
+                          {opt.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  <div>
+                    <label className="block text-sm font-medium text-on-surface-variant mb-3">근무시간</label>
+                    <div className="flex flex-wrap gap-1.5">
+                      {shiftOptions.map((opt) => (
+                        <button
+                          key={opt}
+                          type="button"
+                          onClick={() => {
+                            setShiftFilters((prev) => (prev.includes(opt) ? prev.filter((x) => x !== opt) : [...prev, opt]));
+                          }}
+                          className={`px-3 py-2 rounded-md text-sm font-medium transition-colors border flex items-center justify-center whitespace-nowrap ${
                             shiftFilters.includes(opt)
                               ? 'bg-primary text-white border-primary'
                               : 'bg-white border-outline text-on-surface-variant hover:bg-gray-50'
@@ -768,53 +853,87 @@ export default function BrandRecruitExplorePage() {
                   </div>
                 </div>
               ) : (
-                <div className="bg-white rounded-2xl border-[0.5px] border-outline shadow-[0_4px_20px_-2px_rgba(0,0,0,0.05)] overflow-hidden grid grid-rows-3 h-72">
-                  <div className="bg-[#f9f9f9] overflow-y-auto border-b border-outline p-4">
-                    <label className="block text-sm font-medium text-on-surface-variant mb-3">근무기간</label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {longPeriodOptions.map((opt) => (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          onClick={() => {
-                            setLongPeriodFilters((prev) => (prev.includes(opt.value) ? prev.filter((x) => x !== opt.value) : [...prev, opt.value]));
-                          }}
-                          className={`px-2 py-1.5 rounded-sm text-xs font-medium transition-colors border whitespace-nowrap ${
-                            longPeriodFilters.includes(opt.value)
-                              ? 'bg-primary text-white border-primary'
-                              : 'bg-white border-outline text-on-surface-variant hover:bg-gray-50'
-                          }`}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
+                <div className="bg-white rounded-2xl border-[0.5px] border-outline shadow-[0_4px_20px_-2px_rgba(0,0,0,0.05)] p-4 space-y-6">
+                  <div>
+                    <label className="block text-sm font-medium text-on-surface-variant mb-2">근무일자 선택 (단기)</label>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="date"
+                        min={todayLocal}
+                        value={tempDate}
+                        onChange={(e) => setTempDate(e.target.value)}
+                        className="px-3 py-2 border border-outline rounded-md bg-white text-sm"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (!tempDate) return;
+                          if (tempDate < todayLocal) {
+                            window.alert('오늘 이후의 날짜만 선택할 수 있습니다.');
+                            return;
+                          }
+                          if (!workDates.includes(tempDate)) {
+                            setWorkDates((prev) => [...prev, tempDate]);
+                            setTempDate('');
+                          }
+                        }}
+                        className="px-4 py-2 bg-primary text-white rounded-md text-sm font-medium"
+                      >
+                        추가
+                      </button>
                     </div>
                   </div>
 
-                  <div className="bg-white overflow-y-auto border-b border-outline p-4">
-                    <label className="block text-sm font-medium text-on-surface-variant mb-3">근무요일</label>
-                    <div className="flex flex-wrap gap-1.5">
-                      {longDayOptions.map((opt) => (
-                        <button
-                          key={opt.value}
-                          type="button"
-                          onClick={() => {
-                            setLongDayFilters((prev) => (prev.includes(opt.value) ? prev.filter((x) => x !== opt.value) : [...prev, opt.value]));
-                          }}
-                          className={`px-2 py-1.5 rounded-sm text-xs font-medium transition-colors border whitespace-nowrap ${
-                            longDayFilters.includes(opt.value)
-                              ? 'bg-primary text-white border-primary'
-                              : 'bg-white border-outline text-on-surface-variant hover:bg-gray-50'
-                          }`}
-                        >
-                          {opt.label}
-                        </button>
-                      ))}
+                  <div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <div>
+                        <label className="block text-sm font-medium text-on-surface-variant mb-3">근무기간 (중장기)</label>
+                        <div className="flex flex-wrap gap-1.5">
+                          {longPeriodOptions.map((opt) => (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => {
+                                setLongPeriodFilters((prev) => (prev.includes(opt.value) ? prev.filter((x) => x !== opt.value) : [...prev, opt.value]));
+                              }}
+                              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors border whitespace-nowrap ${
+                                longPeriodFilters.includes(opt.value)
+                                  ? 'bg-primary text-white border-primary'
+                                  : 'bg-white border-outline text-on-surface-variant hover:bg-gray-50'
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-on-surface-variant mb-3">근무요일 (중장기)</label>
+                        <div className="flex flex-wrap gap-1.5">
+                          {longDayOptions.map((opt) => (
+                            <button
+                              key={opt.value}
+                              type="button"
+                              onClick={() => {
+                                setLongDayFilters((prev) => (prev.includes(opt.value) ? prev.filter((x) => x !== opt.value) : [...prev, opt.value]));
+                              }}
+                              className={`px-3 py-2 rounded-md text-sm font-medium transition-colors border whitespace-nowrap ${
+                                longDayFilters.includes(opt.value)
+                                  ? 'bg-primary text-white border-primary'
+                                  : 'bg-white border-outline text-on-surface-variant hover:bg-gray-50'
+                              }`}
+                            >
+                              {opt.label}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                     </div>
                   </div>
 
-                  <div className="bg-white overflow-y-auto p-4">
-                    <label className="block text-sm font-medium text-on-surface-variant mb-3">근무시간</label>
+                  <div>
+                    <label className="block text-sm font-medium text-on-surface-variant mb-3">근무시간 (공통)</label>
                     <div className="flex flex-wrap gap-1.5">
                       {shiftOptions.map((opt) => (
                         <button
@@ -823,7 +942,7 @@ export default function BrandRecruitExplorePage() {
                           onClick={() => {
                             setShiftFilters((prev) => (prev.includes(opt) ? prev.filter((x) => x !== opt) : [...prev, opt]));
                           }}
-                          className={`px-2 py-1.5 rounded-sm text-xs font-medium transition-colors border flex items-center justify-center whitespace-nowrap ${
+                          className={`px-3 py-2 rounded-md text-sm font-medium transition-colors border flex items-center justify-center whitespace-nowrap ${
                             shiftFilters.includes(opt)
                               ? 'bg-primary text-white border-primary'
                               : 'bg-white border-outline text-on-surface-variant hover:bg-gray-50'
@@ -1048,7 +1167,7 @@ export default function BrandRecruitExplorePage() {
           <div className="custom-container">
             <div className="flex justify-between items-end mb-10">
               <div>
-                <h2 className="text-3xl font-extrabold tracking-tighter">{displayedRecruitType === 'long' ? '중장기' : '단기'} 공고 <span className="text-primary">{recruitTotalCount.toLocaleString('ko-KR')}</span>건</h2>
+                <h2 className="text-3xl font-extrabold tracking-tighter">{displayedRecruitType === 'all' ? '전체' : (displayedRecruitType === 'long' ? '중장기' : '단기')} 공고 <span className="text-primary">{recruitTotalCount.toLocaleString('ko-KR')}</span>건</h2>
               </div>
               <div className="flex gap-2 bg-outline/20 p-1 rounded-lg">
                 <button
@@ -1092,12 +1211,12 @@ export default function BrandRecruitExplorePage() {
                     effectiveSortOption === 'workDate' ? 'bg-white text-on-surface' : 'text-on-surface-variant hover:text-on-surface transition-colors'
                   }`}
                 >
-                  {displayedRecruitType === 'long' ? '마감일순' : '근무일순'}
+                  {displayedRecruitType === 'short' ? '근무일순' : '마감일순'}
                 </button>
               </div>
             </div>
 
-            <div className="space-y-6">
+            <div className="space-y-0">
               {isRecruitLoading && (
                 <div className="bg-white border-[0.5px] border-outline p-10 rounded-2xl text-center text-on-surface-variant">
                   공고를 불러오는 중입니다.
@@ -1116,22 +1235,27 @@ export default function BrandRecruitExplorePage() {
                 </div>
               )}
 
+              {!isRecruitLoading && !recruitError && recruitJobs.length > 0 && (
+                <div className="hidden md:grid grid-cols-[minmax(380px,2.7fr)_minmax(120px,0.9fr)_minmax(105px,0.8fr)_minmax(105px,0.8fr)_minmax(90px,0.7fr)_minmax(95px,0.7fr)_minmax(95px,0.7fr)] gap-x-8 px-6 py-1 text-[12px] font-bold text-on-surface-variant">
+                  <div className="text-left">기업 및 공고정보</div>
+                  <div className="text-center">근무지</div>
+                  <div className="text-center">급여정보</div>
+                  <div className="text-center">근무기간</div>
+                  <div className="text-center">근무시간</div>
+                  <div className="text-center">마감일</div>
+                  <div className="text-center">등록일</div>
+                </div>
+              )}
+
               {!isRecruitLoading && !recruitError && recruitJobs.map((job) => (
                 <div
                   key={`${job.brand}-${job.title}`}
-                  className={`${job.urgent ? 'bg-primary-soft' : 'bg-white'} border-[0.5px] border-outline shadow-[0_4px_20px_-2px_rgba(0,0,0,0.05)] p-6 rounded-2xl relative group hover:shadow-lg transition-all`}
+                  className={`${job.urgent ? 'bg-primary-soft' : 'bg-white'} border-[0.5px] border-outline px-6 py-5 relative group transition-colors`}
                 >
-                  {job.urgent && (
-                    <div className="absolute top-8 right-8">
-                      <span className="material-symbols-outlined text-primary text-2xl" style={{ fontVariationSettings: '"FILL" 1' }}>{job.icon}</span>
-                    </div>
-                  )}
-
-                  <div className="flex gap-6">
+                  <div className="md:hidden flex gap-6">
                     <div className={`w-16 h-16 ${job.urgent ? 'bg-white' : 'bg-[#f9f9f9]'} rounded-xl flex-shrink-0 overflow-hidden border-[0.5px] border-outline p-2`}>
                       <img alt="Brand Icon" className="w-full h-full object-contain" src={job.logo} />
                     </div>
-
                     <div className="flex-1 space-y-3">
                       <div className="flex items-center gap-2">
                         <span className={`text-xs font-bold ${job.urgent ? 'text-primary' : 'text-on-surface-variant'}`}>{job.brand}</span>
@@ -1142,9 +1266,7 @@ export default function BrandRecruitExplorePage() {
                           </div>
                         )}
                       </div>
-
-                      <h3 className="text-lg md:text-xl leading-tight font-bold tracking-tight group-hover:text-primary transition-colors">{job.title}</h3>
-
+                      <h3 className="text-lg leading-tight font-bold tracking-tight">{job.title}</h3>
                       <div className="flex flex-wrap gap-x-5 gap-y-2 text-[11px] font-semibold text-on-surface-variant">
                         <div className="flex items-center gap-1.5">
                           <span className="material-symbols-outlined text-lg">location_on</span>
@@ -1152,33 +1274,48 @@ export default function BrandRecruitExplorePage() {
                         </div>
                         <div className="flex items-center gap-1.5 text-on-surface">
                           <span className="material-symbols-outlined text-lg text-primary">payments</span>
-                          {job.payLabel} <span className={`font-black ml-1 ${job.urgent ? 'text-primary' : ''}`}>{job.pay}</span>
+                          <span className={`font-black ${job.urgent ? 'text-primary' : ''}`}>{job.pay}</span>
+                          {job.payTypeBadge && (
+                            <span className="ml-1 px-2 py-0.5 rounded-full border border-primary/70 bg-primary-soft text-primary text-[10px] font-bold leading-none">
+                              {job.payTypeBadge}
+                            </span>
+                          )}
                         </div>
                         <div className="flex items-center gap-1.5">
                           <span className="material-symbols-outlined text-lg">schedule</span>
                           {job.schedule}
                         </div>
                       </div>
-
                       <div className="pt-1 text-[10px] font-medium text-on-surface-variant/60">{job.posted}</div>
                     </div>
+                  </div>
 
-                    {(job.recruitType || 'short') === 'short' ? (
-                      <div className={`hidden md:grid w-[270px] mr-4 grid-cols-[160px_96px] items-center justify-end gap-3 ${job.urgent ? 'pr-8' : ''}`}>
-                        <div className={`w-[160px] overflow-hidden text-ellipsis whitespace-nowrap text-center text-lg font-extrabold tracking-tight ${job.urgent ? 'text-primary' : 'text-on-surface'}`}>{job.workDate}</div>
-                        <div className="w-[96px] overflow-hidden text-ellipsis whitespace-nowrap text-center text-base font-semibold text-on-surface-variant">{job.workTimeLabel}</div>
+                  <div className="hidden md:grid grid-cols-[minmax(380px,2.7fr)_minmax(120px,0.9fr)_minmax(120px,0.9fr)_minmax(105px,0.8fr)_minmax(90px,0.7fr)_minmax(95px,0.7fr)_minmax(95px,0.7fr)] gap-x-8 items-center text-sm">
+                    <div className="min-w-0 text-left">
+                      <div className="flex items-center justify-start gap-2 min-w-0">
+                        <span className={`text-xs font-bold shrink-0 ${job.urgent ? 'text-primary' : 'text-on-surface-variant'}`}>{job.brand}</span>
+                        {job.urgent && (
+                          <div className="bg-primary text-white px-2 py-0.5 rounded-sm text-[10px] font-bold flex items-center gap-1 shrink-0">
+                            <span className="material-symbols-outlined text-[12px]" style={{ fontVariationSettings: '"FILL" 1' }}>emergency</span>
+                            긴급
+                          </div>
+                        )}
                       </div>
-                    ) : (
-                      <div className={`hidden md:grid w-[340px] mr-4 grid-cols-[64px_96px_140px] items-center justify-end gap-3 ${job.urgent ? 'pr-8' : ''}`}>
-                        <div className="w-[64px] overflow-hidden text-ellipsis whitespace-nowrap text-center text-base font-semibold text-on-surface">{job.longWorkDays}</div>
-                        <div className="w-[96px] overflow-hidden text-ellipsis whitespace-nowrap text-center text-base font-semibold text-on-surface-variant">{job.workTimeLabel}</div>
-                        <div className="w-[140px] overflow-hidden text-ellipsis whitespace-nowrap text-center text-base font-medium text-on-surface-variant">{job.longWorkPeriod}</div>
-                      </div>
-                    )}
-
-                    {!job.urgent && (
-                      <button className="material-symbols-outlined text-on-surface-variant/40 hover:text-primary transition-colors self-start">bookmark</button>
-                    )}
+                      <div className="mt-1 font-semibold text-on-surface truncate">{job.title}</div>
+                    </div>
+                    <div className="text-on-surface-variant truncate text-center">{job.location}</div>
+                    <div className="text-on-surface truncate text-center">
+                      <span className="font-semibold">{job.pay}</span>
+                      {job.payTypeBadge && (
+                        <span className="ml-1 inline-flex px-2 py-0.5 rounded-full border border-primary/70 bg-primary-soft text-primary text-[10px] font-bold leading-none align-middle">
+                          {job.payTypeBadge}
+                        </span>
+                      )}
+                    </div>
+                    <div className="text-on-surface-variant truncate text-center">{(job.recruitType || 'short') === 'short' ? job.workDate : job.longWorkPeriod}</div>
+                    <div className="text-on-surface-variant text-center whitespace-pre-line leading-tight">{job.workTimeLabel}</div>
+                    <div className="text-on-surface-variant truncate text-center">{job.deadlineDate || '-'}</div>
+                    <div className="text-on-surface-variant truncate text-center">{job.posted}</div>
                   </div>
                 </div>
               ))}

@@ -1,6 +1,13 @@
 package com.example.aibe5_project2_team7.brand;
 
-import com.example.aibe5_project2_team7.brand.dto.*;
+import com.example.aibe5_project2_team7.brand.dto.BrandCombinedRecruitDto;
+import com.example.aibe5_project2_team7.brand.dto.BrandLongRecruitDto;
+import com.example.aibe5_project2_team7.brand.dto.BrandRandomDto;
+import com.example.aibe5_project2_team7.brand.dto.BrandRecruitCountDto;
+import com.example.aibe5_project2_team7.brand.dto.BrandSearchAutoCompleteDto;
+import com.example.aibe5_project2_team7.brand.dto.BrandShortRecruitDto;
+import com.example.aibe5_project2_team7.brand.dto.BrandSummaryDto;
+import com.example.aibe5_project2_team7.brand.dto.BrandUrgentDto;
 import com.example.aibe5_project2_team7.brand.response.BrandRecruitListResponse;
 import com.example.aibe5_project2_team7.region.Region;
 import lombok.RequiredArgsConstructor;
@@ -85,6 +92,33 @@ public class BrandController {
             @RequestParam(name = "exclude_days", required = false) List<String> excludeDays,
             @RequestParam(name = "sort", required = false) String sort) {
         BrandRecruitListResponse<BrandLongRecruitDto> results = brandService.getBrandLongRecruits(brandId, page, regionId, workPeriod, workTime, workDays, excludeDays, sort);
+        return ResponseEntity.ok(results);
+    }
+
+    @GetMapping(value = "/api/brand/{brandId}/recruits")
+    public @ResponseBody ResponseEntity<BrandRecruitListResponse<BrandCombinedRecruitDto>> getBrandRecruits(
+            @PathVariable(name = "brandId") Long brandId,
+            @RequestParam(name = "page", defaultValue = "1") int page,
+            @RequestParam(name = "region_id", required = false) Long regionId,
+            @RequestParam(name = "work_time", required = false) List<String> workTime,
+            @RequestParam(name = "sort", required = false) String sort,
+            @RequestParam(name = "work_date", required = false) List<String> workDate,
+            @RequestParam(name = "urgent_only", required = false) Boolean urgentOnly,
+            @RequestParam(name = "work_period", required = false) List<String> workPeriod,
+            @RequestParam(name = "work_days", required = false) List<String> workDays,
+            @RequestParam(name = "exclude_days", required = false) List<String> excludeDays) {
+        BrandRecruitListResponse<BrandCombinedRecruitDto> results = brandService.getBrandRecruits(
+                brandId,
+                page,
+                regionId,
+                workTime,
+                sort,
+                workDate,
+                urgentOnly,
+                workPeriod,
+                workDays,
+                excludeDays
+        );
         return ResponseEntity.ok(results);
     }
 
