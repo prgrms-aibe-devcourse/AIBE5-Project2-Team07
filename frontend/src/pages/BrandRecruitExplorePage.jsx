@@ -693,8 +693,8 @@ export default function BrandRecruitExplorePage() {
             {/* region selector: shown when 지역 버튼 toggled; when 근무조건 is opened show empty same-sized box */}
             {isWorkConditionOpen ? (
               termFilter === '단기' ? (
-                <div className="bg-white rounded-2xl border-[0.5px] border-outline shadow-[0_4px_20px_-2px_rgba(0,0,0,0.05)] overflow-hidden grid grid-cols-2 h-72">
-                  <div className="bg-[#f9f9f9] overflow-y-auto border-r border-outline p-4">
+                <div className="bg-white rounded-2xl border-[0.5px] border-outline shadow-[0_4px_20px_-2px_rgba(0,0,0,0.05)] overflow-hidden grid grid-rows-2 h-72">
+                  <div className="bg-[#f9f9f9] overflow-y-auto border-b border-outline p-4">
                     <label className="block text-sm font-medium text-on-surface-variant mb-2">근무일자 선택</label>
                     <div className="flex items-center gap-2">
                       <input
@@ -747,7 +747,7 @@ export default function BrandRecruitExplorePage() {
                   </div>
                   <div className="bg-white overflow-y-auto p-4">
                     <label className="block text-sm font-medium text-on-surface-variant mb-2">근무시간</label>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="flex flex-wrap gap-1.5">
                       {shiftOptions.map((opt) => (
                         <button
                           key={opt}
@@ -755,7 +755,7 @@ export default function BrandRecruitExplorePage() {
                           onClick={() => {
                             setShiftFilters((prev) => (prev.includes(opt) ? prev.filter((x) => x !== opt) : [...prev, opt]));
                           }}
-                          className={`px-2 py-1.5 rounded-sm text-xs font-medium transition-colors border flex items-center justify-center ${
+                          className={`px-2 py-1.5 rounded-sm text-xs font-medium transition-colors border flex items-center justify-center whitespace-nowrap ${
                             shiftFilters.includes(opt)
                               ? 'bg-primary text-white border-primary'
                               : 'bg-white border-outline text-on-surface-variant hover:bg-gray-50'
@@ -768,10 +768,10 @@ export default function BrandRecruitExplorePage() {
                   </div>
                 </div>
               ) : (
-                <div className="bg-white rounded-2xl border-[0.5px] border-outline shadow-[0_4px_20px_-2px_rgba(0,0,0,0.05)] overflow-hidden grid grid-cols-3 h-72">
-                  <div className="bg-[#f9f9f9] overflow-y-auto border-r border-outline p-4">
+                <div className="bg-white rounded-2xl border-[0.5px] border-outline shadow-[0_4px_20px_-2px_rgba(0,0,0,0.05)] overflow-hidden grid grid-rows-3 h-72">
+                  <div className="bg-[#f9f9f9] overflow-y-auto border-b border-outline p-4">
                     <label className="block text-sm font-medium text-on-surface-variant mb-3">근무기간</label>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="flex flex-wrap gap-1.5">
                       {longPeriodOptions.map((opt) => (
                         <button
                           key={opt.value}
@@ -779,7 +779,7 @@ export default function BrandRecruitExplorePage() {
                           onClick={() => {
                             setLongPeriodFilters((prev) => (prev.includes(opt.value) ? prev.filter((x) => x !== opt.value) : [...prev, opt.value]));
                           }}
-                          className={`px-2 py-1.5 rounded-sm text-xs font-medium transition-colors border ${
+                          className={`px-2 py-1.5 rounded-sm text-xs font-medium transition-colors border whitespace-nowrap ${
                             longPeriodFilters.includes(opt.value)
                               ? 'bg-primary text-white border-primary'
                               : 'bg-white border-outline text-on-surface-variant hover:bg-gray-50'
@@ -791,9 +791,9 @@ export default function BrandRecruitExplorePage() {
                     </div>
                   </div>
 
-                  <div className="bg-white overflow-y-auto border-r border-outline p-4">
+                  <div className="bg-white overflow-y-auto border-b border-outline p-4">
                     <label className="block text-sm font-medium text-on-surface-variant mb-3">근무요일</label>
-                    <div className="grid grid-cols-4 gap-2">
+                    <div className="flex flex-wrap gap-1.5">
                       {longDayOptions.map((opt) => (
                         <button
                           key={opt.value}
@@ -801,7 +801,7 @@ export default function BrandRecruitExplorePage() {
                           onClick={() => {
                             setLongDayFilters((prev) => (prev.includes(opt.value) ? prev.filter((x) => x !== opt.value) : [...prev, opt.value]));
                           }}
-                          className={`px-2 py-1.5 rounded-sm text-xs font-medium transition-colors border ${
+                          className={`px-2 py-1.5 rounded-sm text-xs font-medium transition-colors border whitespace-nowrap ${
                             longDayFilters.includes(opt.value)
                               ? 'bg-primary text-white border-primary'
                               : 'bg-white border-outline text-on-surface-variant hover:bg-gray-50'
@@ -815,7 +815,7 @@ export default function BrandRecruitExplorePage() {
 
                   <div className="bg-white overflow-y-auto p-4">
                     <label className="block text-sm font-medium text-on-surface-variant mb-3">근무시간</label>
-                    <div className="grid grid-cols-3 gap-2">
+                    <div className="flex flex-wrap gap-1.5">
                       {shiftOptions.map((opt) => (
                         <button
                           key={opt}
@@ -823,7 +823,7 @@ export default function BrandRecruitExplorePage() {
                           onClick={() => {
                             setShiftFilters((prev) => (prev.includes(opt) ? prev.filter((x) => x !== opt) : [...prev, opt]));
                           }}
-                          className={`px-2 py-1.5 rounded-sm text-xs font-medium transition-colors border flex items-center justify-center ${
+                          className={`px-2 py-1.5 rounded-sm text-xs font-medium transition-colors border flex items-center justify-center whitespace-nowrap ${
                             shiftFilters.includes(opt)
                               ? 'bg-primary text-white border-primary'
                               : 'bg-white border-outline text-on-surface-variant hover:bg-gray-50'
@@ -1164,15 +1164,15 @@ export default function BrandRecruitExplorePage() {
                     </div>
 
                     {(job.recruitType || 'short') === 'short' ? (
-                      <div className={`hidden md:flex min-w-[140px] mr-4 flex-col items-end justify-center text-right ${job.urgent ? 'pr-8' : ''}`}>
-                        <div className={`text-2xl font-extrabold tracking-tight ${job.urgent ? 'text-primary' : 'text-on-surface'}`}>{job.workDate}</div>
-                        <div className="mt-1 text-base font-semibold text-on-surface-variant">{job.workTimeLabel}</div>
+                      <div className={`hidden md:grid w-[270px] mr-4 grid-cols-[160px_96px] items-center justify-end gap-3 ${job.urgent ? 'pr-8' : ''}`}>
+                        <div className={`w-[160px] overflow-hidden text-ellipsis whitespace-nowrap text-center text-lg font-extrabold tracking-tight ${job.urgent ? 'text-primary' : 'text-on-surface'}`}>{job.workDate}</div>
+                        <div className="w-[96px] overflow-hidden text-ellipsis whitespace-nowrap text-center text-base font-semibold text-on-surface-variant">{job.workTimeLabel}</div>
                       </div>
                     ) : (
-                      <div className={`hidden md:flex min-w-[180px] mr-4 flex-col items-end justify-center gap-1 text-right ${job.urgent ? 'pr-8' : ''}`}>
-                        <div className="text-base font-semibold text-on-surface">{job.longWorkDays}</div>
-                        <div className="text-lg font-semibold text-on-surface-variant">{job.workTimeLabel}</div>
-                        <div className="text-base font-medium text-on-surface-variant">{job.longWorkPeriod}</div>
+                      <div className={`hidden md:grid w-[340px] mr-4 grid-cols-[64px_96px_140px] items-center justify-end gap-3 ${job.urgent ? 'pr-8' : ''}`}>
+                        <div className="w-[64px] overflow-hidden text-ellipsis whitespace-nowrap text-center text-base font-semibold text-on-surface">{job.longWorkDays}</div>
+                        <div className="w-[96px] overflow-hidden text-ellipsis whitespace-nowrap text-center text-base font-semibold text-on-surface-variant">{job.workTimeLabel}</div>
+                        <div className="w-[140px] overflow-hidden text-ellipsis whitespace-nowrap text-center text-base font-medium text-on-surface-variant">{job.longWorkPeriod}</div>
                       </div>
                     )}
 
