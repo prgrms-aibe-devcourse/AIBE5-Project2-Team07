@@ -18,6 +18,8 @@ import BusinessRecruitCreatePage from './pages/BusinessRecruitCreatePage';
 import PersonalMyPage from './pages/PersonalMyPage';
 import TalentProfilePage from './pages/TalentProfilePage';
 import GlobalAiChatbotButton from './components/GlobalAiChatbotButton';
+import TalentProfilePage from './pages/TalentProfilePage';
+import MyPageRouter from './pages/MyPageRouter';
 import './index.css';
 
 function App() {
@@ -40,8 +42,10 @@ function App() {
         <Route path="/dashboard" element={<BusinessMyPage />} />
         <Route path="/dashboard/company-edit" element={<BusinessCompanyEditPage />} />
         <Route path="/dashboard/recruit-create" element={<BusinessRecruitCreatePage />} />
-        <Route path="/my-page" element={<PersonalMyPage />} />
-        <Route path="/talent-profile" element={<TalentProfilePage />} />
+        <Route path="/mypage" element={<MyPageRouter />} />
+        <Route path="/personal-mypage" element={<PersonalMyPage />} />
+        <Route path="/business-mypage" element={<BusinessMyPage />} />
+        <Route path="/talent-profile/:resumeId" element={<TalentProfilePage />} />
       </Routes>
       <GlobalAiChatbotButton />
     </Router>

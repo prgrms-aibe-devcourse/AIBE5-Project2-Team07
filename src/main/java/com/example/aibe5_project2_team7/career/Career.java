@@ -1,5 +1,6 @@
 package com.example.aibe5_project2_team7.career;
 
+import com.example.aibe5_project2_team7.resume.Resume;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -24,4 +25,8 @@ public class Career {
     private LocalDate startDate;
     @Column(name = "end_date")
     private LocalDate endDate; // null 가능
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "resume_id")
+    private Resume resume;
 }

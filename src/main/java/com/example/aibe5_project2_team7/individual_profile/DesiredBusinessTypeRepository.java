@@ -11,4 +11,6 @@ public interface DesiredBusinessTypeRepository extends JpaRepository<DesiredBusi
 
     @Query("select distinct d.memberId from DesiredBusinessType d where d.type in :types")
     List<Long> findDistinctMemberIdByTypeIn(@Param("types") List<String> types);
+
+    void deleteByMemberId(Long memberId);
 }
