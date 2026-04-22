@@ -1,11 +1,7 @@
 package com.example.aibe5_project2_team7.recruit.service;
 
-import com.example.aibe5_project2_team7.naverapi.service.NaverMapService;
-import com.example.aibe5_project2_team7.recruit.constant.BusinessTypeName;
-import com.example.aibe5_project2_team7.recruit.constant.Days;
-import com.example.aibe5_project2_team7.recruit.constant.Period;
-import com.example.aibe5_project2_team7.recruit.constant.Times;
-import com.example.aibe5_project2_team7.recruit.dto.RecruitRecommendConditionRequestDto;
+import com.example.aibe5_project2_team7.recruit.constant.*;
+import com.example.aibe5_project2_team7.recruit.dto.RecruitNearbyRequestDto;
 import com.example.aibe5_project2_team7.recruit.dto.RecruitRecommendResponseDto;
 import com.example.aibe5_project2_team7.recruit.entity.*;
 import com.example.aibe5_project2_team7.recruit.repository.*;
@@ -13,36 +9,38 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
-public class RecruitRecommendService {
+public class RecruitNearbyService {
 
     private final RecruitRecommendRepository recruitRecommendRepository;
     private final WorkPeriodRepository workPeriodRepository;
     private final WorkDaysRepository workDaysRepository;
     private final WorkTimeRepository workTimeRepository;
     private final BusinessTypeRepository businessTypeRepository;
-    private final NaverMapService naverMapService;
-    public List<RecruitRecommendResponseDto> getRecommendList(RecruitRecommendConditionRequestDto condition) {
 
-        // 1) 추천 순위 계산 + recruit 본문 20개 조회
-        List<Recruit> recruits = recruitRecommendRepository.getRecommendFieldSearch(condition);
+    public List<RecruitRecommendResponseDto> findNearbyRecruits(RecruitNearbyRequestDto request) {
+        validateRequest(request);
+
+        List<Recruit> recruits = recruitRecommendRepository.findNearbyRecruits(
+                request.getLatitude(),
+                request.getLongitude(),
+                request.getRadiusKm()
+        );
 
         if (recruits.isEmpty()) {
             return List.of();
         }
 
-        // 2) 추천 결과 id 목록 추출
         List<Long> recruitIds = recruits.stream()
                 .map(Recruit::getId)
                 .toList();
 
-        // 3) 자식 테이블들 IN 조회
         Map<Long, List<Period>> workPeriodMap = workPeriodRepository.findByRecruitIdIn(recruitIds).stream()
                 .collect(Collectors.groupingBy(
                         wp -> wp.getRecruit().getId(),
@@ -67,7 +65,6 @@ public class RecruitRecommendService {
                         Collectors.mapping(BusinessType::getType, Collectors.toList())
                 ));
 
-        // 4) 화면용 DTO 변환
         return recruits.stream()
                 .map(recruit -> toResponseDto(
                         recruit,
@@ -79,7 +76,15 @@ public class RecruitRecommendService {
                 .toList();
     }
 
+    private void validateRequest(RecruitNearbyRequestDto request) {
+        if (request.getLatitude() == null || request.getLongitude() == null) {
+            throw new IllegalArgumentException("현재 위치 위도/경도는 필수입니다.");
+        }
 
+        if (request.getRadiusKm() == null || request.getRadiusKm() <= 0) {
+            throw new IllegalArgumentException("반경(radiusKm)은 0보다 커야 합니다.");
+        }
+    }
 
     private RecruitRecommendResponseDto toResponseDto(
             Recruit recruit,
@@ -112,9 +117,4 @@ public class RecruitRecommendService {
                 .businessType(businessTypeMap.getOrDefault(recruitId, List.of()))
                 .build();
     }
-
-
-
-
-
 }
