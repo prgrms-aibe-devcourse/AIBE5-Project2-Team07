@@ -36,15 +36,12 @@ public class Resume extends BaseEntity {
     @JoinColumn(name = "member_id", insertable = false, updatable = false)
     private Member member;
 
-    @ManyToMany
-    @JoinTable(name = "resume_career", joinColumns = @JoinColumn(name = "resume_id"), inverseJoinColumns = @JoinColumn(name = "career_id"))
+    @OneToMany(mappedBy = "resume", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Career> careers = new ArrayList<>();
 
-    @ManyToMany
-    @JoinTable(name = "resume_license", joinColumns = @JoinColumn(name = "resume_id"), inverseJoinColumns = @JoinColumn(name = "license_id"))
+    @OneToMany(mappedBy = "resume", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<License> licenses = new ArrayList<>();
 
-    @ManyToMany
-    @JoinTable(name = "resume_education", joinColumns = @JoinColumn(name = "resume_id"), inverseJoinColumns = @JoinColumn(name = "education_id"))
+    @OneToMany(mappedBy = "resume", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<HighestEducation> educations = new ArrayList<>();
 }

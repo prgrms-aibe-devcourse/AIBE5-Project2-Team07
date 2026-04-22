@@ -19,4 +19,8 @@ public interface ResumeRepository extends JpaRepository<Resume, Long> {
     Optional<Resume> findByMemberId(Long memberId);
 
     Page<Resume> findByVisibilityTrueAndMemberIdIn(List<Long> memberIds, Pageable pageable);
+
+    Optional<Resume> findByCareers_Id(Long careerId);
+    Optional<Resume> findByLicenses_Id(Long licenseId);
+    Optional<Resume> findByEducations_Id(Long educationId);
 }

@@ -1,5 +1,6 @@
 package com.example.aibe5_project2_team7.member.service;
 
+import com.example.aibe5_project2_team7.member.CustomUser;
 import com.example.aibe5_project2_team7.member.Member;
 import com.example.aibe5_project2_team7.member.MemberType;
 import com.example.aibe5_project2_team7.member.repository.MemberRepository;
@@ -12,6 +13,7 @@ import com.example.aibe5_project2_team7.member_address.MemberAddressRepository;
 import com.example.aibe5_project2_team7.region.Region;
 import com.example.aibe5_project2_team7.region.RegionRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -159,5 +161,16 @@ public class MemberService {
     public Member getMember(Long memberId){
         return memberRepository.findById(memberId)
                 .orElseThrow(() -> new RuntimeException("member not found"));
+    }
+    // Spring Security용 사용자 정보 로드
+    public CustomUser loadUserByUsername(String email) {
+        Member member = memberRepository.findByEmail(email)
+                .orElseThrow(() -> new UsernameNotFoundException("회원을 찾을 수 없습니다."));
+
+        return new CustomUser(
+                member.getId(),
+                member.getEmail(),
+                member.getPassword()
+        );
     }
 }

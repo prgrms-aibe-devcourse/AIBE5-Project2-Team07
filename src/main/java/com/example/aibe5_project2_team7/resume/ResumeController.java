@@ -1,5 +1,6 @@
 package com.example.aibe5_project2_team7.resume;
 
+import com.example.aibe5_project2_team7.resume.dto.ResumeDetailDto;
 import com.example.aibe5_project2_team7.resume.dto.ResumeSummaryDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
@@ -77,9 +78,15 @@ public class ResumeController {
     @GetMapping("/human-resource/{id}")
     public ResponseEntity<?> getResumeDetail(@PathVariable Long id) {
         try {
-            return ResponseEntity.ok(resumeService.getResumeDetail(id));
+            ResumeDetailDto dto = resumeService.getResumeDetail(id);
+            return ResponseEntity.ok(dto);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(java.util.Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(
+                    java.util.Collections.singletonMap(
+                            "error",
+                            e.getMessage() != null ? e.getMessage() : "에러 발생"
+                    )
+            );
         }
     }
 }

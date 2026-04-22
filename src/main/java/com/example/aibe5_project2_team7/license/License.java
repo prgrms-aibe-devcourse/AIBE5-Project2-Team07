@@ -1,5 +1,6 @@
 package com.example.aibe5_project2_team7.license;
 
+import com.example.aibe5_project2_team7.resume.Resume;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -24,4 +25,8 @@ public class License {
     private String issuedBy;
     @Column(name = "license_file_url")
     private String licenseFileUrl;
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "resume_id")
+    private Resume resume;
 }

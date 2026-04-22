@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.HashMap;
 import java.util.Map;
 
 @RestController
@@ -24,7 +25,7 @@ public class PersonalResumeController {
             Resume r = resumeService.createResume(user.getId(), payload);
             return ResponseEntity.ok(r);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(error(e, "이력서 생성 실패"));
         }
     }
 
@@ -35,7 +36,7 @@ public class PersonalResumeController {
             ResumeDetailDto dto = resumeService.getOwnResume(user.getId());
             return ResponseEntity.ok(dto);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(error(e, "이력서 조회 실패"));
         }
     }
 
@@ -48,7 +49,7 @@ public class PersonalResumeController {
             ResumeDetailDto dto = resumeService.getResumeDetail(updated.getId());
             return ResponseEntity.ok(dto);
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(error(e, "이력서 수정 실패"));
         }
     }
 
@@ -57,9 +58,21 @@ public class PersonalResumeController {
             @AuthenticationPrincipal CustomUser user) {
         try {
             resumeService.deleteOwnResume(user.getId());
-            return ResponseEntity.ok(Map.of("success", true));
+            return ResponseEntity.ok(success());
         } catch (RuntimeException e) {
-            return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
+            return ResponseEntity.badRequest().body(error(e, "이력서 삭제 실패"));
         }
+    }
+
+    private Map<String, Object> error(Exception e, String defaultMsg) {
+        Map<String, Object> map = new HashMap<>();
+        map.put("error", e.getMessage() != null ? e.getMessage() : defaultMsg);
+        return map;
+    }
+
+    private Map<String, Object> success() {
+        Map<String, Object> map = new HashMap<>();
+        map.put("success", true);
+        return map;
     }
 }

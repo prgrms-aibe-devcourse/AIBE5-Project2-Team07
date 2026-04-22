@@ -10,6 +10,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.Map;
 
 @RestController
@@ -47,5 +48,20 @@ public class ReviewController {
     ) {
         reviewService.deleteReview(reviewId, user.getId());
         return Map.of("message", "리뷰가 삭제되었습니다.");
+    }
+
+    @GetMapping("/{reviewId}")
+    public ReviewResponse getReview(@PathVariable Long reviewId) {
+        return reviewService.getReview(reviewId);
+    }
+
+    @GetMapping("/target/{targetId}")
+    public List<ReviewResponse> getReviewsByTarget(@PathVariable Long targetId) {
+        return reviewService.getReviewsByTarget(targetId);
+    }
+
+    @GetMapping("/writer/{writerId}")
+    public List<ReviewResponse> getReviewsByWriter(@PathVariable Long writerId) {
+        return reviewService.getReviewsByWriter(writerId);
     }
 }
