@@ -82,8 +82,9 @@ public class BrandController {
             @RequestParam(name = "work_period", required = false) List<String> workPeriod,
             @RequestParam(name = "work_time", required = false) List<String> workTime,
             @RequestParam(name = "work_days", required = false) List<String> workDays,
+            @RequestParam(name = "exclude_days", required = false) List<String> excludeDays,
             @RequestParam(name = "sort", required = false) String sort) {
-        BrandRecruitListResponse<BrandLongRecruitDto> results = brandService.getBrandLongRecruits(brandId, page, regionId, workPeriod, workTime, workDays, sort);
+        BrandRecruitListResponse<BrandLongRecruitDto> results = brandService.getBrandLongRecruits(brandId, page, regionId, workPeriod, workTime, workDays, excludeDays, sort);
         return ResponseEntity.ok(results);
     }
 

@@ -339,7 +339,9 @@ export default function BrandRecruitExplorePage() {
     }
 
     // 정렬 파라미터는 항상 포함 (초기 조회/필터 조회 모두 적용)
-    const activeSortOption = sortOptionOverride || sortOption;
+    const requestedSortOption = sortOptionOverride || sortOption;
+    // 중장기 목록에서는 급여 정렬을 노출하지 않으므로 최신순으로 보정
+    const activeSortOption = endpoint === 'long' && requestedSortOption === 'pay' ? 'latest' : requestedSortOption;
     const sortParam = sortToApiMap[activeSortOption];
     if (sortParam) query.set('sort', sortParam);
 
@@ -532,6 +534,9 @@ export default function BrandRecruitExplorePage() {
     loadBrandSummary(brandId);
     loadRecruits({ pageOverride: 1, brandIdOverride: brandId });
   };
+
+  const effectiveSortOption = displayedRecruitType === 'long' && sortOption === 'pay' ? 'latest' : sortOption;
+
   return (
     <>
       <TopNavBar />
@@ -1054,25 +1059,27 @@ export default function BrandRecruitExplorePage() {
                     loadRecruits({ applyFilters: true, sortOptionOverride: 'latest', pageOverride: 1 });
                   }}
                   className={`px-5 py-1.5 rounded-md text-sm font-bold shadow-sm ${
-                    sortOption === 'latest' ? 'bg-white text-on-surface' : 'text-on-surface-variant hover:text-on-surface transition-colors'
+                    effectiveSortOption === 'latest' ? 'bg-white text-on-surface' : 'text-on-surface-variant hover:text-on-surface transition-colors'
                   }`}
                 >
                   최신순
                 </button>
 
-                <button
-                  type="button"
-                  onClick={() => {
-                    setSortOption('pay');
-                    setCurrentPage(1);
-                    loadRecruits({ applyFilters: true, sortOptionOverride: 'pay', pageOverride: 1 });
-                  }}
-                  className={`px-5 py-1.5 rounded-md text-sm font-bold ${
-                    sortOption === 'pay' ? 'bg-white text-on-surface' : 'text-on-surface-variant hover:text-on-surface transition-colors'
-                  }`}
-                >
-                  시급순
-                </button>
+                {displayedRecruitType !== 'long' && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setSortOption('pay');
+                      setCurrentPage(1);
+                      loadRecruits({ applyFilters: true, sortOptionOverride: 'pay', pageOverride: 1 });
+                    }}
+                    className={`px-5 py-1.5 rounded-md text-sm font-bold ${
+                      sortOption === 'pay' ? 'bg-white text-on-surface' : 'text-on-surface-variant hover:text-on-surface transition-colors'
+                    }`}
+                  >
+                    시급순
+                  </button>
+                )}
 
                 <button
                   type="button"
@@ -1082,10 +1089,10 @@ export default function BrandRecruitExplorePage() {
                     loadRecruits({ applyFilters: true, sortOptionOverride: 'workDate', pageOverride: 1 });
                   }}
                   className={`px-5 py-1.5 rounded-md text-sm font-bold ${
-                    sortOption === 'workDate' ? 'bg-white text-on-surface' : 'text-on-surface-variant hover:text-on-surface transition-colors'
+                    effectiveSortOption === 'workDate' ? 'bg-white text-on-surface' : 'text-on-surface-variant hover:text-on-surface transition-colors'
                   }`}
                 >
-                  근무일순
+                  {displayedRecruitType === 'long' ? '마감일순' : '근무일순'}
                 </button>
               </div>
             </div>

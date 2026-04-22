@@ -14,10 +14,9 @@ export default function BrandModal({ isOpen, onClose, onSelectBrand }) {
   const categoryToBiz = {
     '음식점': 'FOOD_RESTAURANT',
     '카페': 'CAFE',
-    '매장관리·판매(편의점/피시방)': 'RETAIL_STORE',
-    '서비스': 'SERVICE',
+    '매장관리(편의점·피시방)': 'RETAIL_STORE',
     '운전·배달': 'DELIVERY_DRIVER',
-    '물류/상하차': 'MANUAL_LABOR',
+    '물류·상하차': 'MANUAL_LABOR',
   };
 
   useEffect(() => {
@@ -74,10 +73,9 @@ export default function BrandModal({ isOpen, onClose, onSelectBrand }) {
                 {[
                   '음식점',
                   '카페',
-                  '매장관리·판매(편의점/피시방)',
-                  '서비스',
+                  '매장관리(편의점·피시방)',
                   '운전·배달',
-                  '물류/상하차',
+                  '물류·상하차',
                 ].map((cat) => {
                   const active = selectedCategory === cat;
                   return (

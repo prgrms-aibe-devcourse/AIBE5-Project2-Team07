@@ -250,7 +250,7 @@ public class BrandService {
 
     public BrandRecruitListResponse<BrandLongRecruitDto> getBrandLongRecruits(Long brandId, int page, Long regionId,
                                                                              List<String> workPeriods, List<String> workTimes,
-                                                                             List<String> workDays, String sort) {
+                                                                             List<String> workDays, List<String> excludeDays, String sort) {
         int pageIndex = Math.max(1, page) - 1;
         final int size = 20;
         int offset = pageIndex * size;
@@ -294,6 +294,17 @@ public class BrandService {
             }
         }
 
+        // parse excludeDays -> validated Days names
+        List<String> excludeDayParams = new ArrayList<>();
+        if (excludeDays != null) {
+            for (String d : excludeDays) {
+                if (d == null) continue;
+                String v = d.trim();
+                try { excludeDayParams.add(com.example.aibe5_project2_team7.recruit.constant.Days.valueOf(v).name()); }
+                catch (Exception ex) { /* ignore invalid */ }
+            }
+        }
+
         StringBuilder fromWhere = new StringBuilder();
         fromWhere.append(" FROM recruit r ");
         fromWhere.append(" JOIN Brand b ON r.brand_id = b.id ");
@@ -319,6 +330,12 @@ public class BrandService {
             fromWhere.append(") ) ");
         }
 
+        if (!excludeDayParams.isEmpty()) {
+            fromWhere.append(" AND NOT EXISTS (SELECT 1 FROM work_days wd_ex WHERE wd_ex.recruit_id = r.id AND wd_ex.day IN (");
+            for (int i = 0; i < excludeDayParams.size(); i++) { if (i > 0) fromWhere.append(", "); fromWhere.append(":xd").append(i); }
+            fromWhere.append(") ) ");
+        }
+
         // exclude recruits whose work_period is OneDay
         fromWhere.append(" AND NOT EXISTS (SELECT 1 FROM work_period wp WHERE wp.recruit_id = r.id AND wp.period = 'OneDay') ");
 
@@ -330,6 +347,7 @@ public class BrandService {
         for (int i = 0; i < periodParams.size(); i++) countQ.setParameter("p" + i, periodParams.get(i));
         for (int i = 0; i < timeParams.size(); i++) countQ.setParameter("t" + i, timeParams.get(i));
         for (int i = 0; i < dayParams.size(); i++) countQ.setParameter("d" + i, dayParams.get(i));
+        for (int i = 0; i < excludeDayParams.size(); i++) countQ.setParameter("xd" + i, excludeDayParams.get(i));
         Number tcNum = (Number) countQ.getSingleResult();
         long totalCount = tcNum != null ? tcNum.longValue() : 0L;
 
@@ -348,6 +366,7 @@ public class BrandService {
         for (int i = 0; i < periodParams.size(); i++) q.setParameter("p" + i, periodParams.get(i));
         for (int i = 0; i < timeParams.size(); i++) q.setParameter("t" + i, timeParams.get(i));
         for (int i = 0; i < dayParams.size(); i++) q.setParameter("d" + i, dayParams.get(i));
+        for (int i = 0; i < excludeDayParams.size(); i++) q.setParameter("xd" + i, excludeDayParams.get(i));
         q.setParameter("limit", size);
         q.setParameter("offset", offset);
 
