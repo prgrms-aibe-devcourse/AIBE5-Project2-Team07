@@ -175,7 +175,7 @@ public class BrandService {
 
         // data query (short list) - select fields in order matching mapping
         StringBuilder selectSql = new StringBuilder();
-        selectSql.append("SELECT r.id, r.title, TRIM(CONCAT(b.name, COALESCE(CONCAT(' ', (SELECT bp.company_name FROM business_profile bp WHERE bp.member_id = r.business_member_id LIMIT 1)), ''))) AS company_name, r.salary, ");
+        selectSql.append("SELECT r.id, r.title, (SELECT bp.company_name FROM business_profile bp WHERE bp.member_id = r.business_member_id LIMIT 1) AS company_name, r.salary, ");
         selectSql.append(" (SELECT wt2.times FROM work_time wt2 WHERE wt2.recruit_id = r.id LIMIT 1) AS work_time, ");
         selectSql.append(" r.region_id, CONCAT(rg.sido, ' ', rg.sigungu) AS region_name, r.is_urgent, r.created_at, r.deadline ");
         selectSql.append(fromWhere.toString());
@@ -365,7 +365,7 @@ public class BrandService {
 
         // select (include salary_type and work_period); work_days will be fetched separately
         StringBuilder selectSql = new StringBuilder();
-        selectSql.append("SELECT r.id, r.title, TRIM(CONCAT(b.name, COALESCE(CONCAT(' ', (SELECT bp.company_name FROM business_profile bp WHERE bp.member_id = r.business_member_id LIMIT 1)), ''))) AS company_name, r.salary, r.salary_type, ");
+        selectSql.append("SELECT r.id, r.title, (SELECT bp.company_name FROM business_profile bp WHERE bp.member_id = r.business_member_id LIMIT 1) AS company_name, r.salary, r.salary_type, ");
         selectSql.append(" (SELECT wp.period FROM work_period wp WHERE wp.recruit_id = r.id LIMIT 1) AS work_period, ");
         selectSql.append(" (SELECT wt2.times FROM work_time wt2 WHERE wt2.recruit_id = r.id LIMIT 1) AS work_time, ");
         selectSql.append(" r.region_id, CONCAT(rg.sido, ' ', rg.sigungu) AS region_name, r.is_urgent, r.created_at, r.deadline ");
@@ -609,7 +609,7 @@ public class BrandService {
 
         StringBuilder shortSelect = new StringBuilder();
         shortSelect.append("SELECT r.id AS id, 'SHORT' AS recruit_type, r.title AS title, ");
-        shortSelect.append("TRIM(CONCAT(b.name, COALESCE(CONCAT(' ', (SELECT bp.company_name FROM business_profile bp WHERE bp.member_id = r.business_member_id LIMIT 1)), ''))) AS company_name, ");
+        shortSelect.append("(SELECT bp.company_name FROM business_profile bp WHERE bp.member_id = r.business_member_id LIMIT 1) AS company_name, ");
         shortSelect.append("r.salary AS salary, NULL AS salary_type, NULL AS work_period, ");
         shortSelect.append("(SELECT wt2.times FROM work_time wt2 WHERE wt2.recruit_id = r.id LIMIT 1) AS work_time, ");
         shortSelect.append("r.region_id AS region_id, CONCAT(rg.sido, ' ', rg.sigungu) AS region_name, ");
@@ -618,7 +618,7 @@ public class BrandService {
 
         StringBuilder longSelect = new StringBuilder();
         longSelect.append("SELECT r.id AS id, 'LONG' AS recruit_type, r.title AS title, ");
-        longSelect.append("TRIM(CONCAT(b.name, COALESCE(CONCAT(' ', (SELECT bp.company_name FROM business_profile bp WHERE bp.member_id = r.business_member_id LIMIT 1)), ''))) AS company_name, ");
+        longSelect.append("(SELECT bp.company_name FROM business_profile bp WHERE bp.member_id = r.business_member_id LIMIT 1) AS company_name, ");
         longSelect.append("r.salary AS salary, r.salary_type AS salary_type, ");
         longSelect.append("(SELECT wp.period FROM work_period wp WHERE wp.recruit_id = r.id LIMIT 1) AS work_period, ");
         longSelect.append("(SELECT wt2.times FROM work_time wt2 WHERE wt2.recruit_id = r.id LIMIT 1) AS work_time, ");
