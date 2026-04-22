@@ -177,7 +177,7 @@ public class BrandService {
         StringBuilder selectSql = new StringBuilder();
         selectSql.append("SELECT r.id, r.title, b.name AS company_name, r.salary, ");
         selectSql.append(" (SELECT wt2.times FROM work_time wt2 WHERE wt2.recruit_id = r.id LIMIT 1) AS work_time, ");
-        selectSql.append(" r.region_id, CONCAT(rg.sido, ' ', rg.sigungu) AS region_name, r.is_urgent, r.deadline ");
+        selectSql.append(" r.region_id, CONCAT(rg.sido, ' ', rg.sigungu) AS region_name, r.is_urgent, r.created_at, r.deadline ");
         selectSql.append(fromWhere.toString());
         selectSql.append(" ORDER BY ").append(orderSql).append(" LIMIT :limit OFFSET :offset");
 
@@ -222,9 +222,21 @@ public class BrandService {
             else if (urgentObj instanceof Number) isUrgent = ((Number) urgentObj).intValue() != 0;
             dto.setIsUrgent(isUrgent ? "Y" : "N");
 
-            Object deadlineObj = row[8];
-            // 요청에 따라 created_at은 고정값으로 설정하고 deadline 필드에 마감일을 넣습니다.
-            dto.setCreatedAt("2026-04-17 10:00:00");
+            Object createdAtObj = row[8];
+            Object deadlineObj = row[9];
+            // set createdAt from DB created_at column when available
+            if (createdAtObj instanceof java.sql.Timestamp) {
+                java.time.LocalDateTime ldt = ((java.sql.Timestamp) createdAtObj).toLocalDateTime();
+                dto.setCreatedAt(ldt.format(dtf));
+            } else if (createdAtObj instanceof java.sql.Date) {
+                java.time.LocalDate ld = ((java.sql.Date) createdAtObj).toLocalDate();
+                dto.setCreatedAt(ld.toString() + " 00:00:00");
+            } else if (createdAtObj != null) {
+                dto.setCreatedAt(createdAtObj.toString());
+            } else {
+                dto.setCreatedAt(null);
+            }
+
             if (deadlineObj instanceof java.sql.Timestamp) {
                 java.time.LocalDateTime ldt = ((java.sql.Timestamp) deadlineObj).toLocalDateTime();
                 dto.setDeadline(ldt.format(dtf));
@@ -356,7 +368,7 @@ public class BrandService {
         selectSql.append("SELECT r.id, r.title, b.name AS company_name, r.salary, r.salary_type, ");
         selectSql.append(" (SELECT wp.period FROM work_period wp WHERE wp.recruit_id = r.id LIMIT 1) AS work_period, ");
         selectSql.append(" (SELECT wt2.times FROM work_time wt2 WHERE wt2.recruit_id = r.id LIMIT 1) AS work_time, ");
-        selectSql.append(" r.region_id, CONCAT(rg.sido, ' ', rg.sigungu) AS region_name, r.is_urgent, r.deadline ");
+        selectSql.append(" r.region_id, CONCAT(rg.sido, ' ', rg.sigungu) AS region_name, r.is_urgent, r.created_at, r.deadline ");
         selectSql.append(fromWhere.toString());
         selectSql.append(" ORDER BY ").append(orderSql).append(" LIMIT :limit OFFSET :offset");
 
@@ -407,13 +419,23 @@ public class BrandService {
             dto.setRegionName((String) row[8]);
             Object urgentObj = row[9]; boolean isUrgent = false; if (urgentObj instanceof Boolean) isUrgent = (Boolean) urgentObj; else if (urgentObj instanceof Number) isUrgent = ((Number) urgentObj).intValue() != 0;
             dto.setIsUrgent(isUrgent ? "Y" : "N");
-            Object deadlineObj = row[10];
+            Object createdAtObj = row[10];
+            Object deadlineObj = row[11];
+            // createdAt from DB
+            if (createdAtObj instanceof java.sql.Timestamp) {
+                dto.setCreatedAt(((java.sql.Timestamp) createdAtObj).toLocalDateTime().format(dtf));
+            } else if (createdAtObj instanceof java.sql.Date) {
+                dto.setCreatedAt(((java.sql.Date) createdAtObj).toLocalDate().toString() + " 00:00:00");
+            } else if (createdAtObj != null) {
+                dto.setCreatedAt(createdAtObj.toString());
+            } else {
+                dto.setCreatedAt(null);
+            }
+
             if (deadlineObj instanceof java.sql.Timestamp) dto.setDeadline(((java.sql.Timestamp) deadlineObj).toLocalDateTime().format(dtf));
             else if (deadlineObj instanceof java.sql.Date) dto.setDeadline(((java.sql.Date) deadlineObj).toLocalDate().toString());
             else if (deadlineObj != null) dto.setDeadline(deadlineObj.toString());
             else dto.setDeadline(null);
-
-            dto.setCreatedAt("2026-04-17 10:00:00");
             results.add(dto);
         }
 
