@@ -12,16 +12,22 @@ export function getStoredMember() {
 
 export function getAuthHeaders() {
     const token = getToken();
-    return {
+    const headers = {
         'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
     };
+
+    if (token) {
+        headers.Authorization = `Bearer ${token}`;
+    }
+
+    return headers;
 }
 
 export async function requestWithAuth(url, method = 'GET', body) {
     const response = await fetch(url, {
         method,
         headers: getAuthHeaders(),
+        credentials: 'include',
         body: body ? JSON.stringify(body) : undefined,
     });
 

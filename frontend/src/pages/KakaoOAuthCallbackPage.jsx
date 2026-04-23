@@ -20,6 +20,14 @@ export default function KakaoOAuthCallbackPage() {
           throw new Error('로그인 확인 실패');
         }
 
+        const result = await response.json();
+
+        if (!result?.member) {
+          throw new Error('회원 정보 확인 실패');
+        }
+
+        localStorage.setItem('member', JSON.stringify(result.member));
+
         if (!cancelled) {
           setMessage('로그인 성공! 이동 중입니다...');
           navigate('/', { replace: true });

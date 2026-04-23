@@ -1,5 +1,6 @@
 package com.example.aibe5_project2_team7.member.controller;
 
+import com.example.aibe5_project2_team7.member.CustomUser;
 import com.example.aibe5_project2_team7.member.Member;
 import com.example.aibe5_project2_team7.member.MemberType;
 import com.example.aibe5_project2_team7.member.service.JwtUtil;
@@ -11,6 +12,7 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -109,7 +111,17 @@ public class AuthController {
         }
 
         Object principal = authentication.getPrincipal();
-        if (!(principal instanceof String email) || email.isBlank() || "anonymousUser".equals(email)) {
+        String email = null;
+
+        if (principal instanceof CustomUser customUser) {
+            email = customUser.getUsername();
+        } else if (principal instanceof UserDetails userDetails) {
+            email = userDetails.getUsername();
+        } else if (principal instanceof String principalStr) {
+            email = principalStr;
+        }
+
+        if (email == null || email.isBlank() || "anonymousUser".equals(email)) {
             return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
         }
 

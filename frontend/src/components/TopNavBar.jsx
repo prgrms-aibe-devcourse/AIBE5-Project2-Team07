@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 export default function TopNavBar() {
   const location = useLocation();
   const navigate = useNavigate();
+  const apiBase = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '');
 
   const [member, setMember] = useState(null);
   const [isLoggedIn, setIsLoggedIn] = useState(false);
@@ -17,10 +18,9 @@ export default function TopNavBar() {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
     const memberStr = localStorage.getItem('member');
 
-    if (token && memberStr) {
+    if (memberStr) {
       try {
         const parsedMember = JSON.parse(memberStr);
         setMember(parsedMember);
@@ -35,7 +35,15 @@ export default function TopNavBar() {
     }
   }, [location.pathname]);
 
-  const handleLogout = () => {
+  const handleLogout = async () => {
+    try {
+      await fetch(`${apiBase}/api/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch (e) {
+      // 쿠키 삭제 호출 실패 시에도 프론트 상태는 정리한다.
+    }
     localStorage.removeItem('token');
     localStorage.removeItem('member');
     setMember(null);
