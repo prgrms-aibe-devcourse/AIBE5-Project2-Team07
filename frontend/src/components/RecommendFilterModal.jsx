@@ -280,6 +280,14 @@ export default function RecommendFilterModal({
       badges.push('긴급 공고');
     }
 
+    if (draftFilters.workPeriod.length > 0) {
+      badges.push(...draftFilters.workPeriod.map((value) => OPTION_LABEL_MAP.workPeriod[value]));
+    }
+
+    if (draftFilters.workDays.length > 0) {
+      badges.push(...draftFilters.workDays.map((value) => OPTION_LABEL_MAP.workDays[value]));
+    }
+
     if (draftFilters.businessType.length > 0) {
       badges.push(...draftFilters.businessType.map((value) => OPTION_LABEL_MAP.businessType[value]));
     }
@@ -288,7 +296,7 @@ export default function RecommendFilterModal({
       badges.push(...draftFilters.workTime.map((value) => OPTION_LABEL_MAP.workTime[value]));
     }
 
-    return badges.slice(0, 6);
+    return badges;
   }, [draftFilters, selectedRegion]);
 
   function updateMultiSelect(field, value) {
@@ -513,43 +521,39 @@ export default function RecommendFilterModal({
             <div className="sticky top-0 space-y-4">
               <div className="rounded-3xl bg-primary p-6 text-white shadow-xl shadow-primary/20">
                 <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-white/15">
-                  <span className="material-symbols-outlined">tune</span>
+                  <span className="material-symbols-outlined text-2xl">tune</span>
                 </div>
                 <h3 className="text-xl font-black">선택 요약</h3>
-                <p className="mt-2 text-sm text-white/80">현재 설정으로 맞춤형 추천 요청 payload를 구성합니다.</p>
+                <p className="mt-1 text-sm text-white/70">선택한 조건이 아래에 표시됩니다.</p>
                 <div className="mt-5 flex flex-wrap gap-2">
                   {summaryBadges.length > 0 ? (
                     summaryBadges.map((badge) => (
-                      <span key={badge} className="rounded-full bg-white/15 px-3 py-1.5 text-xs font-bold">
+                      <span
+                        key={badge}
+                        className="rounded-full bg-white/20 px-4 py-2 text-sm font-extrabold tracking-tight shadow-sm"
+                      >
                         {badge}
                       </span>
                     ))
                   ) : (
-                    <span className="rounded-full bg-white/15 px-3 py-1.5 text-xs font-bold">전체 조건 대상</span>
+                    <span className="rounded-full bg-white/15 px-4 py-2 text-sm font-bold text-white/80">
+                      전체 조건 대상
+                    </span>
                   )}
                 </div>
-              </div>
 
-              <div className="rounded-2xl border border-outline bg-[#fafafa] p-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <h4 className="text-sm font-extrabold text-on-surface">요청 미리보기</h4>
-                  <span className="text-xs font-bold text-primary">POST /recommend/category</span>
-                </div>
-                <pre className="max-h-72 overflow-auto rounded-xl bg-[#1f1f1f] p-4 text-[11px] leading-5 text-green-200">
-{JSON.stringify(
-  {
-    ...draftFilters,
-    regionId: draftFilters.regionId ?? null,
-    salaryType: draftFilters.salaryType ?? null,
-    resultCount: Math.min(
-      RECOMMEND_RESULT_COUNT_MAX,
-      Math.max(RECOMMEND_RESULT_COUNT_MIN, Number(draftFilters.resultCount) || 20),
-    ),
-  },
-  null,
-  2,
-)}
-                </pre>
+                {summaryBadges.length > 0 && (
+                  <div className="mt-5 rounded-2xl bg-white/10 px-4 py-3">
+                    <p className="text-xs font-bold text-white/60 uppercase tracking-widest mb-2">결과 개수</p>
+                    <p className="text-3xl font-black">
+                      {Math.min(
+                        RECOMMEND_RESULT_COUNT_MAX,
+                        Math.max(RECOMMEND_RESULT_COUNT_MIN, Number(draftFilters.resultCount) || 20),
+                      )}
+                      <span className="ml-1 text-base font-bold text-white/70">개</span>
+                    </p>
+                  </div>
+                )}
               </div>
 
               <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-1">
