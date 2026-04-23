@@ -7,11 +7,12 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.util.List;
+import java.util.Optional;
 import com.example.aibe5_project2_team7.recruit.constant.BusinessTypeName;
 
 public interface BrandRepository extends JpaRepository<Brand, Long> {
-    // Convenience method to return top 4 matching brands (case-insensitive)
-    List<Brand> findTop4ByNameContainingIgnoreCaseOrderByNameAsc(String brandName);
+
+    Optional<Brand> findBrandById(Long id);
 
     @Query(value = "select * from Brand order by rand() limit 8", nativeQuery = true)
     List<Brand> findRandom8Brands();
