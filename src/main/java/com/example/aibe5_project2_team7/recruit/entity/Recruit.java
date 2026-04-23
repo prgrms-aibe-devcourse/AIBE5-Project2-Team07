@@ -73,11 +73,11 @@ public class Recruit extends BaseEntity {
     @Column(name = "resume_form_url")
     private String resumeFormUrl; //기업 이력서 양식 첨부파일 경로
 
-
-    @Column(nullable =true)
+    @Column(name = "latitude",nullable =true)
     private Double latitude;// 위도 y
-    @Column(nullable = true)
+    @Column(name = "longitude",nullable = true)
     private Double longitude;      // 경도 x
+
     //    private LocalDateTime createdAt;
     //    private LocalDateTime updatedAt;
 }

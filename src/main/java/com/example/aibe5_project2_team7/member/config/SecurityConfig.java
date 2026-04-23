@@ -1,5 +1,8 @@
 package com.example.aibe5_project2_team7.member.config;
 
+import com.example.aibe5_project2_team7.member.CustomUser;
+import com.example.aibe5_project2_team7.member.Member;
+import com.example.aibe5_project2_team7.member.repository.MemberRepository;
 import com.example.aibe5_project2_team7.member.service.JwtUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -10,16 +13,20 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.web.cors.CorsConfiguration;
+import org.springframework.web.cors.CorsConfigurationSource;
+import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
+import java.util.List;
 
 @Configuration
 @EnableWebSecurity
@@ -27,49 +34,91 @@ import java.io.IOException;
 public class SecurityConfig {
 
     private final JwtUtil jwtUtil;
-
-    @Bean
-    public BCryptPasswordEncoder passwordEncoder() {
-        return new BCryptPasswordEncoder();
-    }
+    private final MemberRepository memberRepository;
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
+                .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/auth/**","/personal/**","/human-resource/**",
-                        "/recommend/**")
-                        .permitAll()
+
+                        .requestMatchers("/auth/**", "/api/auth/**", "/personal/**", "/api/personal/**", "/human-resource/**", "/api/human-resource/**", "/recruits/**", "/api/recruits/**", "/business/**", "/api/business/**", "/business/myrecruit/**", "/api/business/myrecruit/**", "/scraps/**", "/api/scraps/**", "/scraps/members/**", "/api/scraps/members/**", "/scraps/recruits/**", "/api/scraps/recruits/**", "/applies/**", "/api/applies/**", "/api/regions/**", "/uploads/**").permitAll()
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/api/auth/**").permitAll()
+                        .requestMatchers("/human-resource/**").permitAll()
+                        .requestMatchers("/personal/**").authenticated()
+                        .requestMatchers("/recommend/**").permitAll()
                         .anyRequest().authenticated()
                 )
-                .addFilterBefore(new JwtAuthenticationFilter(jwtUtil), UsernamePasswordAuthenticationFilter.class);
+                .addFilterBefore(
+                        new JwtAuthenticationFilter(jwtUtil, memberRepository),
+                        UsernamePasswordAuthenticationFilter.class
+                );
 
         return http.build();
+    }
+
+    @Bean
+    public CorsConfigurationSource corsConfigurationSource() {
+        CorsConfiguration configuration = new CorsConfiguration();
+        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        configuration.setAllowedHeaders(List.of("*"));
+        configuration.setAllowCredentials(true);
+
+        UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
+        source.registerCorsConfiguration("/**", configuration);
+        return source;
     }
 
     @RequiredArgsConstructor
     public static class JwtAuthenticationFilter extends OncePerRequestFilter {
 
         private final JwtUtil jwtUtil;
+        private final MemberRepository memberRepository;
 
         @Override
-        protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-                throws ServletException, IOException {
+        protected void doFilterInternal(
+                HttpServletRequest request,
+                HttpServletResponse response,
+                FilterChain filterChain
+        ) throws ServletException, IOException {
+
             String header = request.getHeader("Authorization");
+
             if (header != null && header.startsWith("Bearer ")) {
                 String token = header.substring(7);
+
                 try {
                     String email = jwtUtil.extractEmail(token);
+
                     if (email != null && jwtUtil.isTokenValid(token, email)) {
-                        UsernamePasswordAuthenticationToken auth = new UsernamePasswordAuthenticationToken(email, null, null);
-                        SecurityContextHolder.getContext().setAuthentication(auth);
+                        Member member = memberRepository.findByEmail(email).orElse(null);
+
+                        if (member != null) {
+                            CustomUser customUser = new CustomUser(
+                                    member.getId(),
+                                    member.getEmail(),
+                                    member.getPassword()
+                            );
+
+                            UsernamePasswordAuthenticationToken auth =
+                                    new UsernamePasswordAuthenticationToken(
+                                            customUser,
+                                            null,
+                                            customUser.getAuthorities()
+                                    );
+
+                            SecurityContextHolder.getContext().setAuthentication(auth);
+                        }
                     }
                 } catch (Exception e) {
-                    // Invalid token
+                    // 필요 시 로그 남기기
                 }
             }
+
             filterChain.doFilter(request, response);
         }
     }

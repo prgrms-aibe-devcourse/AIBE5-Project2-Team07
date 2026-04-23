@@ -39,3 +39,6 @@ out/
 ### 설정 ###
 src/main/resources/application-db.properties
 src/main/resources/application.yml
+
+### api 키 ###
+frontend/.env
