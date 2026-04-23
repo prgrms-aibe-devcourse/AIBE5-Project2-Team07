@@ -111,7 +111,7 @@ export default function RecommendJobsSection({ jobs, loading, error, filters }) 
             return (
               <Link
                 key={job.recruitId}
-                to="/recruit-detail"
+                to={`/recruit-detail?recruitId=${job.recruitId}`}
                 className="grid grid-cols-1 gap-4 border-b border-[#e8e8e8] px-6 py-6 transition-colors hover:bg-[#f9f9f9] lg:grid-cols-12 lg:items-center"
               >
                 <div className="col-span-1 lg:col-span-5">
