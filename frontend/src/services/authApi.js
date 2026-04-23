@@ -1,6 +1,4 @@
-export function getToken() {
-    return localStorage.getItem('token');
-}
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 export function getStoredMember() {
     try {
@@ -10,19 +8,18 @@ export function getStoredMember() {
     }
 }
 
-export function getAuthHeaders() {
-    const token = getToken();
-    return {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${token}`,
-    };
-}
+export async function requestWithAuth(url, options = {}) {
+    const token = localStorage.getItem('token');
 
-export async function requestWithAuth(url, method = 'GET', body) {
-    const response = await fetch(url, {
-        method,
-        headers: getAuthHeaders(),
-        body: body ? JSON.stringify(body) : undefined,
+    const finalUrl = url.startsWith('http') ? url : `${API_BASE}${url}`;
+
+    const response = await fetch(finalUrl, {
+        ...options,
+        headers: {
+            'Content-Type': 'application/json',
+            ...(options.headers || {}),
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
     });
 
     let result = null;

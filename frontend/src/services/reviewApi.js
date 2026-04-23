@@ -1,23 +1,33 @@
 import { requestWithAuth } from './authApi';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-
-export async function getReviewsByWriter(writerId) {
-    return requestWithAuth(`${API_BASE}/reviews/writer/${writerId}`, 'GET');
+export async function getReviewsByTarget(targetId) {
+    return requestWithAuth(`/reviews/target/${targetId}`, {
+        method: 'GET',
+    });
 }
 
-export async function getReviewsByTarget(targetId) {
-    return requestWithAuth(`${API_BASE}/reviews/target/${targetId}`, 'GET');
+export async function getReviewsByWriter(writerId) {
+    return requestWithAuth(`/reviews/writer/${writerId}`, {
+        method: 'GET',
+    });
 }
 
 export async function createReview(payload) {
-    return requestWithAuth(`${API_BASE}/reviews`, 'POST', payload);
+    return requestWithAuth('/reviews', {
+        method: 'POST',
+        body: JSON.stringify(payload),
+    });
 }
 
 export async function updateReview(reviewId, payload) {
-    return requestWithAuth(`${API_BASE}/reviews/${reviewId}`, 'PATCH', payload);
+    return requestWithAuth(`/reviews/${reviewId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(payload),
+    });
 }
 
 export async function deleteReview(reviewId) {
-    return requestWithAuth(`${API_BASE}/reviews/${reviewId}`, 'DELETE');
+    return requestWithAuth(`/reviews/${reviewId}`, {
+        method: 'DELETE',
+    });
 }
