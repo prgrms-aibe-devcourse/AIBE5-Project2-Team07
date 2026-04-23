@@ -17,8 +17,8 @@ const variantClasses = {
 };
 
 const activeVariantClasses = {
-  toggle: 'bg-primary-soft text-primary shadow-sm',
-  pagination: 'bg-primary text-white border-primary shadow-md shadow-primary/20',
+  toggle: '!bg-primary-soft !text-primary shadow-sm',
+  pagination: '!bg-primary !text-white !border-primary shadow-md shadow-primary/20',
 };
 
 const sizeClasses = {
@@ -92,4 +92,3 @@ export default function CommonButton({
     </button>
   );
 }
-

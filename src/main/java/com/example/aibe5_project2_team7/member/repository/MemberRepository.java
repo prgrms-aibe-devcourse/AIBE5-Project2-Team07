@@ -14,6 +14,4 @@ public interface MemberRepository extends JpaRepository<Member,Long> {
     boolean existsByPhone(String phone);
     boolean existsByPhoneAndIdNot(String phone, Long id);
 
-    @Query("select distinct m.id from Member m join m.preferredRegions r where r.id in :regionIds")
-    List<Long> findDistinctIdByPreferredRegionsIdIn(List<Long> regionIds);
 }
