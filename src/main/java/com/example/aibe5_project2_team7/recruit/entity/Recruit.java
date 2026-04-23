@@ -8,6 +8,7 @@ import com.example.aibe5_project2_team7.region.Region;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
+import lombok.ToString;
 
 import java.time.LocalDate;
 import java.util.ArrayList;
@@ -15,6 +16,7 @@ import java.util.List;
 
 @Entity
 @Getter @Setter
+@ToString(exclude = {"brand", "region", "workPeriod", "workDays", "workTime", "businessType"})
 public class Recruit extends BaseEntity {
     @Id @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -71,11 +73,10 @@ public class Recruit extends BaseEntity {
     @Column(name = "resume_form_url")
     private String resumeFormUrl; //기업 이력서 양식 첨부파일 경로
 
-    @Column(name = "latitude")
-    private Double latitude;
-
-    @Column(name = "longitude")
-    private Double longitude;
+    @Column(name = "latitude",nullable =true)
+    private Double latitude;// 위도 y
+    @Column(name = "longitude",nullable = true)
+    private Double longitude;      // 경도 x
 
     //    private LocalDateTime createdAt;
     //    private LocalDateTime updatedAt;
