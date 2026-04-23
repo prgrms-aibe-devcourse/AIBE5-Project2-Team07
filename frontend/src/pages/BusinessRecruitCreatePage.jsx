@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import TopNavBarLoggedIn from '../components/TopNavBarLoggedIn';
 import AppFooter from '../components/AppFooter';
 import CommonButton from '../components/CommonButton';
+import AddressSearchField from '../components/AddressSearchField';
 
 /* ────────────────────────────────── 상수 ────────────────────────────────── */
 const WORK_PERIOD_OPTIONS = [
@@ -90,7 +91,9 @@ function BusinessRecruitCreatePage() {
     payAmount: '',
     benefits: '',
     // 근무지정보
+    workplacePostalCode: '',
     workplaceAddress: '',
+    workplaceAddressDetail: '',
     exposureRegion: '',
     companyName: '',
     logoFile: null,
@@ -118,6 +121,15 @@ function BusinessRecruitCreatePage() {
     setForm((prev) => ({ ...prev, workDays: prev.workDays ^ bit }));
   };
 
+  const handleWorkplaceAddressSelect = ({ zonecode, address }) => {
+    setForm((prev) => ({
+      ...prev,
+      workplacePostalCode: zonecode,
+      workplaceAddress: address,
+      workplaceAddressDetail: '',
+    }));
+  };
+
   const handleSubmit = (e) => {
     e.preventDefault();
     const payload = {
@@ -138,7 +150,7 @@ function BusinessRecruitCreatePage() {
       salary_type: form.payType,
       salary: Number(form.payAmount),
       benefits: form.benefits,
-      detail_address: form.workplaceAddress,
+      detail_address: [form.workplaceAddress, form.workplaceAddressDetail].filter(Boolean).join(' '),
       exposure_region: form.exposureRegion,
       company_name: form.companyName,
       deadline: form.deadline,
@@ -340,8 +352,18 @@ function BusinessRecruitCreatePage() {
               <FormSection title="근무지 정보">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
-                    <Field label="근무지 주소" name="workplaceAddress" value={form.workplaceAddress}
-                      onChange={handleChange} placeholder="예: 서울 강남구 테헤란로 18길 10, 2층" required />
+                    <AddressSearchField
+                      label="근무지 주소"
+                      addressName="workplaceAddress"
+                      detailName="workplaceAddressDetail"
+                      addressValue={form.workplaceAddress}
+                      detailValue={form.workplaceAddressDetail}
+                      onChange={handleChange}
+                      onAddressSelect={handleWorkplaceAddressSelect}
+                      required
+                      addressPlaceholder="주소 검색 버튼을 눌러 근무지 주소를 선택하세요"
+                      detailPlaceholder="상세 주소를 입력하세요"
+                    />
                   </div>
                   <Field label="공고노출지역" name="exposureRegion" value={form.exposureRegion}
                     onChange={handleChange} placeholder="예: 서울 강남구" />

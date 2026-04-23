@@ -33,4 +33,10 @@ public class Brand {
 
     @Column(name = "founded_date", nullable = false)
     private LocalDate foundedDate;
+
+    @Column(name = "banner_img")
+    private String bannerImg;
+
+    @Column(name = "description")
+    private String description;
 }

@@ -24,8 +24,7 @@ public class RecruitDetailResponseDto { //공고 상세 조회할 때
     private List<Times> workTime;
     private Integer headCount;
     private LocalDate deadline;
-    private Integer regionId;           // 지역 ID
-    private String detailAddress;       // 근무지 상세 주소
+    private String fullAddress;
     private String description;
     private String resumeFormUrl;       // attached_file_url
     private Long brandId;
@@ -34,4 +33,7 @@ public class RecruitDetailResponseDto { //공고 상세 조회할 때
     private String homepageUrl;         // 홈페이지 URL
     private ReviewSummaryDto reviewSummary; // 리뷰 요약 (중첩 DTO)
     private String applyStatus;         // 로그인 유저의 지원 상태
+    private Double latitude;   // 위도
+    private Double longitude;  // 경도
+
 }

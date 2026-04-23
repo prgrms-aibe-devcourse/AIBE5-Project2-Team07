@@ -40,4 +40,8 @@ out/
 src/main/resources/application-db.properties
 src/main/resources/application.yml
 
+### 환경변수 ###
 .env
+
+### api 키 ###
+frontend/.env

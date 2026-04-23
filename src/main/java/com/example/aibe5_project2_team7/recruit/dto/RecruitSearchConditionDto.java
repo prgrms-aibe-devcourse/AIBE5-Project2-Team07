@@ -19,6 +19,7 @@ public class RecruitSearchConditionDto {
     private List<Times> workTime;           // 근무 시간 필터
     private List<Days> workDays;            // 근무 요일 필터
     private List<BusinessTypeName> businessType; // 업종 필터
-    private String sort;                    // LATEST / SALARY / DEADLINE
+    private String sort;                    // LATEST / DEADLINE
     private Long memberId;                  // 특정 사업자 회원 ID 필터
+    private boolean isUrgent;               // 긴급 여부 필터
 }

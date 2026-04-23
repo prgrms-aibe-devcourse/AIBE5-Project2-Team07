@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import TopNavBar from '../components/TopNavBar';
 import AppFooter from '../components/AppFooter';
 import CommonButton from '../components/CommonButton';
+import KakaoMap from '../components/KakaoMap';
 
 export default function CompanyDetailPage() {
   useEffect(() => {
@@ -67,11 +68,7 @@ export default function CompanyDetailPage() {
             <div className="flex flex-col lg:flex-row gap-16 items-center">
               {/* Map */}
               <div className="w-full lg:w-3/5 aspect-[16/9] bg-outline overflow-hidden rounded-xl border border-outline relative">
-                <img
-                  className="w-full h-full object-cover"
-                  alt="map location"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuBWfqHvpyvWqF5UJ4001KlN67pQM007ECBKkQYn48K--58Vm9LbpQOxTp7xxdhkyzmfbG9_FHARWN87pl9Ahq3nwGea1k-T9Raf2SkVrmf3cBQv5ZJgSH1w3-1cnuwNPjNNtRnPWOkACBVgwwzT3evE91bFh9pKNDerpCg_Jfk3_QpSaLYZep2rMVMGl5XHX5IAtOX5vmTD9eRCtYobFNkO_JX-0UvN2M4dlmLYSUqS3CJo7GHyHYdWK_6VPmzykPANOwclPR8pVLo"
-                />
+                <KakaoMap lat={37.5665} lng={126.9780} level={3} />
                 <div className="absolute inset-0 flex items-center justify-center">
                   <div className="bg-white p-4 rounded-lg shadow-xl flex items-center gap-3 border border-primary">
                     <span className="material-symbols-outlined text-primary">location_on</span>
@@ -87,18 +84,18 @@ export default function CompanyDetailPage() {
                   (서초동, 하이엔드빌딩 1층)
                 </p>
                 <div className="flex gap-4">
-                  <CommonButton
-                    variant="outline"
-                    icon={<span className="material-symbols-outlined text-primary text-xl">map</span>}
-                  >
-                    네이버 지도
-                  </CommonButton>
-                  <CommonButton
-                    variant="outline"
-                    icon={<span className="material-symbols-outlined text-primary text-xl">navigation</span>}
-                  >
-                    카카오 맵
-                  </CommonButton>
+{/*                   <CommonButton */}
+{/*                     variant="outline" */}
+{/*                     icon={<span className="material-symbols-outlined text-primary text-xl">map</span>} */}
+{/*                   > */}
+{/*                     네이버 지도 */}
+{/*                   </CommonButton> */}
+{/*                   <CommonButton */}
+{/*                     variant="outline" */}
+{/*                     icon={<span className="material-symbols-outlined text-primary text-xl">navigation</span>} */}
+{/*                   > */}
+{/*                     카카오 맵 */}
+{/*                   </CommonButton> */}
                 </div>
               </div>
             </div>
