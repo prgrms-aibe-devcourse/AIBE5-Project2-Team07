@@ -258,6 +258,17 @@ public class ApplyService {
         dto.setCreatedAt(apply.getCreatedAt());
         dto.setResumeId(apply.getResumeId());
         dto.setMethod(apply.getMethod());
+        Recruit recruit = recruitRepository.findById(apply.getRecruitId()).orElse(null);
+        if (recruit != null) {
+            dto.setBusinessMemberId(recruit.getBusinessMemberId());
+            dto.setRecruitTitle(recruit.getTitle());
+
+            businessProfileRepository.findByMemberId(recruit.getBusinessMemberId())
+                    .ifPresent(bp -> dto.setCompanyName(bp.getCompanyName()));
+        }
+        Member member = memberRepository.findById(apply.getIndividualId())
+                .orElseThrow(EntityNotFoundException::new);
+        dto.setIndividualName(member.getName());
         return dto;
     }
 

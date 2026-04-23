@@ -6,6 +6,7 @@ import com.example.aibe5_project2_team7.apply.entity.ApplyStatus;
 import com.example.aibe5_project2_team7.individual_profile.IndividualProfile;
 import com.example.aibe5_project2_team7.individual_profile.IndividualProfileRepository;
 import com.example.aibe5_project2_team7.member.Member;
+import com.example.aibe5_project2_team7.member.MemberType;
 import com.example.aibe5_project2_team7.member.repository.MemberRepository;
 import com.example.aibe5_project2_team7.recruit.RecruitRepository;
 import com.example.aibe5_project2_team7.recruit.entity.Recruit;
@@ -32,8 +33,8 @@ public class ReviewService {
     @Transactional
     public ReviewResponse createReview(Long userId, ReviewCreateRequest request) {
 
-        if (reviewRepository.existsByApplyId(request.getApplyId())) {
-            throw new ReviewException("해당 지원 건에는 이미 리뷰가 작성되었습니다.");
+        if (reviewRepository.existsByApplyIdAndWriterId(request.getApplyId(), userId)) {
+            throw new ReviewException("해당 지원 건에는 이미 리뷰를 작성했습니다.");
         }
 
         Apply apply = applyRepository.findById(request.getApplyId())
@@ -216,12 +217,14 @@ public class ReviewService {
         member.setRatingSum(newSum);
         member.setRatingCount(newCount);
 
-        double avg = newCount == 0 ? 0 : (double) newSum / newCount;
+        double avg = newCount == 0 ? 0.0 : (double) newSum / newCount;
 
-        // individual profile 업데이트
-        IndividualProfile profile = individualProfileRepository.findByMemberId(memberId)
-                .orElseThrow(() -> new ReviewException("개인 프로필이 존재하지 않습니다."));
+        // 개인회원인 경우에만 individual_profile 반영
+        if (member.getMemberType() == MemberType.INDIVIDUAL) {
+            individualProfileRepository.findByMemberId(memberId)
+                    .ifPresent(profile -> profile.setIsSpecial(avg >= 4.0));
+        }
 
-        profile.setIsSpecial(avg >= 4.0);
+        memberRepository.save(member);
     }
 }
