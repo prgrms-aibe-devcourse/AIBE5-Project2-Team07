@@ -4,6 +4,7 @@ import com.example.aibe5_project2_team7.brand.BrandRepository;
 import com.example.aibe5_project2_team7.brand.entity.Brand;
 import com.example.aibe5_project2_team7.business_profile.BusinessProfile;
 import com.example.aibe5_project2_team7.business_profile.BusinessProfileRepository;
+import com.example.aibe5_project2_team7.naverapi.service.NaverMapService;
 import com.example.aibe5_project2_team7.recruit.constant.*;
 import com.example.aibe5_project2_team7.recruit.dto.RecruitDetailResponseDto;
 import com.example.aibe5_project2_team7.recruit.dto.RecruitListResponseDto;
@@ -32,7 +33,7 @@ public class RecruitService {
     private final RegionRepository regionRepository;
     private final BusinessProfileRepository businessProfileRepository;
     private final BrandRepository brandRepository;
-
+    private final NaverMapService naverMapService;
     //공고 전체 목록 조회 (필터/정렬 포함)
     public Page<RecruitListResponseDto> getRecruitList(RecruitSearchConditionDto cond, int page, int size) {
         // 정렬 기준 결정
@@ -91,6 +92,12 @@ public class RecruitService {
         replaceWorkDays(newRecruit, requestDto.getWorkDays());
         replaceWorkTimes(newRecruit, requestDto.getWorkTime());
         replaceBusinessTypes(newRecruit, requestDto.getBusinessType());
+        double coord[] = naverMapService.getCoordinates(requestDto.getDetailAddress());
+        newRecruit.setDetailAddress(requestDto.getDetailAddress());
+        if(coord!=null) {
+            newRecruit.setLatitude(coord[0]);
+            newRecruit.setLongitude(coord[1]);
+        }
         return recruitRepository.save(newRecruit).getId();
     }
 
