@@ -6,6 +6,7 @@ import lombok.Setter;
 @Getter
 @Setter
 public class BusinessMemberEditRequest {
+    private String name;
     private String phone;
     private Integer regionId;
     private String detailAddress;

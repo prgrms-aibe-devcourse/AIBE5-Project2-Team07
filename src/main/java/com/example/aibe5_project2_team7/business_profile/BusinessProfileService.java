@@ -5,6 +5,7 @@ import com.example.aibe5_project2_team7.business_profile.request.BusinessDeleteR
 import com.example.aibe5_project2_team7.business_profile.request.BusinessMemberEditRequest;
 import com.example.aibe5_project2_team7.business_profile.response.BusinessProfileResponse;
 import com.example.aibe5_project2_team7.business_profile.response.CompanyInfoResponse;
+import com.example.aibe5_project2_team7.business_profile.response.CompanySummaryResponse;
 import com.example.aibe5_project2_team7.brand.entity.Brand;
 import com.example.aibe5_project2_team7.member.Member;
 import com.example.aibe5_project2_team7.member.MemberType;
@@ -41,6 +42,7 @@ public class BusinessProfileService {
 	private final ReviewRepository reviewRepository;
 	private final BCryptPasswordEncoder passwordEncoder;
 
+	/*
 	@Transactional(readOnly = true)
 	public CompanyInfoResponse getBusinessProfileById(Long businessId) {
 		if (businessId == null) {
@@ -134,6 +136,7 @@ public class BusinessProfileService {
 		summary.setLabelName(entry.getKey().getName());
 		return summary;
 	}
+	*/
 
 	@Transactional(readOnly = true)
 	public BusinessProfileResponse getMyProfileByEmail(String email) {
@@ -168,6 +171,25 @@ public class BusinessProfileService {
 		return BusinessProfileResponse.from(profile, member, memberAddress, brandName);
 	}
 
+	@Transactional(readOnly = true)
+	public CompanySummaryResponse getMyCompanySummaryByEmail(String email) {
+		if (email == null || email.isBlank()) {
+			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증 정보가 없습니다.");
+		}
+
+		Member member = memberRepository.findByEmail(email)
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "회원 정보를 찾을 수 없습니다."));
+
+		if (member.getMemberType() != MemberType.BUSINESS) {
+			throw new ResponseStatusException(HttpStatus.FORBIDDEN, "사업자 회원만 조회할 수 있습니다.");
+		}
+
+		BusinessProfile profile = businessProfileRepository.findByMemberId(member.getId())
+				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "사업자 프로필을 찾을 수 없습니다."));
+
+		return CompanySummaryResponse.from(profile);
+	}
+
 	public void editMyMemberByEmail(String email, BusinessMemberEditRequest request) {
 		if (email == null || email.isBlank()) {
 			throw new ResponseStatusException(HttpStatus.UNAUTHORIZED, "인증 정보가 없습니다.");
@@ -177,11 +199,12 @@ public class BusinessProfileService {
 		}
 
 		String phone = request.getPhone();
+		String name = request.getName();
 		Integer regionId = request.getRegionId();
 		String detailAddress = request.getDetailAddress();
 
-		if (phone == null || phone.isBlank() || regionId == null || detailAddress == null || detailAddress.isBlank()) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "phone, regionId, detailAddress는 필수입니다.");
+		if (name == null || name.isBlank() || phone == null || phone.isBlank() || regionId == null || detailAddress == null || detailAddress.isBlank()) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "name, phone, regionId, detailAddress는 필수입니다.");
 		}
 
 		Member member = memberRepository.findByEmail(email)
@@ -198,6 +221,7 @@ public class BusinessProfileService {
 		Region region = regionRepository.findById(regionId)
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "지역 정보를 찾을 수 없습니다."));
 
+		member.setName(name);
 		member.setPhone(phone);
 
 		MemberAddress memberAddress = memberAddressRepository.findByMemberId(member.getId())
@@ -227,6 +251,10 @@ public class BusinessProfileService {
 
 		if (original == null || original.isBlank() || nw == null || nw.isBlank() || nwConfirm == null || nwConfirm.isBlank()) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "모든 비밀번호 필드를 입력하세요.");
+		}
+
+		if (nw.length() < 4) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "새 비밀번호는 최소 4자 이상이어야 합니다.");
 		}
 
 		if (!nw.equals(nwConfirm)) {
@@ -262,9 +290,11 @@ public class BusinessProfileService {
 		java.time.LocalDate foundedDate = request.getFoundedDate();
 		String companyName = request.getCompanyName();
 		String businessNumber = request.getBusinessNumber();
+		String companyPhone = request.getCompanyPhone();
+		String companyAddress = request.getCompanyAddress();
 
-		if (foundedDate == null || companyName == null || companyName.isBlank() || businessNumber == null || businessNumber.isBlank()) {
-			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "foundedDate, companyName, businessNumber는 필수입니다.");
+		if (foundedDate == null || companyName == null || companyName.isBlank() || businessNumber == null || businessNumber.isBlank() || companyPhone == null || companyPhone.isBlank() || companyAddress == null || companyAddress.isBlank()) {
+			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "foundedDate, companyName, businessNumber, companyPhone, companyAddress는 필수입니다.");
 		}
 
 		Member member = memberRepository.findByEmail(email)
@@ -280,6 +310,8 @@ public class BusinessProfileService {
 		profile.setFoundedDate(foundedDate);
 		profile.setCompanyName(companyName);
 		profile.setBusinessNumber(businessNumber);
+		profile.setCompanyPhone(companyPhone);
+		profile.setCompanyAddress(companyAddress);
 
 		businessProfileRepository.save(profile);
 	}

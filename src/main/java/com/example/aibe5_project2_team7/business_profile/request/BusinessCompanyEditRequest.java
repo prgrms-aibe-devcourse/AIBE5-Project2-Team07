@@ -11,4 +11,6 @@ public class BusinessCompanyEditRequest {
     private LocalDate foundedDate;
     private String companyName;
     private String businessNumber;
+    private String companyPhone;
+    private String companyAddress;
 }
