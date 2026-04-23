@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import CommonButton from '../../CommonButton';
 import { getStoredMember } from '../../../services/authApi';
 import {
@@ -8,18 +8,39 @@ import {
     updateReview,
     deleteReview,
 } from '../../../services/reviewApi';
-import { formatDate, normalizeReview, getReviewLabelNames } from '../../../utils/mypageUtils';
+import { getReviewableApplies } from '../../../services/applyApi';
+import {
+    formatDate,
+    normalizeReview,
+    getReviewLabelNames,
+} from '../../../utils/mypageUtils';
 import StarRow from './StarRow';
 import ReviewFormModal from './ReviewFormModal';
+
+function resolveTargetInfoFromApply(account, apply) {
+    if (account?.memberType === 'BUSINESS') {
+        return {
+            targetType: 'INDIVIDUAL',
+            targetId: apply?.individualId || null,
+        };
+    }
+
+    return {
+        targetType: 'BUSINESS',
+        targetId: apply?.businessMemberId || null,
+    };
+}
 
 export default function ReviewContent({ account }) {
     const storedMember = getStoredMember();
     const memberId = account?.id || storedMember?.id || null;
-    const targetId = memberId;
 
     const [reviewTab, setReviewTab] = useState('received');
     const [receivedReviews, setReceivedReviews] = useState([]);
     const [writtenReviews, setWrittenReviews] = useState([]);
+
+    const [reviewableApplies, setReviewableApplies] = useState([]);
+    const [loadingReviewableApplies, setLoadingReviewableApplies] = useState(false);
 
     const [loadingReceived, setLoadingReceived] = useState(false);
     const [loadingWritten, setLoadingWritten] = useState(false);
@@ -34,19 +55,62 @@ export default function ReviewContent({ account }) {
         reviewId: null,
         applyId: '',
         targetId: '',
-        targetType: 'BUSINESS',
+        targetType: account?.memberType === 'BUSINESS' ? 'INDIVIDUAL' : 'BUSINESS',
+        targetName: '',
         rating: 5,
         content: '',
         labelNames: [],
     });
 
+    // 받은 리뷰 조회는 사업자/개인 모두 memberId 기준으로 조회
+    const targetIdForReceived = useMemo(() => {
+        return memberId;
+    }, [memberId]);
+
+    // applyId 기준으로 화면 표시용 정보 매핑
+    const applyInfoMap = useMemo(() => {
+        const map = new Map();
+
+        reviewableApplies.forEach((apply) => {
+            map.set(String(apply.id), {
+                companyName: apply.companyName || '',
+                recruitTitle: apply.recruitTitle || '',
+                individualName: apply.individualName || '',
+            });
+        });
+
+        return map;
+    }, [reviewableApplies]);
+
+    // 사업자 화면에서는 개인 이름을, 개인 화면에서는 회사명을 우선 표시
+    const getDisplayName = (review, tabType) => {
+        const info = applyInfoMap.get(String(review.applyId));
+
+        if (account?.memberType === 'BUSINESS') {
+            // 사업자 화면: 받은 리뷰/쓴 리뷰 모두 개인회원 이름 우선
+            return info?.individualName || review?.writerName || review?.targetName || `회원 #${review.targetId || review.writerId}`;
+        }
+
+        // 개인 화면
+        if (tabType === 'received') {
+            return info?.companyName || review?.writerName || review?.targetName || `회원 #${review.writerId || review.targetId}`;
+        }
+
+        return info?.companyName || review?.targetName || `회원 #${review.targetId}`;
+    };
+
+    const getDisplayRecruitTitle = (review) => {
+        const info = applyInfoMap.get(String(review.applyId));
+        return info?.recruitTitle || '';
+    };
+
     const loadReceivedReviews = async () => {
-        if (!targetId) return;
+        if (!targetIdForReceived) return;
 
         try {
             setLoadingReceived(true);
             setError('');
-            const response = await getReviewsByTarget(targetId);
+            const response = await getReviewsByTarget(targetIdForReceived);
             const list = Array.isArray(response) ? response.map(normalizeReview) : [];
             setReceivedReviews(list);
         } catch (err) {
@@ -72,11 +136,36 @@ export default function ReviewContent({ account }) {
         }
     };
 
+    const loadReviewableApplies = async () => {
+        if (!account) return;
+
+        try {
+            setLoadingReviewableApplies(true);
+            setError('');
+
+            const pageResponse = await getReviewableApplies(account);
+            const content = Array.isArray(pageResponse?.content) ? pageResponse.content : [];
+
+            setReviewableApplies(content);
+        } catch (err) {
+            console.error(err);
+            setError(err.message || '리뷰 작성 가능한 완료된 지원 목록을 불러오지 못했습니다.');
+        } finally {
+            setLoadingReviewableApplies(false);
+        }
+    };
+
     useEffect(() => {
         if (!memberId) return;
         loadReceivedReviews();
         loadWrittenReviews();
-    }, [memberId]);
+    }, [memberId, targetIdForReceived]);
+
+    useEffect(() => {
+        if (account) {
+            loadReviewableApplies();
+        }
+    }, [account]);
 
     const openCreateModal = () => {
         setModalMode('create');
@@ -84,7 +173,8 @@ export default function ReviewContent({ account }) {
             reviewId: null,
             applyId: '',
             targetId: '',
-            targetType: 'BUSINESS',
+            targetType: account?.memberType === 'BUSINESS' ? 'INDIVIDUAL' : 'BUSINESS',
+            targetName: '',
             rating: 5,
             content: '',
             labelNames: [],
@@ -98,7 +188,10 @@ export default function ReviewContent({ account }) {
             reviewId: review.id,
             applyId: String(review.applyId ?? ''),
             targetId: String(review.targetId ?? ''),
-            targetType: review.targetType ?? 'BUSINESS',
+            targetType:
+                review.targetType ??
+                (account?.memberType === 'BUSINESS' ? 'INDIVIDUAL' : 'BUSINESS'),
+            targetName: getDisplayName(review, 'written'),
             rating: Number(review.rating ?? 5),
             content: review.content ?? '',
             labelNames: getReviewLabelNames(review),
@@ -106,21 +199,34 @@ export default function ReviewContent({ account }) {
         setModalOpen(true);
     };
 
-    const handleCreateReview = async (form) => {
+    const handleCreateReview = async (form, selectedApply) => {
         try {
             setLoadingAction(true);
             setMessage('');
             setError('');
 
-            if (!form.applyId.trim()) throw new Error('applyId를 입력해주세요.');
-            if (!form.targetId.trim()) throw new Error('targetId를 입력해주세요.');
-            if (!form.content.trim()) throw new Error('리뷰 내용을 입력해주세요.');
-            if (!form.labelNames.length) throw new Error('리뷰 라벨을 1개 이상 선택해주세요.');
+            if (!selectedApply) {
+                throw new Error('완료된 지원 건을 선택해주세요.');
+            }
+
+            const targetInfo = resolveTargetInfoFromApply(account, selectedApply);
+
+            if (!targetInfo.targetId) {
+                throw new Error('선택한 지원 건의 리뷰 대상 정보가 없습니다.');
+            }
+
+            if (!form.content.trim()) {
+                throw new Error('리뷰 내용을 입력해주세요.');
+            }
+
+            if (!form.labelNames.length) {
+                throw new Error('리뷰 라벨을 1개 이상 선택해주세요.');
+            }
 
             await createReview({
-                applyId: Number(form.applyId),
-                targetId: Number(form.targetId),
-                targetType: form.targetType,
+                applyId: Number(selectedApply.id),
+                targetId: Number(targetInfo.targetId),
+                targetType: targetInfo.targetType,
                 rating: form.rating,
                 content: form.content,
                 labelNames: form.labelNames,
@@ -128,6 +234,7 @@ export default function ReviewContent({ account }) {
 
             await loadWrittenReviews();
             await loadReceivedReviews();
+            await loadReviewableApplies();
 
             setMessage('리뷰가 등록되었습니다.');
             setModalOpen(false);
@@ -278,59 +385,58 @@ export default function ReviewContent({ account }) {
                     ) : (
                         <div className="grid grid-cols-1 gap-4">
                             {receivedReviews.length > 0 ? (
-                                receivedReviews.map((review) => {
-                                    const reviewerName =
-                                        review.writerName || review.reviewerName || `작성자 #${review.writerId}`;
-
-                                    return (
-                                        <article
-                                            key={review.id}
-                                            className="bg-white border border-[#EAE5E3] p-6 rounded-2xl shadow-sm hover:border-primary/20 hover:shadow-md transition-all duration-300"
-                                        >
-                                            <div className="flex flex-col md:flex-row gap-6">
-                                                <div className="w-full md:w-48 shrink-0">
-                                                    <div className="w-16 h-16 bg-gray-50 rounded-xl border border-[#EAE5E3]/50 mb-4 flex items-center justify-center">
-                                                        <span className="material-symbols-outlined text-[#6B6766] text-3xl">person</span>
-                                                    </div>
-                                                    <h3 className="font-bold text-base text-[#1F1D1D] leading-tight mb-1">
-                                                        {reviewerName}
-                                                    </h3>
-                                                    <p className="text-xs font-medium text-[#6B6766] mb-3">
-                                                        writerId: {review.writerId}
-                                                    </p>
+                                receivedReviews.map((review) => (
+                                    <article
+                                        key={review.id}
+                                        className="bg-white border border-[#EAE5E3] p-6 rounded-2xl shadow-sm hover:border-primary/20 hover:shadow-md transition-all duration-300"
+                                    >
+                                        <div className="flex flex-col md:flex-row gap-6">
+                                            <div className="w-full md:w-48 shrink-0">
+                                                <div className="w-16 h-16 bg-gray-50 rounded-xl border border-[#EAE5E3]/50 mb-4 flex items-center justify-center">
+                          <span className="material-symbols-outlined text-[#6B6766] text-3xl">
+                            person
+                          </span>
                                                 </div>
+                                                <h3 className="font-bold text-base text-[#1F1D1D] leading-tight mb-1">
+                                                    {getDisplayName(review, 'received')}
+                                                </h3>
+                                                {getDisplayRecruitTitle(review) && (
+                                                    <p className="text-xs text-[#6B6766] font-medium">
+                                                        {getDisplayRecruitTitle(review)}
+                                                    </p>
+                                                )}
+                                            </div>
 
-                                                <div className="flex-grow flex flex-col justify-between">
-                                                    <div>
-                                                        <div className="flex items-center justify-between mb-3">
-                                                            <StarRow rating={review.rating} />
-                                                            <span className="text-[10px] text-[#6B6766] font-medium">
-                                {formatDate(review.writtenAt)}
-                              </span>
-                                                        </div>
-
-                                                        <h4 className="font-bold text-[#1F1D1D] mb-2 text-sm">
-                                                            "{review.content || '리뷰 내용이 없습니다.'}"
-                                                        </h4>
-
-                                                        {getReviewLabelNames(review).length > 0 && (
-                                                            <div className="flex flex-wrap gap-2 mt-3">
-                                                                {getReviewLabelNames(review).map((label, idx) => (
-                                                                    <span
-                                                                        key={`${label}-${idx}`}
-                                                                        className="text-[11px] font-bold bg-[#FFF0F3] text-primary px-2.5 py-0.5 rounded-full"
-                                                                    >
-                                    {label}
-                                  </span>
-                                                                ))}
-                                                            </div>
-                                                        )}
+                                            <div className="flex-grow flex flex-col justify-between">
+                                                <div>
+                                                    <div className="flex items-center justify-between mb-3">
+                                                        <StarRow rating={review.rating} />
+                                                        <span className="text-[10px] text-[#6B6766] font-medium">
+                              {formatDate(review.writtenAt)}
+                            </span>
                                                     </div>
+
+                                                    <h4 className="font-bold text-[#1F1D1D] mb-2 text-sm">
+                                                        "{review.content || '리뷰 내용이 없습니다.'}"
+                                                    </h4>
+
+                                                    {getReviewLabelNames(review).length > 0 && (
+                                                        <div className="flex flex-wrap gap-2 mt-3">
+                                                            {getReviewLabelNames(review).map((label, idx) => (
+                                                                <span
+                                                                    key={`${label}-${idx}`}
+                                                                    className="text-[11px] font-bold bg-[#FFF0F3] text-primary px-2.5 py-0.5 rounded-full"
+                                                                >
+                                  {label}
+                                </span>
+                                                            ))}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </div>
-                                        </article>
-                                    );
-                                })
+                                        </div>
+                                    </article>
+                                ))
                             ) : (
                                 <div className="bg-white border border-[#EAE5E3] rounded-2xl p-8 text-sm text-[#6B6766] shadow-sm">
                                     받은 리뷰가 없습니다.
@@ -368,15 +474,17 @@ export default function ReviewContent({ account }) {
                                             <div className="w-full md:w-48 shrink-0">
                                                 <div className="w-16 h-16 bg-gray-50 rounded-xl border border-[#EAE5E3]/50 mb-4 flex items-center justify-center">
                           <span className="material-symbols-outlined text-[#6B6766] text-3xl">
-                            {review.targetType === 'BUSINESS' ? 'store' : 'person'}
+                            person
                           </span>
                                                 </div>
                                                 <h3 className="font-bold text-base text-[#1F1D1D] leading-tight mb-1">
-                                                    targetId: {review.targetId}
+                                                    {getDisplayName(review, 'received')}
                                                 </h3>
-                                                <p className="text-xs font-medium text-[#6B6766] mb-3">
-                                                    {review.targetType}
-                                                </p>
+                                                {getDisplayRecruitTitle(review) && (
+                                                    <p className="text-xs text-[#6B6766] font-medium">
+                                                        {getDisplayRecruitTitle(review)}
+                                                    </p>
+                                                )}
                                             </div>
 
                                             <div className="flex-grow flex flex-col justify-between">
@@ -438,11 +546,12 @@ export default function ReviewContent({ account }) {
                 open={modalOpen}
                 mode={modalMode}
                 initialValue={formValue}
-                loading={loadingAction}
+                loading={loadingAction || loadingReviewableApplies}
                 onClose={() => setModalOpen(false)}
-                onSubmit={(form) => {
+                reviewableApplies={reviewableApplies}
+                onSubmit={(form, selectedApply) => {
                     if (modalMode === 'create') {
-                        handleCreateReview(form);
+                        handleCreateReview(form, selectedApply);
                     } else {
                         handleUpdateReview(form);
                     }
