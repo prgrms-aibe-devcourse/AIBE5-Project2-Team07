@@ -4,11 +4,16 @@ import MobileBottomNav from "../components/MobileBottomNav";
 import { Link } from "react-router-dom";
 import AppFooter from "../components/AppFooter";
 import CommonButton from "../components/CommonButton";
+import NearbyJobsSection from "../components/NearbyJobsSection";
+import { useNearbyJobs } from "../hooks/useNearbyJobs";
 
 export default function MainPage() {
   const [selectedDistance, setSelectedDistance] = useState("5km");
   const [isDistanceDropdownOpen, setIsDistanceDropdownOpen] = useState(false);
+  const [isNearbyMode, setIsNearbyMode] = useState(false);
   const dropdownRef = useRef(null);
+
+  const { jobs: nearbyJobs, loading: nearbyLoading, error: nearbyError, fetchJobs } = useNearbyJobs();
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -21,6 +26,15 @@ export default function MainPage() {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
+
+  /** 거리 옵션 선택 → 주변 공고 모드 활성화 + API 호출 */
+  function handleDistanceSelect(distance) {
+    const radiusKm = parseFloat(distance.replace('km', ''));
+    setSelectedDistance(distance);
+    setIsDistanceDropdownOpen(false);
+    setIsNearbyMode(true);
+    fetchJobs(radiusKm);
+  }
 
   return (
     <>
@@ -377,7 +391,14 @@ export default function MainPage() {
                 </div>
               </div>
               <div className="flex flex-wrap gap-3 pb-2">
-                <button className="px-6 py-2.5 bg-primary text-white rounded-full text-sm font-bold whitespace-nowrap shadow-sm">
+                <button
+                  onClick={() => setIsNearbyMode(false)}
+                  className={`px-6 py-2.5 rounded-full text-sm font-bold whitespace-nowrap shadow-sm transition-colors ${
+                    !isNearbyMode
+                      ? 'bg-primary text-white'
+                      : 'bg-white border border-[#e0e0e0] text-[#555555] hover:bg-gray-50'
+                  }`}
+                >
                   전체
                 </button>
                 <div className="relative" ref={dropdownRef}>
@@ -385,8 +406,13 @@ export default function MainPage() {
                     onClick={() =>
                       setIsDistanceDropdownOpen(!isDistanceDropdownOpen)
                     }
-                    className="flex items-center gap-1 px-6 py-2.5 bg-white border border-[#e0e0e0] text-[#555555] rounded-full text-sm font-bold whitespace-nowrap hover:bg-gray-50 transition-colors"
+                    className={`flex items-center gap-1 px-6 py-2.5 rounded-full text-sm font-bold whitespace-nowrap transition-colors ${
+                      isNearbyMode
+                        ? 'bg-primary text-white shadow-sm'
+                        : 'bg-white border border-[#e0e0e0] text-[#555555] hover:bg-gray-50'
+                    }`}
                   >
+                    <span className="material-symbols-outlined text-[15px]">near_me</span>
                     내 주변 {selectedDistance}
                     <span className="material-symbols-outlined text-[16px]">
                       {isDistanceDropdownOpen
@@ -399,12 +425,9 @@ export default function MainPage() {
                       {["1km", "3km", "5km", "10km"].map((distance) => (
                         <button
                           key={distance}
-                          onClick={() => {
-                            setSelectedDistance(distance);
-                            setIsDistanceDropdownOpen(false);
-                          }}
+                          onClick={() => handleDistanceSelect(distance)}
                           className={`w-full text-center px-4 py-3 text-sm font-bold transition-colors ${
-                            selectedDistance === distance
+                            selectedDistance === distance && isNearbyMode
                               ? "text-primary bg-primary/10"
                               : "text-[#555555] hover:bg-gray-50"
                           }`}
@@ -427,14 +450,24 @@ export default function MainPage() {
               </div>
             </div>
 
-            {/* Table Header */}
-            <div className="hidden lg:grid grid-cols-12 gap-4 px-6 py-4 border-b border-[#e8e8e8] text-on-surface-variant text-xs font-bold uppercase tracking-wider">
-              <div className="col-span-5">기업 및 공고명</div>
-              <div className="col-span-2">지역</div>
-              <div className="col-span-2">카테고리</div>
-              <div className="col-span-2 text-right">급여 및 마감</div>
-              <div className="col-span-1 text-right">등록</div>
-            </div>
+            {/* 주변 공고 모드일 때 NearbyJobsSection이 자체 헤더 포함 */}
+            {isNearbyMode ? (
+              <NearbyJobsSection
+                jobs={nearbyJobs}
+                loading={nearbyLoading}
+                error={nearbyError}
+                selectedDistance={selectedDistance}
+              />
+            ) : (
+              <>
+                {/* Table Header - 전체 공고 */}
+                <div className="hidden lg:grid grid-cols-12 gap-4 px-6 py-4 border-b border-[#e8e8e8] text-on-surface-variant text-xs font-bold uppercase tracking-wider">
+                  <div className="col-span-5">기업 및 공고명</div>
+                  <div className="col-span-2">지역</div>
+                  <div className="col-span-2">카테고리</div>
+                  <div className="col-span-2 text-right">급여 및 마감</div>
+                  <div className="col-span-1 text-right">등록</div>
+                </div>
 
             {/* Job Item 1 */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 px-6 py-6 border-b border-[#e8e8e8] hover:bg-[#f9f9f9] transition-colors items-center">
@@ -612,18 +645,20 @@ export default function MainPage() {
               </div>
             </div>
 
-            <div className="mt-16 flex justify-center">
-              <CommonButton
-                to="/recruit-information"
-                variant="outline"
-                size="xl"
-                icon={
-                  <span className="material-symbols-outlined text-lg">add</span>
-                }
-              >
-                더 많은 공고 보기
-              </CommonButton>
-            </div>
+              <div className="mt-16 flex justify-center">
+                <CommonButton
+                  to="/recruit-information"
+                  variant="outline"
+                  size="xl"
+                  icon={
+                    <span className="material-symbols-outlined text-lg">add</span>
+                  }
+                >
+                  더 많은 공고 보기
+                </CommonButton>
+              </div>
+            </>
+            )}
           </div>
         </section>
       </main>
