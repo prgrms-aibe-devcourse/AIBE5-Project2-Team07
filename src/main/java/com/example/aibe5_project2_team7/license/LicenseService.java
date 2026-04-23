@@ -1,7 +1,10 @@
 package com.example.aibe5_project2_team7.license;
 
+import com.example.aibe5_project2_team7.resume.Resume;
+import com.example.aibe5_project2_team7.resume.ResumeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -9,6 +12,7 @@ import java.util.List;
 @RequiredArgsConstructor
 public class LicenseService {
     private final LicenseRepository licenseRepository;
+    private final ResumeRepository resumeRepository;
 
     public License create(License l) { return licenseRepository.save(l); }
 
@@ -22,7 +26,19 @@ public class LicenseService {
         return licenseRepository.save(ex);
     }
 
-    public void delete(Long id) { licenseRepository.deleteById(id); }
+    @Transactional
+    public void delete(Long id) {
+        License license = licenseRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Not found"));
+
+        Resume resume = resumeRepository.findByLicenses_Id(id)
+                .orElseThrow(() -> new RuntimeException("resume not found"));
+
+        resume.getLicenses().remove(license);
+        resumeRepository.save(resume);
+
+        licenseRepository.delete(license);
+    }
 
     public License get(Long id) { return licenseRepository.findById(id).orElseThrow(() -> new RuntimeException("Not found")); }
 

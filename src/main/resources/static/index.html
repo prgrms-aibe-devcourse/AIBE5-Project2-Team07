@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <title>Spring Boot STOMP Chat Test</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.1/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+    <style>
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; margin: 0; padding: 20px; }
+        .container { max-width: 600px; margin: 0 auto; background: white; padding: 20px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 15px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input { width: calc(100% - 22px); padding: 10px; border: 1px solid #ccc; border-radius: 4px; }
+        .btn { padding: 10px 15px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; }
+        .btn-connect { background-color: #28a745; color: white; }
+        .btn-disconnect { background-color: #dc3545; color: white; display: none; }
+        .btn-send { background-color: #007bff; color: white; }
+        #chat-room { display: none; margin-top: 20px; }
+        #messages { border: 1px solid #ddd; height: 300px; overflow-y: scroll; padding: 10px; background-color: #fafafa; margin-bottom: 10px; border-radius: 4px; }
+        .message { padding: 8px; margin-bottom: 5px; border-radius: 4px; }
+        .message.enter, .message.leave { background-color: #e9ecef; text-align: center; font-size: 0.9em; color: #6c757d; }
+        .message.talk { background-color: #d1ecf1; }
+        .sender-name { font-weight: bold; color: #0056b3; margin-right: 5px; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h2>💬 채팅방 테스트 UI</h2>
+
+    <div id="connect-settings">
+        <div class="form-group">
+            <label for="roomId">방 ID (Room ID)</label>
+            <input type="text" id="roomId" placeholder="예: room1">
+        </div>
+        <div class="form-group">
+            <label for="email">사용자 이메일 (Email)</label>
+            <input type="text" id="email" placeholder="예: test@example.com">
+        </div>
+        <button id="connectBtn" class="btn btn-connect" onclick="connect()">접속하기</button>
+        <button id="disconnectBtn" class="btn btn-disconnect" onclick="disconnect()">연결 끊기</button>
+    </div>
+
+    <div id="chat-room">
+        <div id="messages"></div>
+        <div style="display: flex; gap: 10px;">
+            <input type="text" id="messageInput" style="flex-grow: 1; padding: 10px;" placeholder="메시지를 입력하세요..." onkeypress="handleKeyPress(event)">
+            <button class="btn btn-send" onclick="sendMessage()">전송</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let stompClient = null;
+
+    // 백엔드 서버 주소 (필요시 포트 변경)
+    const serverUrl = 'http://localhost:8080/ws-connect';
+
+    function connect() {
+        const roomId = document.getElementById('roomId').value.trim();
+        const email = document.getElementById('email').value.trim();
+
+        if (!roomId || !email) {
+            alert("방 ID와 이메일을 모두 입력해주세요.");
+            return;
+        }
+
+        const socket = new SockJS(serverUrl);
+        stompClient = Stomp.over(socket);
+
+        // StompHandler에서 기대하는 email 헤더를 넘겨줍니다.
+        const connectHeaders = { 'email': email };
+
+        stompClient.connect(connectHeaders, function (frame) {
+            console.log('Connected: ' + frame);
+
+            // UI 상태 변경
+            document.getElementById('connectBtn').style.display = 'none';
+            document.getElementById('disconnectBtn').style.display = 'inline-block';
+            document.getElementById('chat-room').style.display = 'block';
+            document.getElementById('roomId').disabled = true;
+            document.getElementById('email').disabled = true;
+
+            // 해당 방 구독 (ChatConfig의 MessageBrokerRegistry 설정에 따라 /sub 사용)
+            stompClient.subscribe('/sub/room/' + roomId, function (chatMessage) {
+                showReceivedMessage(JSON.parse(chatMessage.body));
+            });
+
+            // 입장 메시지 발송 (ChatController 로직 트리거)
+            stompClient.send("/pub/chat/message", {}, JSON.stringify({
+                roomId: roomId,
+                email: email,
+                senderId: 1, // 테스트용 더미 ID
+                content: email, // 컨트롤러에서 "님이 입장하셨습니다."를 덧붙이므로 이름/이메일만 보냄
+                type: 'ENTER'
+            }));
+        }, function(error) {
+            console.error('STOMP Connection error: ', error);
+            alert("서버 연결에 실패했습니다. 백엔드 서버가 켜져 있는지 확인해주세요.");
+        });
+    }
+
+    function disconnect() {
+        if (stompClient !== null) {
+            const roomId = document.getElementById('roomId').value;
+            const email = document.getElementById('email').value;
+
+            // 컨트롤러의 LEAVE 로직 트리거를 위해 퇴장 메시지 발송
+            stompClient.send("/pub/chat/message", {}, JSON.stringify({
+                roomId: roomId,
+                email: email,
+                senderId: 1,
+                content: email,
+                type: 'LEAVE'
+            }));
+
+            // 약간의 딜레이 후 연결 종료 (메시지가 서버에 도달할 시간 확보)
+            setTimeout(() => {
+                stompClient.disconnect();
+                console.log("Disconnected");
+
+                // UI 상태 초기화
+                document.getElementById('connectBtn').style.display = 'inline-block';
+                document.getElementById('disconnectBtn').style.display = 'none';
+                document.getElementById('chat-room').style.display = 'none';
+                document.getElementById('roomId').disabled = false;
+                document.getElementById('email').disabled = false;
+                document.getElementById('messages').innerHTML = ''; // 메시지 기록 초기화
+            }, 100);
+        }
+    }
+
+    function sendMessage() {
+        const contentInput = document.getElementById('messageInput');
+        const content = contentInput.value.trim();
+        const roomId = document.getElementById('roomId').value;
+        const email = document.getElementById('email').value;
+
+        if (content && stompClient) {
+            const chatMessage = {
+                roomId: roomId,
+                email: email,
+                senderId: 1, // 테스트용 더미 ID
+                content: content,
+                type: 'TALK'
+            };
+
+            // 메시지 발송
+            stompClient.send("/pub/chat/message", {}, JSON.stringify(chatMessage));
+            contentInput.value = ''; // 입력창 초기화
+        }
+    }
+
+    function showReceivedMessage(message) {
+        const messagesDiv = document.getElementById('messages');
+        const messageElement = document.createElement('div');
+
+        // 메시지 타입에 따른 스타일 분기
+        if (message.type === 'ENTER' || message.type === 'LEAVE') {
+            messageElement.classList.add('message', message.type.toLowerCase());
+            messageElement.innerText = message.content;
+        } else {
+            messageElement.classList.add('message', 'talk');
+            messageElement.innerHTML = `<span class="sender-name">${message.email}</span>: ${message.content}`;
+        }
+
+        messagesDiv.appendChild(messageElement);
+        // 자동 스크롤
+        messagesDiv.scrollTop = messagesDiv.scrollHeight;
+    }
+
+    // 엔터키로 메시지 전송
+    function handleKeyPress(event) {
+        if (event.key === 'Enter') {
+            sendMessage();
+        }
+    }
+</script>
+
+</body>
+</html>
