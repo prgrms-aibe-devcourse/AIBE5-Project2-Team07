@@ -1,5 +1,7 @@
 package com.example.aibe5_project2_team7.resume;
 
+import com.example.aibe5_project2_team7.business_profile.BusinessProfile;
+import com.example.aibe5_project2_team7.business_profile.BusinessProfileRepository;
 import com.example.aibe5_project2_team7.career.CareerRepository;
 import com.example.aibe5_project2_team7.highest_education.HighestEducationRepository;
 import com.example.aibe5_project2_team7.individual_profile.DesiredBusinessType;
@@ -8,6 +10,7 @@ import com.example.aibe5_project2_team7.individual_profile.IndividualProfile;
 import com.example.aibe5_project2_team7.individual_profile.IndividualProfileRepository;
 import com.example.aibe5_project2_team7.license.LicenseRepository;
 import com.example.aibe5_project2_team7.member.Member;
+import com.example.aibe5_project2_team7.member.MemberType;
 import com.example.aibe5_project2_team7.member.repository.MemberRepository;
 import com.example.aibe5_project2_team7.member_address.MemberAddress;
 import com.example.aibe5_project2_team7.member_address.MemberAddressRepository;
@@ -49,7 +52,9 @@ public class ResumeService {
     private final MemberPreferredRegionRepository memberPreferredRegionRepository;
     private final ReviewRepository reviewRepository;
     private final MemberAddressRepository memberAddressRepository;
-    private final RegionRepository regionRepository; // 추가: Region 조회용
+    private final RegionRepository regionRepository;
+    private final BusinessProfileRepository businessProfileRepository;
+
 
     public Page<ResumeSummaryDto> getPublicResumes(int page) {
         Pageable pageable = PageRequest.of(page, 20, org.springframework.data.domain.Sort.by("updatedAt").descending());
@@ -257,7 +262,7 @@ public class ResumeService {
                     );
 
             reviews = reviewEntities.stream()
-                    .map(ReviewResponse::from)
+                    .map(this::toReviewResponse)
                     .collect(Collectors.toList());
         }
 
@@ -572,5 +577,21 @@ public class ResumeService {
         }
 
         return "비공개";
+    }
+
+    private ReviewResponse toReviewResponse(Review review) {
+        Member writer = memberRepository.findById(review.getWriterId())
+                .orElse(null);
+
+        String writerName = writer != null ? writer.getName() : "작성자";
+        String companyName = null;
+
+        if (writer != null && writer.getMemberType() == MemberType.BUSINESS) {
+            companyName = businessProfileRepository.findByMemberId(writer.getId())
+                    .map(BusinessProfile::getCompanyName)
+                    .orElse(writerName);
+        }
+
+        return ReviewResponse.from(review, writerName, companyName);
     }
 }

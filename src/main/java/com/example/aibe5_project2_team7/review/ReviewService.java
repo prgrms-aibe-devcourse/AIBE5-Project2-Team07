@@ -3,6 +3,8 @@ package com.example.aibe5_project2_team7.review;
 import com.example.aibe5_project2_team7.apply.entity.Apply;
 import com.example.aibe5_project2_team7.apply.ApplyRepository;
 import com.example.aibe5_project2_team7.apply.entity.ApplyStatus;
+import com.example.aibe5_project2_team7.business_profile.BusinessProfile;
+import com.example.aibe5_project2_team7.business_profile.BusinessProfileRepository;
 import com.example.aibe5_project2_team7.individual_profile.IndividualProfile;
 import com.example.aibe5_project2_team7.individual_profile.IndividualProfileRepository;
 import com.example.aibe5_project2_team7.member.Member;
@@ -29,6 +31,7 @@ public class ReviewService {
     private final RecruitRepository recruitRepository;
     private final MemberRepository memberRepository;
     private final IndividualProfileRepository individualProfileRepository;
+    private final BusinessProfileRepository businessProfileRepository;
 
     @Transactional
     public ReviewResponse createReview(Long userId, ReviewCreateRequest request) {
@@ -79,25 +82,25 @@ public class ReviewService {
                 1
         );
 
-        return ReviewResponse.from(saved);
+        return toReviewResponse(saved);
     }
     public ReviewResponse getReview(Long reviewId) {
         Review review = reviewRepository.findWithLabelsById(reviewId)
                 .orElseThrow(() -> new ReviewException("리뷰를 찾을 수 없습니다."));
-        return ReviewResponse.from(review);
+        return toReviewResponse(review);
     }
 
     public List<ReviewResponse> getReviewsByTarget(Long targetId) {
         return reviewRepository.findAllByTargetId(targetId)
                 .stream()
-                .map(ReviewResponse::from)
+                .map(this::toReviewResponse)
                 .toList();
     }
 
     public List<ReviewResponse> getReviewsByWriter(Long writerId) {
         return reviewRepository.findAllByWriterId(writerId)
                 .stream()
-                .map(ReviewResponse::from)
+                .map(this::toReviewResponse)
                 .toList();
     }
     // 리뷰 수정
@@ -131,7 +134,7 @@ public class ReviewService {
                 0
         );
 
-        return ReviewResponse.from(review);
+        return toReviewResponse(review);
     }
     // 리뷰 삭제
     @Transactional
@@ -226,5 +229,21 @@ public class ReviewService {
         }
 
         memberRepository.save(member);
+    }
+
+    private ReviewResponse toReviewResponse(Review review) {
+        Member writer = memberRepository.findById(review.getWriterId())
+                .orElse(null);
+
+        String writerName = writer != null ? writer.getName() : "작성자";
+        String companyName = null;
+
+        if (writer != null && writer.getMemberType() == MemberType.BUSINESS) {
+            companyName = businessProfileRepository.findByMemberId(writer.getId())
+                    .map(BusinessProfile::getCompanyName)
+                    .orElse(writerName);
+        }
+
+        return ReviewResponse.from(review, writerName, companyName);
     }
 }

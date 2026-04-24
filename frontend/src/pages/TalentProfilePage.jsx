@@ -83,11 +83,53 @@ function formatPreferredJobs(desiredTypes) {
     return desiredTypes.map(translateBusinessType);
 }
 
+function getReviewLabelNames(review) {
+    if (Array.isArray(review?.labelNames)) {
+        return review.labelNames
+            .map((label) => String(label).trim())
+            .filter(Boolean);
+    }
+
+    if (Array.isArray(review?.labels)) {
+        return review.labels
+            .map((label) => {
+                if (typeof label === 'string') return label;
+                return label?.name ?? label?.labelName ?? '';
+            })
+            .map((label) => String(label).trim())
+            .filter(Boolean);
+    }
+
+    return [];
+}
+
+function getReviewWriterName(review) {
+    return (
+        review?.companyName ||
+        review?.writerCompanyName ||
+        review?.businessName ||
+        review?.writerName ||
+        review?.reviewerName ||
+        review?.writerNickname ||
+        (review?.writerId ? `작성자 #${review.writerId}` : '작성자')
+    );
+}
+
+function formatReviewDate(review) {
+    const date =
+        review?.writtenAt ||
+        review?.createdAt ||
+        review?.updatedAt ||
+        '';
+
+    return date ? String(date).slice(0, 10).replace(/-/g, '.') : '';
+}
+
 function mapReviewLabels(reviews) {
     const labelCountMap = new Map();
 
     reviews.forEach((review) => {
-        (review.labelNames ?? []).forEach((label) => {
+        getReviewLabelNames(review).forEach((label) => {
             const key = String(label).trim();
             if (!key) return;
             labelCountMap.set(key, (labelCountMap.get(key) ?? 0) + 1);
@@ -106,6 +148,14 @@ function mapReviewLabels(reviews) {
 function mapResumeDetailToTalent(data) {
     const reviews = Array.isArray(data?.reviews) ? data.reviews : [];
     const avgRating = Number(data?.ratingAverage ?? data?.avgRating ?? 0);
+
+    const mappedReviews = reviews.map((review) => ({
+        reviewer: getReviewWriterName(review),
+        rating: Number(review.rating ?? 0),
+        date: formatReviewDate(review),
+        text: review.content ?? '',
+        labels: getReviewLabelNames(review),
+    }));
 
     return {
         photo:
@@ -145,22 +195,8 @@ function mapResumeDetailToTalent(data) {
             avgRating,
             totalCount: reviews.length,
             topLabels: mapReviewLabels(reviews),
-            all: reviews.map((review) => ({
-                reviewer: review.writerName ?? review.reviewerName ?? '작성자',
-                rating: Number(review.rating ?? 0),
-                date: review.createdAt
-                    ? String(review.createdAt).slice(0, 10).replace(/-/g, '.')
-                    : '',
-                text: review.content ?? '',
-            })),
-            recent: reviews.slice(0, 3).map((review) => ({
-                reviewer: review.writerName ?? review.reviewerName ?? '작성자',
-                rating: Number(review.rating ?? 0),
-                date: review.createdAt
-                    ? String(review.createdAt).slice(0, 10).replace(/-/g, '.')
-                    : '',
-                text: review.content ?? '',
-            })),
+            all: mappedReviews,
+            recent: mappedReviews.slice(0, 3),
         },
     };
 }
@@ -173,30 +209,26 @@ function StarRating({ rating, size = 'text-base' }) {
 
     return (
         <span className={`flex items-center gap-0.5 text-primary ${size}`}>
-      {Array(full)
-          .fill(0)
-          .map((_, i) => (
-              <span
-                  key={`f${i}`}
-                  className="material-symbols-outlined"
-                  style={{ fontVariationSettings: '"FILL" 1' }}
-              >
-            star
-          </span>
-          ))}
+            {Array(full).fill(0).map((_, i) => (
+                <span
+                    key={`f${i}`}
+                    className="material-symbols-outlined"
+                    style={{ fontVariationSettings: '"FILL" 1' }}
+                >
+                    star
+                </span>
+            ))}
             {half && (
                 <span className="material-symbols-outlined" style={{ fontVariationSettings: '"FILL" 1' }}>
-          star_half
-        </span>
+                    star_half
+                </span>
             )}
-            {Array(empty)
-                .fill(0)
-                .map((_, i) => (
-                    <span key={`e${i}`} className="material-symbols-outlined">
-            star
-          </span>
-                ))}
-    </span>
+            {Array(empty).fill(0).map((_, i) => (
+                <span key={`e${i}`} className="material-symbols-outlined">
+                    star
+                </span>
+            ))}
+        </span>
     );
 }
 
@@ -206,6 +238,48 @@ function SectionTitle({ icon, children }) {
             <span className="material-symbols-outlined text-sm">{icon}</span>
             {children}
         </h2>
+    );
+}
+
+function ReviewCard({ review }) {
+    return (
+        <div className="p-5 bg-surface-container-low rounded-xl border border-outline">
+            <div className="flex items-start justify-between gap-4 mb-3">
+                <div className="flex items-center gap-2">
+                    <div className="w-8 h-8 rounded-full bg-primary-soft flex items-center justify-center">
+                        <span
+                            className="material-symbols-outlined text-primary text-sm"
+                            style={{ fontVariationSettings: '"FILL" 1' }}
+                        >
+                            storefront
+                        </span>
+                    </div>
+                    <span className="font-bold text-sm text-on-surface">{review.reviewer}</span>
+                </div>
+
+                <div className="flex items-center gap-1 shrink-0">
+                    <StarRating rating={review.rating} size="text-sm" />
+                    <span className="text-xs font-bold text-primary ml-1">{review.rating}</span>
+                </div>
+            </div>
+
+            <p className="text-sm text-on-surface leading-relaxed">{review.text}</p>
+
+            {review.labels?.length > 0 && (
+                <div className="flex flex-wrap gap-1.5 mt-3">
+                    {review.labels.map((label, idx) => (
+                        <span
+                            key={`${label}-${idx}`}
+                            className="bg-primary-soft text-primary text-[11px] font-bold px-2.5 py-1 rounded-full"
+                        >
+                            {label}
+                        </span>
+                    ))}
+                </div>
+            )}
+
+            <p className="text-xs text-on-surface-variant mt-2 text-right">{review.date}</p>
+        </div>
     );
 }
 
@@ -256,7 +330,7 @@ export default function TalentProfilePage() {
         return (
             <>
                 <TopNavBar />
-                <main className="max-w-4xl mx-auto px-6 py-12 pt-32 pb-40">
+                <main className="max-w-4xl mx-auto px-6 py-12 pt-32 pb-56">
                     <div className="text-center py-20 text-on-surface-variant font-medium">
                         프로필을 불러오는 중...
                     </div>
@@ -313,8 +387,8 @@ export default function TalentProfilePage() {
                                 <StarRating rating={d.reviews.avgRating} size="text-sm" />
                                 <span>{d.reviews.avgRating.toFixed(1)}</span>
                                 <span className="text-on-surface-variant font-medium">
-                  ({d.reviews.totalCount}개 리뷰)
-                </span>
+                                    ({d.reviews.totalCount}개 리뷰)
+                                </span>
                             </div>
                         </div>
 
@@ -360,16 +434,16 @@ export default function TalentProfilePage() {
                                 d.careers.map((c, i) => (
                                     <div key={i} className="flex items-start gap-4">
                                         <div className="w-10 h-10 rounded-xl bg-primary-soft flex items-center justify-center shrink-0">
-                      <span className="material-symbols-outlined text-primary text-base">
-                        business_center
-                      </span>
+                                            <span className="material-symbols-outlined text-primary text-base">
+                                                business_center
+                                            </span>
                                         </div>
                                         <div className="flex-1">
                                             <div className="flex flex-wrap items-center gap-2">
                                                 <span className="font-bold text-on-surface">{c.company}</span>
                                                 <span className="bg-primary-soft text-primary text-[10px] font-bold px-2 py-0.5 rounded-full">
-                          {c.role}
-                        </span>
+                                                    {c.role}
+                                                </span>
                                             </div>
                                             <p className="text-xs text-on-surface-variant mt-0.5 mb-1">{c.period}</p>
                                             <p className="text-sm text-on-surface-variant">{c.desc || '설명 없음'}</p>
@@ -391,12 +465,12 @@ export default function TalentProfilePage() {
                                         key={i}
                                         className="flex items-start gap-3 p-4 bg-surface-container-low rounded-xl border border-outline"
                                     >
-                    <span
-                        className="material-symbols-outlined text-primary text-xl mt-0.5"
-                        style={{ fontVariationSettings: '"FILL" 1' }}
-                    >
-                      badge
-                    </span>
+                                        <span
+                                            className="material-symbols-outlined text-primary text-xl mt-0.5"
+                                            style={{ fontVariationSettings: '"FILL" 1' }}
+                                        >
+                                            badge
+                                        </span>
                                         <div>
                                             <p className="font-bold text-on-surface text-sm">{cert.name}</p>
                                             <p className="text-xs text-on-surface-variant">{cert.issuer}</p>
@@ -436,8 +510,8 @@ export default function TalentProfilePage() {
                                             key={i}
                                             className="bg-primary-soft text-primary font-bold text-xs px-3 py-1.5 rounded-full border border-primary/20"
                                         >
-                      {job}
-                    </span>
+                                            {job}
+                                        </span>
                                     ))
                                 ) : (
                                     <p className="text-sm text-on-surface-variant">희망업직종 정보가 없습니다.</p>
@@ -460,9 +534,9 @@ export default function TalentProfilePage() {
 
                         <div className="flex flex-col sm:flex-row sm:items-center gap-6 mb-6">
                             <div className="flex items-center gap-4">
-                <span className="text-5xl font-black text-on-surface">
-                  {d.reviews.avgRating.toFixed(1)}
-                </span>
+                                <span className="text-5xl font-black text-on-surface">
+                                    {d.reviews.avgRating.toFixed(1)}
+                                </span>
                                 <div>
                                     <StarRating rating={d.reviews.avgRating} size="text-xl" />
                                     <p className="text-xs text-on-surface-variant mt-1">
@@ -480,8 +554,8 @@ export default function TalentProfilePage() {
                                         >
                                             <span className="text-xs font-bold text-on-surface">{lbl.label}</span>
                                             <span className="text-[10px] font-black text-primary bg-primary-soft rounded-full px-1.5 py-0.5">
-                        {lbl.count}
-                      </span>
+                                                {lbl.count}
+                                            </span>
                                         </div>
                                     ))
                                 ) : (
@@ -495,27 +569,7 @@ export default function TalentProfilePage() {
                         <div className="space-y-4">
                             {d.reviews.recent.length > 0 ? (
                                 d.reviews.recent.map((rv, i) => (
-                                    <div key={i} className="p-5 bg-surface-container-low rounded-xl border border-outline">
-                                        <div className="flex items-start justify-between gap-4 mb-3">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-8 h-8 rounded-full bg-primary-soft flex items-center justify-center">
-                          <span
-                              className="material-symbols-outlined text-primary text-sm"
-                              style={{ fontVariationSettings: '"FILL" 1' }}
-                          >
-                            storefront
-                          </span>
-                                                </div>
-                                                <span className="font-bold text-sm text-on-surface">{rv.reviewer}</span>
-                                            </div>
-                                            <div className="flex items-center gap-1 shrink-0">
-                                                <StarRating rating={rv.rating} size="text-sm" />
-                                                <span className="text-xs font-bold text-primary ml-1">{rv.rating}</span>
-                                            </div>
-                                        </div>
-                                        <p className="text-sm text-on-surface leading-relaxed">{rv.text}</p>
-                                        <p className="text-xs text-on-surface-variant mt-2 text-right">{rv.date}</p>
-                                    </div>
+                                    <ReviewCard key={`recent-${i}`} review={rv} />
                                 ))
                             ) : (
                                 <p className="text-sm text-on-surface-variant">리뷰가 없습니다.</p>
@@ -583,27 +637,7 @@ export default function TalentProfilePage() {
                     <div className="max-h-[65vh] overflow-y-auto p-6 space-y-4 bg-surface-container-low/40">
                         {d.reviews.all.length > 0 ? (
                             d.reviews.all.map((rv, i) => (
-                                <div key={`all-${i}`} className="p-5 bg-white rounded-xl border border-outline">
-                                    <div className="flex items-start justify-between gap-4 mb-3">
-                                        <div className="flex items-center gap-2">
-                                            <div className="w-8 h-8 rounded-full bg-primary-soft flex items-center justify-center">
-                        <span
-                            className="material-symbols-outlined text-primary text-sm"
-                            style={{ fontVariationSettings: '"FILL" 1' }}
-                        >
-                          storefront
-                        </span>
-                                            </div>
-                                            <span className="font-bold text-sm text-on-surface">{rv.reviewer}</span>
-                                        </div>
-                                        <div className="flex items-center gap-1 shrink-0">
-                                            <StarRating rating={rv.rating} size="text-sm" />
-                                            <span className="text-xs font-bold text-primary ml-1">{rv.rating}</span>
-                                        </div>
-                                    </div>
-                                    <p className="text-sm text-on-surface leading-relaxed">{rv.text}</p>
-                                    <p className="text-xs text-on-surface-variant mt-2 text-right">{rv.date}</p>
-                                </div>
+                                <ReviewCard key={`all-${i}`} review={rv} />
                             ))
                         ) : (
                             <p className="text-sm text-on-surface-variant">리뷰가 없습니다.</p>
@@ -627,12 +661,12 @@ export default function TalentProfilePage() {
                 ></div>
                 <div className="relative bg-white w-full max-w-md p-10 rounded-2xl flex flex-col items-center text-center shadow-2xl">
                     <div className="w-16 h-16 bg-primary-soft rounded-full flex items-center justify-center mb-6">
-            <span
-                className="material-symbols-outlined text-primary text-4xl"
-                style={{ fontVariationSettings: '"FILL" 1' }}
-            >
-              lock
-            </span>
+                        <span
+                            className="material-symbols-outlined text-primary text-4xl"
+                            style={{ fontVariationSettings: '"FILL" 1' }}
+                        >
+                            lock
+                        </span>
                     </div>
                     <h5 className="text-2xl font-bold mb-3">기업회원 전용 메뉴입니다</h5>
                     <p className="text-on-surface-variant mb-8 leading-relaxed font-medium">
