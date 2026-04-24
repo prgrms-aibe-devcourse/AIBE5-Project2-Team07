@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { Link } from 'react-router-dom';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
 import TopNavBar from '../components/TopNavBar';
 import MobileBottomNav from '../components/MobileBottomNav';
 import AppFooter from '../components/AppFooter';
@@ -10,6 +10,76 @@ import RecommendJobsSection from '../components/RecommendJobsSection';
 import { useNearbyJobs } from '../hooks/useNearbyJobs';
 import { fetchRecommendJobs } from '../services/recommendApi';
 import { RECOMMEND_DEFAULT_FILTERS } from '../constants/recommendFilterOptions';
+import { getStoredMember } from '../services/authApi';
+import { addRecruitScrap, getMyScrapRecruitIds, removeRecruitScrap } from '../services/scrapRecruitApi';
+
+const getToken = () => localStorage.getItem('token');
+
+const API_PREFIXES = ['/api', ''];
+
+const BUSINESS_LABELS = {
+  FOOD_RESTAURANT: '외식',
+  CAFE: '카페',
+  RETAIL_STORE: '매장관리/판매',
+  SERVICE: '서비스',
+  DELIVERY_DRIVER: '운전/배달',
+  MANUAL_LABOR: '현장단순노무',
+};
+
+async function fetchJsonWithFallback(path) {
+  let lastError = null;
+  for (const prefix of API_PREFIXES) {
+    try {
+      const response = await fetch(`${prefix}${path}`);
+      if (response.ok) return response.json();
+      if (response.status === 404) continue;
+      const errorText = await response.text();
+      throw new Error(errorText || `요청 실패 (${response.status})`);
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError || new Error('메인 공고 데이터를 불러오지 못했습니다.');
+}
+
+function normalizeRecruitStatus(status) { return String(status || '').toUpperCase(); }
+function isExpiredRecruit(status) { return normalizeRecruitStatus(status) === 'EXPIRED'; }
+function formatSalaryAmount(salary) {
+  if (salary == null) return '-';
+  return `${Number(salary).toLocaleString('ko-KR')}원`;
+}
+function formatBusinessType(values) {
+  if (!Array.isArray(values) || values.length === 0) return '-';
+  return values.map((v) => BUSINESS_LABELS[v] || v).join(', ');
+}
+function formatDate(dateText) {
+  if (!dateText) return '-';
+  const date = new Date(dateText);
+  return Number.isNaN(date.getTime()) ? dateText : date.toLocaleDateString('ko-KR');
+}
+function formatRelativeTime(dateText) {
+  if (!dateText) return '-';
+  const date = new Date(dateText);
+  if (Number.isNaN(date.getTime())) return dateText;
+  const diffMinutes = Math.max(0, Math.floor((Date.now() - date.getTime()) / 60000));
+  if (diffMinutes < 60) return `${diffMinutes || 1}분 전`;
+  const diffHours = Math.floor(diffMinutes / 60);
+  if (diffHours < 24) return `${diffHours}시간 전`;
+  return `${Math.floor(diffHours / 24)}일 전`;
+}
+function getDday(deadline) {
+  if (!deadline) return '-';
+  const target = new Date(deadline);
+  const today = new Date();
+  target.setHours(0, 0, 0, 0);
+  today.setHours(0, 0, 0, 0);
+  const diff = Math.floor((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  return diff < 0 ? '마감' : `D-${diff}`;
+}
+function formatWorkDateLabel(deadline) {
+  const formatted = formatDate(deadline);
+  return formatted === '-' ? '-' : `근무일 ${formatted}`;
+}
 
 export default function MainPage() {
   const [selectedDistance, setSelectedDistance] = useState('5km');
@@ -23,12 +93,7 @@ export default function MainPage() {
   const [recommendError, setRecommendError] = useState('');
   const dropdownRef = useRef(null);
 
-  const {
-    jobs: nearbyJobs,
-    loading: nearbyLoading,
-    error: nearbyError,
-    fetchJobs,
-  } = useNearbyJobs();
+  const { jobs: nearbyJobs, loading: nearbyLoading, error: nearbyError, fetchJobs } = useNearbyJobs();
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -36,11 +101,8 @@ export default function MainPage() {
         setIsDistanceDropdownOpen(false);
       }
     }
-
     document.addEventListener('mousedown', handleClickOutside);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
   function handleDistanceSelect(distance) {
@@ -63,7 +125,6 @@ export default function MainPage() {
       urgent: Boolean(nextFilters.urgent),
       resultCount: nextFilters.resultCount ?? 20,
     };
-
     setRecommendFilters(nextFilters);
     setIsRecommendModalOpen(false);
     setIsNearbyMode(false);
@@ -71,7 +132,6 @@ export default function MainPage() {
     setRecommendLoading(true);
     setRecommendError('');
     setRecommendJobs([]);
-
     try {
       const data = await fetchRecommendJobs(requestPayload);
       setRecommendJobs(Array.isArray(data) ? data : []);
@@ -88,18 +148,164 @@ export default function MainPage() {
     setIsDistanceDropdownOpen(false);
   }
 
+  const [urgentJobs, setUrgentJobs] = useState([]);
+  const [latestJobs, setLatestJobs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [scrappedRecruitIds, setScrappedRecruitIds] = useState([]);
+  const [scrapLoadingIds, setScrapLoadingIds] = useState([]);
+  const [scrapError, setScrapError] = useState('');
+  const [showScrapLoginModal, setShowScrapLoginModal] = useState(false);
+  const [showScrapBusinessModal, setShowScrapBusinessModal] = useState(false);
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    const loadMainRecruitData = async () => {
+      try {
+        setLoading(true);
+        setLoadError('');
+
+        const [urgentResult, latestResult] = await Promise.all([
+          fetchJsonWithFallback('/recruits?type=ALL&page=1&size=4&sort=LATEST&isUrgent=true&urgent=true&is_urgent=true'),
+          fetchJsonWithFallback('/recruits?type=ALL&page=1&size=4&sort=LATEST'),
+        ]);
+
+        const urgentContent = (Array.isArray(urgentResult?.content) ? urgentResult.content : [])
+          .filter((item) => !isExpiredRecruit(item?.status))
+          .filter((item) => Boolean(item?.isUrgent ?? item?.urgent))
+          .slice(0, 4);
+
+        const latestContent = (Array.isArray(latestResult?.content) ? latestResult.content : [])
+          .filter((item) => !isExpiredRecruit(item?.status))
+          .slice(0, 4);
+
+        setUrgentJobs(urgentContent);
+        setLatestJobs(latestContent);
+      } catch (error) {
+        setLoadError(error.message || '메인 공고를 불러오지 못했습니다.');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    loadMainRecruitData();
+  }, []);
+
+  useEffect(() => {
+    const loadScrapIds = async () => {
+      const token = getToken();
+      const member = getStoredMember();
+
+      if (!token || !member || member.memberType !== 'INDIVIDUAL') {
+        setScrappedRecruitIds([]);
+        return;
+      }
+
+      try {
+        const ids = await getMyScrapRecruitIds(member.id);
+        setScrappedRecruitIds(ids);
+      } catch {
+        setScrappedRecruitIds([]);
+      }
+    };
+
+    loadScrapIds();
+  }, []);
+
+  const urgentRecruitLink = '/recruit-information?tab=ALL&sort=LATEST&isUrgent=true';
+  const latestRecruitLink = '/recruit-information?tab=ALL&sort=LATEST';
+
+  const urgentCards = useMemo(() => urgentJobs.map((job) => ({
+    id: job.id,
+    companyName: job.companyName || '-',
+    title: job.title || '-',
+    regionName: job.regionName || '-',
+    workDateLabel: formatWorkDateLabel(job.deadline),
+    ddayLabel: getDday(job.deadline),
+    salary: formatSalaryAmount(job.salary),
+  })), [urgentJobs]);
+
+  const moveToRecruitDetail = (recruitId) => {
+    navigate(`/recruit-detail?recruitId=${recruitId}`);
+  };
+
+  const handleRecruitCardKeyDown = (event, recruitId) => {
+    if (event.key !== 'Enter' && event.key !== ' ') {
+      return;
+    }
+
+    event.preventDefault();
+    moveToRecruitDetail(recruitId);
+  };
+
+  const isRecruitScrapped = (recruitId) => scrappedRecruitIds.includes(Number(recruitId));
+
+  const isRecruitScrapLoading = (recruitId) => scrapLoadingIds.includes(Number(recruitId));
+
+  const handleScrapClick = async (event, recruitId) => {
+    event.preventDefault();
+    event.stopPropagation();
+
+    const token = getToken();
+    const member = getStoredMember();
+
+    if (!token || !member) {
+      setShowScrapLoginModal(true);
+      return;
+    }
+
+    if (member.memberType !== 'INDIVIDUAL') {
+      setShowScrapBusinessModal(true);
+      return;
+    }
+
+    const numericRecruitId = Number(recruitId);
+
+    try {
+      setScrapError('');
+      setScrapLoadingIds((prev) => (prev.includes(numericRecruitId) ? prev : [...prev, numericRecruitId]));
+
+      if (isRecruitScrapped(numericRecruitId)) {
+        await removeRecruitScrap(member.id, numericRecruitId);
+        setScrappedRecruitIds((prev) => prev.filter((id) => id !== numericRecruitId));
+      } else {
+        await addRecruitScrap(member.id, numericRecruitId);
+        setScrappedRecruitIds((prev) => [...prev, numericRecruitId]);
+      }
+    } catch (error) {
+      setScrapError(error.message || '공고 스크랩 중 오류가 발생했습니다.');
+    } finally {
+      setScrapLoadingIds((prev) => prev.filter((id) => id !== numericRecruitId));
+    }
+  };
+
   return (
     <>
       <TopNavBar />
       <main className="pt-20">
         <section className="bg-white pt-8 pb-12">
           <div className="custom-container">
-            <div className="hero-gradient relative flex min-h-[320px] flex-col items-center justify-between overflow-hidden rounded-2xl p-10 md:flex-row md:p-12">
-              <div className="z-10 max-w-xl space-y-4 text-center md:text-left">
-                <div className="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/20 px-4 py-1.5 text-xs font-bold text-primary backdrop-blur-sm">
-                  <span className="material-symbols-outlined text-sm" style={{ fontVariationSettings: '"FILL" 1' }}>
-                    notifications_active
-                  </span>
+            <div className="hero-gradient rounded-2xl overflow-hidden flex flex-col md:flex-row items-center justify-between p-10 md:p-12 relative min-h-[320px]">
+
+              {/* 이미지: 전체 꽉 채우기 */}
+              <img
+                alt="Professional workspace"
+                className="absolute inset-0 w-full h-full object-cover"
+                src="https://i.imgur.com/4VtnSNA.png"
+              />
+
+              {/* 그라디언트: 왼쪽 진하게 → 오른쪽 투명 */}
+              <div
+                className="absolute inset-0"
+                style={{
+                  background: "linear-gradient(to right, #1A1818 30%, rgba(26,24,24,0.7) 50%, transparent 100%)"
+                }}
+              />
+
+              {/* 텍스트 컨텐츠 */}
+              <div className="z-10 text-center md:text-left space-y-4 max-w-xl">
+                <div className="inline-flex items-center gap-2 bg-primary/20 px-4 py-1.5 rounded-full text-primary font-bold text-xs border border-primary/30 backdrop-blur-sm">
+                  <span className="material-symbols-outlined text-[15px]" style={{ fontVariationSettings: '"FILL" 1' }}>emergency</span>
                   긴급 매칭
                 </div>
                 <h1 className="text-3xl font-extrabold leading-[1.2] tracking-tight text-white md:text-4xl">
@@ -108,7 +314,7 @@ export default function MainPage() {
                 <p className="text-base font-medium text-white/60">
                   평균 매칭 시간 15분. 지각 없는 검증된 인재를 바로 연결해드립니다.
                 </p>
-                <CommonButton className="mt-2" size="lg">
+                <CommonButton className="mt-2" size="lg" to={urgentRecruitLink}>
                   전체 급구 공고 보기
                 </CommonButton>
               </div>
@@ -131,112 +337,56 @@ export default function MainPage() {
                 <h2 className="text-3xl font-extrabold tracking-tighter">급구 공고</h2>
                 <p className="mt-2 font-medium text-on-surface-variant">지금 바로 지원 가능한 긴급 구인 건입니다.</p>
               </div>
-              <Link to="/ai-recommend" className="group flex items-center gap-1 py-2 font-bold text-primary">
-                더보기
-                <span className="material-symbols-outlined transition-transform group-hover:translate-x-1">chevron_right</span>
+              <Link to={urgentRecruitLink} className="text-primary font-bold flex items-center gap-1 group py-2">
+                더보기 <span className="material-symbols-outlined transition-transform group-hover:translate-x-1">chevron_right</span>
               </Link>
             </div>
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-              <div className="relative flex min-h-[240px] flex-col justify-between rounded-xl bg-primary-soft p-7 shadow-md shadow-primary/5 transition-all hover:-translate-y-1 hover:shadow-xl">
-                <div>
-                  <span className="mb-1 block text-xs font-bold text-primary">삼성동 마이카페</span>
-                  <h3 className="mb-3 flex items-center gap-1 text-lg font-bold leading-snug">
-                    <span className="material-symbols-outlined text-lg text-primary" style={{ fontVariationSettings: '"FILL" 1' }}>
-                      notifications_active
-                    </span>
-                    홀 서빙 및 결제 관리 (즉시 투입)
-                  </h3>
-                  <div className="flex gap-2 text-[11px] font-semibold text-on-surface-variant">
-                    <span>서울 강남구</span>
-                    <span>•</span>
-                    <span>지금 시작</span>
+            {loading && <p className="text-on-surface-variant py-10">급구 공고를 불러오는 중입니다...</p>}
+            {!loading && loadError && <p className="text-red-600 py-10">{loadError}</p>}
+            {!loading && !loadError && (
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {urgentCards.map((job) => (
+                  <div
+                    key={job.id}
+                    className="bg-primary-soft rounded-xl p-7 flex flex-col justify-between min-h-[240px] transition-all shadow-md shadow-primary/5 hover:shadow-xl hover:-translate-y-1 relative cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/40"
+                    role="link"
+                    tabIndex={0}
+                    onClick={() => moveToRecruitDetail(job.id)}
+                    onKeyDown={(event) => handleRecruitCardKeyDown(event, job.id)}
+                  >
+                    <div className="relative z-20">
+                      <span className="text-primary font-bold text-xs block mb-1">{job.companyName}</span>
+                      <h3 className="text-lg font-bold leading-snug mb-3 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-primary text-[15px]" style={{ fontVariationSettings: '"FILL" 1' }}>emergency</span>
+                        <span>  </span>{job.title}
+                      </h3>
+                      <div className="flex gap-2 text-on-surface-variant text-[11px] font-semibold">
+                        <span>{job.regionName}</span>
+                        <span>•</span>
+                        <span>{job.workDateLabel}</span>
+                      </div>
+                    </div>
+                    <div className="flex justify-between items-end mt-4 relative z-20">
+                      <span className="text-xl font-black text-primary">{job.salary}<small className="text-[10px] font-bold text-on-surface ml-1">/시간</small></span>
+                      <button
+                        type="button"
+                        onClick={(event) => handleScrapClick(event, job.id)}
+                        disabled={isRecruitScrapLoading(job.id)}
+                        className={`material-symbols-outlined transition-colors ${isRecruitScrapped(job.id) ? 'text-primary' : 'text-on-surface-variant/40 hover:text-primary'} ${isRecruitScrapLoading(job.id) ? 'opacity-50' : ''}`}
+                        style={{ fontVariationSettings: isRecruitScrapped(job.id) ? '"FILL" 1' : '"FILL" 0' }}
+                        aria-label="공고 스크랩"
+                      >
+                        bookmark
+                      </button>
+                    </div>
                   </div>
-                </div>
-                <div className="mt-4 flex items-end justify-between">
-                  <span className="text-xl font-black text-primary">
-                    16,000원
-                    <small className="ml-1 text-[10px] font-bold text-on-surface">/시간</small>
-                  </span>
-                  <button className="material-symbols-outlined text-on-surface-variant/40 transition-colors hover:text-primary">bookmark</button>
-                </div>
-                <Link to="/recruit-detail" className="absolute inset-0 z-10" />
+                ))}
+                {urgentCards.length === 0 && (
+                  <div className="col-span-full text-center text-on-surface-variant py-12">현재 표시할 급구 공고가 없습니다.</div>
+                )}
               </div>
-
-              <div className="relative flex min-h-[240px] flex-col justify-between rounded-xl bg-primary-soft p-7 shadow-md shadow-primary/5 transition-all hover:-translate-y-1 hover:shadow-xl">
-                <div>
-                  <span className="mb-1 block text-xs font-bold text-primary">판교 정보단지</span>
-                  <h3 className="mb-3 flex items-center gap-1 text-lg font-bold leading-snug">
-                    <span className="material-symbols-outlined text-lg text-primary" style={{ fontVariationSettings: '"FILL" 1' }}>
-                      notifications_active
-                    </span>
-                    행사 등록 데스크 안내 요원
-                  </h3>
-                  <div className="flex gap-2 text-[11px] font-semibold text-on-surface-variant">
-                    <span>경기 성남시</span>
-                    <span>•</span>
-                    <span>14:00 시작</span>
-                  </div>
-                </div>
-                <div className="mt-4 flex items-end justify-between">
-                  <span className="text-xl font-black text-primary">
-                    13,500원
-                    <small className="ml-1 text-[10px] font-bold text-on-surface">/시간</small>
-                  </span>
-                  <button className="material-symbols-outlined text-on-surface-variant/40 transition-colors hover:text-primary">bookmark</button>
-                </div>
-                <Link to="/recruit-detail" className="absolute inset-0 z-10" />
-              </div>
-
-              <div className="relative flex min-h-[240px] flex-col justify-between rounded-xl bg-primary-soft p-7 shadow-md shadow-primary/5 transition-all hover:-translate-y-1 hover:shadow-xl">
-                <div>
-                  <span className="mb-1 block text-xs font-bold text-primary">더 플랜지</span>
-                  <h3 className="mb-3 flex items-center gap-1 text-lg font-bold leading-snug">
-                    <span className="material-symbols-outlined text-lg text-primary" style={{ fontVariationSettings: '"FILL" 1' }}>
-                      notifications_active
-                    </span>
-                    주방 설거지 및 뒷정리 보조
-                  </h3>
-                  <div className="flex gap-2 text-[11px] font-semibold text-on-surface-variant">
-                    <span>서울 종로구</span>
-                    <span>•</span>
-                    <span>18:00 시작</span>
-                  </div>
-                </div>
-                <div className="mt-4 flex items-end justify-between">
-                  <span className="text-xl font-black text-primary">
-                    15,000원
-                    <small className="ml-1 text-[10px] font-bold text-on-surface">/시간</small>
-                  </span>
-                  <button className="material-symbols-outlined text-on-surface-variant/40 transition-colors hover:text-primary">bookmark</button>
-                </div>
-                <Link to="/recruit-detail" className="absolute inset-0 z-10" />
-              </div>
-
-              <div className="relative flex min-h-[240px] flex-col justify-between rounded-xl bg-primary-soft p-7 shadow-md shadow-primary/5 transition-all hover:-translate-y-1 hover:shadow-xl">
-                <div>
-                  <span className="mb-1 block text-xs font-bold text-primary">메디 스캔</span>
-                  <h3 className="mb-3 flex items-center gap-1 text-lg font-bold leading-snug">
-                    <span className="material-symbols-outlined text-lg text-primary" style={{ fontVariationSettings: '"FILL" 1' }}>
-                      notifications_active
-                    </span>
-                    검진 센터 문서 파쇄 단기 알바
-                  </h3>
-                  <div className="flex gap-2 text-[11px] font-semibold text-on-surface-variant">
-                    <span>서울 서초구</span>
-                    <span>•</span>
-                    <span>즉시 가능</span>
-                  </div>
-                </div>
-                <div className="mt-4 flex items-end justify-between">
-                  <span className="text-xl font-black text-primary">
-                    12,000원
-                    <small className="ml-1 text-[10px] font-bold text-on-surface">/시간</small>
-                  </span>
-                  <button className="material-symbols-outlined text-on-surface-variant/40 transition-colors hover:text-primary">bookmark</button>
-                </div>
-                <Link to="/recruit-detail" className="absolute inset-0 z-10" />
-              </div>
-            </div>
+            )}
+            {scrapError && <p className="text-red-600 text-sm mt-6">{scrapError}</p>}
           </div>
         </section>
 
@@ -247,13 +397,12 @@ export default function MainPage() {
                 <h2 className="text-3xl font-extrabold tracking-tighter">AI 추천 공고</h2>
                 <p className="mt-2 font-medium text-on-surface-variant">내 경력과 위치를 기반으로 한 맞춤형 일자리</p>
               </div>
-              <button className="group flex items-center gap-1 py-2 font-bold text-primary">
-                더보기
-                <span className="material-symbols-outlined transition-transform group-hover:translate-x-1">chevron_right</span>
-              </button>
+              <Link to="/ai-recommend" className="text-primary font-bold flex items-center gap-1 group py-2">
+                더보기 <span className="material-symbols-outlined transition-transform group-hover:translate-x-1">chevron_right</span>
+              </Link>
             </div>
-            <div className="grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3">
-              <div className="relative flex min-h-[260px] flex-col justify-between rounded-xl bg-white p-8 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+              <div className="bg-white rounded-xl p-8 flex flex-col justify-between min-h-[260px] relative transition-all shadow-sm hover:shadow-md hover:-translate-y-1">
                 <div className="flex flex-col gap-2">
                   <div className="mb-2 flex items-center gap-2">
                     <span className="block text-sm font-bold text-primary">프리미엄 라운지</span>
@@ -280,7 +429,7 @@ export default function MainPage() {
                 </div>
               </div>
 
-              <div className="flex min-h-[260px] flex-col justify-between rounded-xl bg-white p-8 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md">
+              <div className="bg-white rounded-xl p-8 flex flex-col justify-between min-h-[260px] transition-all shadow-sm hover:shadow-md hover:-translate-y-1">
                 <div className="flex flex-col gap-2">
                   <span className="mb-2 block text-sm font-bold text-on-surface-variant">에이치 리테일</span>
                   <h3 className="mb-2 text-xl font-bold leading-tight">강남역 인근 대형 매장 상품 진열 및 재고 관리</h3>
@@ -299,7 +448,7 @@ export default function MainPage() {
                 </div>
               </div>
 
-              <div className="flex min-h-[260px] flex-col justify-between rounded-xl bg-white p-8 shadow-sm transition-all hover:-translate-y-1 hover:shadow-md">
+              <div className="bg-white rounded-xl p-8 flex flex-col justify-between min-h-[260px] transition-all shadow-sm hover:shadow-md hover:-translate-y-1">
                 <div className="flex flex-col gap-2">
                   <span className="mb-2 block text-sm font-bold text-on-surface-variant">베이커리 온</span>
                   <h3 className="mb-2 text-xl font-bold leading-tight">가로수길 베이커리 카페 마감 청소 및 포장 파트</h3>
@@ -558,6 +707,47 @@ export default function MainPage() {
         onClose={() => setIsRecommendModalOpen(false)}
         onApply={handleApplyRecommendFilters}
       />
+      <div className={`${showScrapLoginModal ? '' : 'hidden'} fixed inset-0 z-[100] flex items-center justify-center p-6`}>
+        <div className="absolute inset-0 bg-on-surface/40 backdrop-blur-sm" onClick={() => setShowScrapLoginModal(false)}></div>
+        <div className="relative bg-white w-full max-w-md p-10 rounded-2xl flex flex-col items-center text-center shadow-2xl">
+          <div className="w-16 h-16 bg-primary-soft rounded-full flex items-center justify-center mb-6">
+            <span className="material-symbols-outlined text-primary text-4xl" style={{ fontVariationSettings: '"FILL" 1' }}>lock</span>
+          </div>
+          <h5 className="text-2xl font-bold mb-3">개인 회원 전용 메뉴입니다</h5>
+          <p className="text-on-surface-variant mb-8 leading-relaxed font-medium">
+            공고 스크랩은 개인 회원 로그인 후 이용하실 수 있습니다.<br />
+            로그인 후 원하는 공고를 저장해 보세요!
+          </p>
+          <div className="w-full flex flex-col gap-3">
+            <CommonButton size="full" to="/login" onClick={() => setShowScrapLoginModal(false)}>
+              개인 회원 로그인
+            </CommonButton>
+            <CommonButton variant="subtle" size="full" to="/signup/personal" onClick={() => setShowScrapLoginModal(false)}>
+              개인 회원 가입하기
+            </CommonButton>
+          </div>
+          <button className="mt-6 text-on-surface-variant text-sm font-bold underline decoration-outline underline-offset-4" onClick={() => setShowScrapLoginModal(false)}>
+            닫기
+          </button>
+        </div>
+      </div>
+
+      <div className={`${showScrapBusinessModal ? '' : 'hidden'} fixed inset-0 z-[100] flex items-center justify-center p-6`}>
+        <div className="absolute inset-0 bg-on-surface/40 backdrop-blur-sm" onClick={() => setShowScrapBusinessModal(false)}></div>
+        <div className="relative bg-white w-full max-w-md p-10 rounded-2xl flex flex-col items-center text-center shadow-2xl">
+          <div className="w-16 h-16 bg-primary-soft rounded-full flex items-center justify-center mb-6">
+            <span className="material-symbols-outlined text-primary text-4xl" style={{ fontVariationSettings: '"FILL" 1' }}>business_center</span>
+          </div>
+          <h5 className="text-2xl font-bold mb-3">사업자 회원은 공고를 스크랩할 수 없습니다</h5>
+          <p className="text-on-surface-variant mb-8 leading-relaxed font-medium">
+            공고 스크랩은 개인회원 전용 기능입니다.<br />
+            개인회원 계정으로 로그인한 뒤 이용해 주세요.
+          </p>
+          <CommonButton size="full" onClick={() => setShowScrapBusinessModal(false)}>
+            확인
+          </CommonButton>
+        </div>
+      </div>
     </>
   );
 }

@@ -54,6 +54,8 @@ public interface ApplyRepository extends JpaRepository<Apply, Long> {
     // 특정 공고 단건 필터 (사업자가 recruitId 지정할 때)
     Page<Apply> findByRecruitId(Long recruitId, Pageable pageable);
 
+    long countByRecruitIdAndStatusIn(Long recruitId, Collection<ApplyStatus> statuses);
+
     // ── 소유자 검증용 단건 조회 ────────────────────────────────────────────────
 
     Optional<Apply> findByIdAndIndividualId(Long id, Long individualId);

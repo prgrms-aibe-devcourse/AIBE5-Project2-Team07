@@ -43,8 +43,9 @@ public class SecurityConfig {
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/auth/**","/personal/**","/human-resource/**", "/business/**").permitAll()
                         .requestMatchers("/auth/**","/personal/**","/human-resource/**", "/api/brand/**").permitAll()
-                        .requestMatchers("/auth/**", "/api/auth/**", "/personal/**", "/api/personal/**", "/human-resource/**", "/api/human-resource/**", "/recruits/**", "/api/recruits/**", "/business/**", "/api/business/**", "/business/myrecruit/**", "/api/business/myrecruit/**", "/scraps/**", "/api/scraps/**", "/scraps/members/**", "/api/scraps/members/**", "/scraps/recruits/**", "/api/scraps/recruits/**", "/applies/**", "/api/applies/**", "/api/regions/**", "/uploads/**").permitAll()
+                        .requestMatchers("/auth/**", "/api/auth/**", "/personal/**", "/api/personal/**", "/human-resource/**", "/api/human-resource/**", "/recruits/**", "/api/recruits/**", "/business/**", "/api/business/**", "/business/myrecruit/**", "/api/business/myrecruit/**", "/scraps/**", "/api/scraps/**", "/scraps/members/**", "/api/scraps/members/**", "/scraps/recruits/**", "/api/scraps/recruits/**", "/applies/**", "/api/applies/**", "/api/regions/**", "/uploads/**", "/api/reviews/**").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .requestMatchers("/api/auth/**").permitAll()
                         .requestMatchers("/human-resource/**").permitAll()

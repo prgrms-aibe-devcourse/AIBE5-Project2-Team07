@@ -1,23 +1,24 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import TopNavBarLoggedIn from '../components/TopNavBarLoggedIn';
 import AppFooter from '../components/AppFooter';
 
-import BusinessSidebar, {
-  businessSidebarItems,
-} from '../components/business-mypage/BusinessSidebar';
+import BusinessSidebar from '../components/business-mypage/BusinessSidebar';
+import { businessSidebarItems } from '../components/business-mypage/businessSidebarItems';
 import BusinessDashboardTab from '../components/business-mypage/tabs/BusinessDashboardTab';
 import BusinessRecruitsTab from '../components/business-mypage/tabs/BusinessRecruitsTab';
 import BusinessApplicantsTab from '../components/business-mypage/tabs/BusinessApplicantsTab';
 import BusinessReviewsTab from '../components/business-mypage/tabs/BusinessReviewsTab';
 import BusinessWorkTab from '../components/business-mypage/tabs/BusinessWorkTab';
 import BusinessScrapTab from '../components/business-mypage/tabs/BusinessScrapTab';
+import { getMyBusinessAccountSummary } from '../services/accountApi';
 
 const validTabs = new Set(businessSidebarItems.map((item) => item.id));
 
 export default function BusinessMyPage() {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const [companySummary, setCompanySummary] = useState(null);
 
   const queryTab = searchParams.get('tab');
   const activeTab = validTabs.has(queryTab) ? queryTab : 'dashboard';
@@ -25,6 +26,29 @@ export default function BusinessMyPage() {
   const changeTab = (tabId) => {
     setSearchParams({ tab: tabId });
   };
+
+  useEffect(() => {
+    let mounted = true;
+
+    const fetchCompanySummary = async () => {
+      try {
+        const data = await getMyBusinessAccountSummary();
+        if (mounted) {
+          setCompanySummary(data);
+        }
+      } catch {
+        if (mounted) {
+          setCompanySummary(null);
+        }
+      }
+    };
+
+    fetchCompanySummary();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
 
   const renderTab = () => {
     switch (activeTab) {
@@ -51,7 +75,12 @@ export default function BusinessMyPage() {
 
         <div className="pt-20 min-h-screen">
           <div className="custom-container py-8 flex flex-col lg:flex-row gap-8">
-            <BusinessSidebar activeTab={activeTab} onChangeTab={changeTab} navigate={navigate} />
+            <BusinessSidebar
+                activeTab={activeTab}
+                onChangeTab={changeTab}
+                navigate={navigate}
+                companySummary={companySummary}
+            />
             <main className="flex-1 min-w-0">{renderTab()}</main>
           </div>
         </div>

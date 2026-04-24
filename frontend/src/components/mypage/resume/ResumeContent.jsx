@@ -40,9 +40,9 @@ export default function ResumeContent({ resume, onResumeChanged }) {
                 <div className="grid grid-cols-1 gap-6">
                     <div className="bg-white rounded-2xl p-6 flex flex-col justify-between relative overflow-hidden border border-primary/20 shadow-sm ring-1 ring-primary/5">
                         <div className="absolute top-0 right-0 p-4">
-              <span className="bg-[#FFF0F3] text-primary text-[10px] font-bold px-3 py-1 rounded-full">
-                내 이력서
-              </span>
+                            <span className="bg-[#FFF0F3] text-primary text-xs font-bold px-3 py-1.5 rounded-full">
+                                내 이력서
+                            </span>
                         </div>
 
                         <div className="space-y-5">
@@ -64,10 +64,10 @@ export default function ResumeContent({ resume, onResumeChanged }) {
                                 {(resume.desiredBusinessTypes || []).map((item, idx) => (
                                     <span
                                         key={idx}
-                                        className="bg-gray-50 border border-[#EAE5E3] px-2 py-0.5 rounded text-[10px] font-bold text-[#6B6766]"
+                                        className="bg-gray-50 border border-[#EAE5E3] px-3 py-1 rounded text-xs font-bold text-[#6B6766]"
                                     >
-                    #{getBusinessTypeLabel(item)}
-                  </span>
+                                        #{getBusinessTypeLabel(item)}
+                                    </span>
                                 ))}
                             </div>
                         </div>
@@ -75,7 +75,7 @@ export default function ResumeContent({ resume, onResumeChanged }) {
                         <div className="flex items-center space-x-2 mt-8">
                             <button
                                 onClick={() => setView('edit')}
-                                className="flex-1 bg-white text-[#1F1D1D] border border-[#EAE5E3] py-2.5 rounded-xl font-bold text-xs hover:bg-gray-50 transition-colors"
+                                className="flex-1 bg-white text-[#1F1D1D] border border-[#EAE5E3] py-3 rounded-xl font-bold text-sm hover:bg-gray-50 transition-colors"
                             >
                                 수정
                             </button>

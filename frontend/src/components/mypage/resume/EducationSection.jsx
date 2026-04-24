@@ -56,7 +56,7 @@ export default function EducationSection({ educations, setEducations }) {
                             className="grid grid-cols-1 md:grid-cols-4 gap-4 bg-gray-50/50 p-5 rounded-xl border border-[#EAE5E3]/60 relative"
                         >
                             <div>
-                                <label className="text-[10px] font-bold text-[#6B6766] block mb-1.5">학교명</label>
+                                <label className="text-[13px] font-bold text-[#6B6766] block mb-1.5">학교명</label>
                                 <input
                                     type="text"
                                     value={education.schoolName || ''}
@@ -65,7 +65,7 @@ export default function EducationSection({ educations, setEducations }) {
                                 />
                             </div>
                             <div>
-                                <label className="text-[10px] font-bold text-[#6B6766] block mb-1.5">학력 구분</label>
+                                <label className="text-[13px] font-bold text-[#6B6766] block mb-1.5">학력 구분</label>
                                 <input
                                     type="text"
                                     value={education.schoolType || ''}
@@ -75,7 +75,7 @@ export default function EducationSection({ educations, setEducations }) {
                                 />
                             </div>
                             <div>
-                                <label className="text-[10px] font-bold text-[#6B6766] block mb-1.5">전공</label>
+                                <label className="text-[13px] font-bold text-[#6B6766] block mb-1.5">전공</label>
                                 <input
                                     type="text"
                                     value={education.major || ''}

@@ -14,6 +14,8 @@ public class ReviewResponse {
 
     private Long id;
     private Long writerId;
+    private String writerName;
+    private String companyName;
     private Long targetId;
     private ReviewTargetType targetType;
     private Long applyId;
@@ -22,10 +24,12 @@ public class ReviewResponse {
     private LocalDateTime writtenAt;
     private List<ReviewLabelResponse> labels;
 
-    public static ReviewResponse from(Review review) {
+    public static ReviewResponse from(Review review, String writerName, String companyName) {
         return ReviewResponse.builder()
                 .id(review.getId())
                 .writerId(review.getWriterId())
+                .writerName(writerName)
+                .companyName(companyName)
                 .targetId(review.getTargetId())
                 .targetType(review.getTargetType())
                 .applyId(review.getApplyId())

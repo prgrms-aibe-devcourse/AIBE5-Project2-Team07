@@ -1,5 +1,7 @@
 package com.example.aibe5_project2_team7.resume;
 
+import com.example.aibe5_project2_team7.business_profile.BusinessProfile;
+import com.example.aibe5_project2_team7.business_profile.BusinessProfileRepository;
 import com.example.aibe5_project2_team7.career.CareerRepository;
 import com.example.aibe5_project2_team7.highest_education.HighestEducationRepository;
 import com.example.aibe5_project2_team7.individual_profile.DesiredBusinessType;
@@ -8,12 +10,15 @@ import com.example.aibe5_project2_team7.individual_profile.IndividualProfile;
 import com.example.aibe5_project2_team7.individual_profile.IndividualProfileRepository;
 import com.example.aibe5_project2_team7.license.LicenseRepository;
 import com.example.aibe5_project2_team7.member.Member;
+import com.example.aibe5_project2_team7.member.MemberType;
 import com.example.aibe5_project2_team7.member.repository.MemberRepository;
 import com.example.aibe5_project2_team7.member_address.MemberAddress;
 import com.example.aibe5_project2_team7.member_address.MemberAddressRepository;
+import com.example.aibe5_project2_team7.member_preferred_region.MemberPreferredRegion;
 import com.example.aibe5_project2_team7.member_preferred_region.MemberPreferredRegionRepository;
 import com.example.aibe5_project2_team7.recruit.constant.BusinessTypeName;
 import com.example.aibe5_project2_team7.region.Region;
+import com.example.aibe5_project2_team7.region.RegionRepository;
 import com.example.aibe5_project2_team7.region.RegionResponseDto;
 import com.example.aibe5_project2_team7.resume.dto.ResumeDetailDto;
 import com.example.aibe5_project2_team7.resume.dto.ResumeSummaryDto;
@@ -26,6 +31,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -47,6 +53,9 @@ public class ResumeService {
     private final MemberPreferredRegionRepository memberPreferredRegionRepository;
     private final ReviewRepository reviewRepository;
     private final MemberAddressRepository memberAddressRepository;
+    private final RegionRepository regionRepository;
+    private final BusinessProfileRepository businessProfileRepository;
+
 
     public Page<ResumeSummaryDto> getPublicResumes(int page) {
         Pageable pageable = PageRequest.of(page, 20, org.springframework.data.domain.Sort.by("updatedAt").descending());
@@ -167,6 +176,39 @@ public class ResumeService {
             }
         }
 
+        // preferred region 저장: payload key는 preferredRegionIds 로 기대 (List<Integer> 혹은 List<Number>)
+        if (payload.containsKey("preferredRegionIds")) {
+            Object raw = payload.get("preferredRegionIds");
+            if (raw instanceof List) {
+                List<?> rawList = (List<?>) raw;
+                // 기존에 같은 member의 매핑이 있을 경우 대비하여 삭제
+                List<MemberPreferredRegion> existing = memberPreferredRegionRepository.findByMemberId(id);
+                if (!existing.isEmpty()) {
+                    memberPreferredRegionRepository.deleteAll(existing);
+                }
+
+                List<MemberPreferredRegion> toSave = new ArrayList<>();
+                for (Object o : rawList) {
+                    if (o == null) continue;
+                    try {
+                        Integer regionId = o instanceof Number ? ((Number) o).intValue() : Integer.valueOf(o.toString());
+                        Optional<Region> regionOpt = regionRepository.findById(regionId);
+                        if (regionOpt.isPresent()) {
+                            MemberPreferredRegion mpr = new MemberPreferredRegion();
+                            // set member reference - load managed member entity
+                            mpr.setMember(m);
+                            mpr.setRegion(regionOpt.get());
+                            toSave.add(mpr);
+                        }
+                    } catch (NumberFormatException ignored) {
+                    }
+                }
+                if (!toSave.isEmpty()) {
+                    memberPreferredRegionRepository.saveAll(toSave);
+                }
+            }
+        }
+
         return resumeRepository.save(saved);
     }
 
@@ -191,6 +233,8 @@ public class ResumeService {
         List<String> desiredTypes = new ArrayList<>();
         List<ReviewResponse> reviews = new ArrayList<>();
 
+        Boolean isActive = false;
+
         if (m != null) {
             memberName = m.getName();
 
@@ -202,6 +246,11 @@ public class ResumeService {
             gender = m.getGender() != null ? m.getGender().toString() : null;
             email = m.getEmail();
             profileImageUrl = m.getImage();
+
+            IndividualProfile profile = individualProfileRepository.findByMemberId(m.getId())
+                    .orElse(null);
+
+            isActive = profile != null && Boolean.TRUE.equals(profile.getIsActive());
 
             phone = resolvePhone(m);
 
@@ -221,7 +270,7 @@ public class ResumeService {
                     );
 
             reviews = reviewEntities.stream()
-                    .map(ReviewResponse::from)
+                    .map(this::toReviewResponse)
                     .collect(Collectors.toList());
         }
 
@@ -276,7 +325,8 @@ public class ResumeService {
                 licenses,
                 educations,
                 preferredRegions,
-                reviews
+                reviews,
+                isActive
         );
     }
     // 업직종별 인재 조회
@@ -335,6 +385,96 @@ public class ResumeService {
         Page<Resume> resumes = resumeRepository.findPublicByMemberIds(memberIds, pageable);
 
         List<ResumeSummaryDto> dtos = resumes.stream().map(r -> mapToSummary(r)).collect(Collectors.toList());
+        return new PageImpl<>(dtos, pageable, resumes.getTotalElements());
+    }
+
+    // 별점 높은 순
+    public Page<ResumeSummaryDto> getPublicResumesByRating(int page) {
+        Pageable pageable = PageRequest.of(page, 20);
+        Page<Resume> resumes = resumeRepository.findPublicResumesOrderByRating(pageable);
+        List<ResumeSummaryDto> dtos = resumes.stream().map(this::mapToSummary).collect(Collectors.toList());
+        return new PageImpl<>(dtos, pageable, resumes.getTotalElements());
+    }
+
+    // 경력 많은 순
+    public Page<ResumeSummaryDto> getResumesByCareerCount(int page) {
+        Pageable pageable = PageRequest.of(page, 20);
+        Page<Resume> resumes = resumeRepository.findPublicResumesOrderByCareerCount(pageable);
+        List<ResumeSummaryDto> dtos = resumes.stream().map(this::mapToSummary).collect(Collectors.toList());
+        return new PageImpl<>(dtos, pageable, resumes.getTotalElements());
+    }
+
+    // active + rating
+    public Page<ResumeSummaryDto> getActiveResumesByRating(int page) {
+        List<Long> activeMemberIds = individualProfileRepository.findByIsActiveTrue()
+                .stream()
+                .map(IndividualProfile::getMemberId)
+                .collect(Collectors.toList());
+        if (activeMemberIds.isEmpty()) return new PageImpl<>(List.of(), PageRequest.of(page,20), 0);
+        Pageable pageable = PageRequest.of(page, 20);
+        Page<Resume> resumes = resumeRepository.findPublicByMemberIdsOrderByRating(activeMemberIds, pageable);
+        List<ResumeSummaryDto> dtos = resumes.stream().map(this::mapToSummary).collect(Collectors.toList());
+        return new PageImpl<>(dtos, pageable, resumes.getTotalElements());
+    }
+
+    // active + careers
+    public Page<ResumeSummaryDto> getActiveResumesByCareerCount(int page) {
+        List<Long> activeMemberIds = individualProfileRepository.findByIsActiveTrue()
+                .stream()
+                .map(IndividualProfile::getMemberId)
+                .collect(Collectors.toList());
+        if (activeMemberIds.isEmpty()) return new PageImpl<>(List.of(), PageRequest.of(page,20), 0);
+        Pageable pageable = PageRequest.of(page, 20);
+        Page<Resume> resumes = resumeRepository.findPublicByMemberIdsOrderByCareerCount(activeMemberIds, pageable);
+        List<ResumeSummaryDto> dtos = resumes.stream().map(this::mapToSummary).collect(Collectors.toList());
+        return new PageImpl<>(dtos, pageable, resumes.getTotalElements());
+    }
+
+    // special + rating
+    public Page<ResumeSummaryDto> getSpecialResumesByRating(int page) {
+        List<Long> specialIds = individualProfileRepository.findByIsSpecialTrue()
+                .stream()
+                .map(IndividualProfile::getMemberId)
+                .collect(Collectors.toList());
+        if (specialIds.isEmpty()) return new PageImpl<>(List.of(), PageRequest.of(page,20), 0);
+        Pageable pageable = PageRequest.of(page, 20);
+        Page<Resume> resumes = resumeRepository.findPublicByMemberIdsOrderByRating(specialIds, pageable);
+        List<ResumeSummaryDto> dtos = resumes.stream().map(this::mapToSummary).collect(Collectors.toList());
+        return new PageImpl<>(dtos, pageable, resumes.getTotalElements());
+    }
+
+    // special + careers
+    public Page<ResumeSummaryDto> getSpecialResumesByCareerCount(int page) {
+        List<Long> specialIds = individualProfileRepository.findByIsSpecialTrue()
+                .stream()
+                .map(IndividualProfile::getMemberId)
+                .collect(Collectors.toList());
+        if (specialIds.isEmpty()) return new PageImpl<>(List.of(), PageRequest.of(page,20), 0);
+        Pageable pageable = PageRequest.of(page, 20);
+        Page<Resume> resumes = resumeRepository.findPublicByMemberIdsOrderByCareerCount(specialIds, pageable);
+        List<ResumeSummaryDto> dtos = resumes.stream().map(this::mapToSummary).collect(Collectors.toList());
+        return new PageImpl<>(dtos, pageable, resumes.getTotalElements());
+    }
+
+    // brands + rating
+    public Page<ResumeSummaryDto> getResumesByBrandIdsOrderByRating(List<Long> brandIds, int page) {
+        if (brandIds == null || brandIds.isEmpty()) return new PageImpl<>(List.of(), PageRequest.of(page,20), 0);
+        List<Long> memberIds = careerRepository.findDistinctMemberIdByBrandIdIn(brandIds);
+        if (memberIds == null || memberIds.isEmpty()) return new PageImpl<>(List.of(), PageRequest.of(page,20), 0);
+        Pageable pageable = PageRequest.of(page, 20);
+        Page<Resume> resumes = resumeRepository.findPublicByMemberIdsOrderByRating(memberIds, pageable);
+        List<ResumeSummaryDto> dtos = resumes.stream().map(this::mapToSummary).collect(Collectors.toList());
+        return new PageImpl<>(dtos, pageable, resumes.getTotalElements());
+    }
+
+    // brands + careers
+    public Page<ResumeSummaryDto> getResumesByBrandIdsOrderByCareerCount(List<Long> brandIds, int page) {
+        if (brandIds == null || brandIds.isEmpty()) return new PageImpl<>(List.of(), PageRequest.of(page,20), 0);
+        List<Long> memberIds = careerRepository.findDistinctMemberIdByBrandIdIn(brandIds);
+        if (memberIds == null || memberIds.isEmpty()) return new PageImpl<>(List.of(), PageRequest.of(page,20), 0);
+        Pageable pageable = PageRequest.of(page, 20);
+        Page<Resume> resumes = resumeRepository.findPublicByMemberIdsOrderByCareerCount(memberIds, pageable);
+        List<ResumeSummaryDto> dtos = resumes.stream().map(this::mapToSummary).collect(Collectors.toList());
         return new PageImpl<>(dtos, pageable, resumes.getTotalElements());
     }
 
@@ -431,6 +571,36 @@ public class ResumeService {
             }
         }
 
+        // preferredRegionIds 처리: 기존 매핑 삭제 후 재저장
+        if (payload.containsKey("preferredRegionIds")) {
+            Object raw = payload.get("preferredRegionIds");
+            // 먼저 기존 매핑 삭제
+            List<MemberPreferredRegion> existing = memberPreferredRegionRepository.findByMemberId(memberId);
+            if (!existing.isEmpty()) {
+                memberPreferredRegionRepository.deleteAll(existing);
+            }
+            if (raw instanceof List) {
+                List<?> rawList = (List<?>) raw;
+                List<MemberPreferredRegion> toSave = new ArrayList<>();
+                Member member = memberRepository.findById(memberId).orElse(null);
+                for (Object o : rawList) {
+                    if (o == null) continue;
+                    try {
+                        Integer regionId = o instanceof Number ? ((Number) o).intValue() : Integer.valueOf(o.toString());
+                        Optional<Region> regionOpt = regionRepository.findById(regionId);
+                        if (regionOpt.isPresent() && member != null) {
+                            MemberPreferredRegion mpr = new MemberPreferredRegion();
+                            mpr.setMember(member);
+                            mpr.setRegion(regionOpt.get());
+                            toSave.add(mpr);
+                        }
+                    } catch (NumberFormatException ignored) {
+                    }
+                }
+                if (!toSave.isEmpty()) memberPreferredRegionRepository.saveAll(toSave);
+            }
+        }
+
         return resumeRepository.save(r);
     }
     // 이력서 삭제
@@ -506,5 +676,21 @@ public class ResumeService {
         }
 
         return "비공개";
+    }
+
+    private ReviewResponse toReviewResponse(Review review) {
+        Member writer = memberRepository.findById(review.getWriterId())
+                .orElse(null);
+
+        String writerName = writer != null ? writer.getName() : "작성자";
+        String companyName = null;
+
+        if (writer != null && writer.getMemberType() == MemberType.BUSINESS) {
+            companyName = businessProfileRepository.findByMemberId(writer.getId())
+                    .map(BusinessProfile::getCompanyName)
+                    .orElse(writerName);
+        }
+
+        return ReviewResponse.from(review, writerName, companyName);
     }
 }
