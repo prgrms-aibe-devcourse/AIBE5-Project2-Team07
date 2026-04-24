@@ -14,6 +14,12 @@ function formatApplyDate(dateString) {
     return String(dateString).slice(0, 10).replace(/-/g, '.');
 }
 
+function getTargetTypeLabel(type) {
+    if (type === 'Business') return '기업';
+    if (type === 'Individual') return '개인회원';
+    return type || '-';
+}
+
 export default function ReviewFormModal({
                                             open,
                                             mode,
@@ -70,7 +76,7 @@ export default function ReviewFormModal({
         <div className="fixed inset-0 z-[130] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/40" onClick={onClose}></div>
 
-            <div className="relative w-full max-w-5xl bg-white rounded-2xl border border-[#EAE5E3] shadow-2xl overflow-hidden">
+            <div className="relative w-full max-w-2xl bg-white rounded-2xl border border-[#EAE5E3] shadow-2xl overflow-hidden">
                 <div className="px-6 py-5 border-b border-[#EAE5E3] flex items-center justify-between">
                     <div>
                         <h3 className="text-xl font-extrabold text-[#1F1D1D]">
@@ -91,7 +97,7 @@ export default function ReviewFormModal({
                     </button>
                 </div>
 
-                <div className="grid grid-cols-1 lg:grid-cols-[320px_minmax(0,1fr)]">
+                <div className={`grid ${mode === 'create' ? 'grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)]' : 'grid-cols-1'}`}>
                     {mode === 'create' && (
                         <div className="border-r border-[#EAE5E3] bg-gray-50/50">
                             <div className="px-5 py-4 border-b border-[#EAE5E3]">
@@ -146,7 +152,7 @@ export default function ReviewFormModal({
                         </div>
                     )}
 
-                    <div className="p-6 space-y-6">
+                    <div className={`space-y-6 ${mode === 'create' ? 'p-6' : 'px-8 py-6'}`}>
                         {mode === 'create' && (
                             <div className="bg-[#FFF8FA] border border-[#F6DDE3] rounded-xl px-4 py-4">
                                 <div className="text-[11px] font-bold text-[#6B6766] uppercase tracking-wider mb-2">
@@ -171,22 +177,22 @@ export default function ReviewFormModal({
                         )}
 
                         {mode === 'edit' && (
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-2 gap-4">
                                 <div className="bg-gray-50 border border-[#EAE5E3] rounded-xl px-4 py-3">
-                                    <div className="text-[11px] font-bold text-[#6B6766] uppercase tracking-wider">
+                                    <div className="text-[11px] font-bold text-[#6B6766] uppercase tracking-wider mb-1">
                                         리뷰 대상
                                     </div>
-                                    <div className="mt-1 text-sm font-semibold text-[#1F1D1D]">
+                                    <div className="text-sm font-semibold text-[#1F1D1D] truncate">
                                         {form.targetName || '-'}
                                     </div>
                                 </div>
 
                                 <div className="bg-gray-50 border border-[#EAE5E3] rounded-xl px-4 py-3">
-                                    <div className="text-[11px] font-bold text-[#6B6766] uppercase tracking-wider">
+                                    <div className="text-[11px] font-bold text-[#6B6766] uppercase tracking-wider mb-1">
                                         대상 유형
                                     </div>
-                                    <div className="mt-1 text-sm font-semibold text-[#1F1D1D]">
-                                        {form.targetType || '-'}
+                                    <div className="text-sm font-semibold text-[#1F1D1D]">
+                                        {getTargetTypeLabel(form.targetType)}
                                     </div>
                                 </div>
                             </div>
@@ -216,10 +222,10 @@ export default function ReviewFormModal({
                         </div>
 
                         <div>
-                            <label className="text-[11px] font-bold text-[#6B6766] uppercase tracking-wider block mb-2">
+                            <label className="text-[11px] font-bold text-[#6B6766] uppercase tracking-wider block mb-3">
                                 리뷰 라벨
                             </label>
-                            <div className="flex flex-wrap gap-2">
+                            <div className="grid grid-cols-4 gap-2">
                                 {availableLabels.map((label) => {
                                     const active = form.labelNames.includes(label);
 
@@ -228,7 +234,7 @@ export default function ReviewFormModal({
                                             key={label}
                                             type="button"
                                             onClick={() => toggleLabel(label)}
-                                            className={`px-3 py-2 rounded-lg text-xs font-bold border ${
+                                            className={`px-2 py-2 rounded-lg text-xs font-bold border text-center ${
                                                 active
                                                     ? 'bg-[#FFF0F3] border-primary text-primary'
                                                     : 'bg-white border-[#EAE5E3] text-[#6B6766]'

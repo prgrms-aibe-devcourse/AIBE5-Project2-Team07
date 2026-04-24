@@ -167,57 +167,61 @@ INSERT IGNORE INTO region (sido, sigungu) VALUES
 ('제주특별자치도','제주시'),('제주특별자치도','서귀포시');
 
 -- 브랜드
-INSERT IGNORE INTO Brand (id, name, business_type, logo_img, ceo_name, hq_address, founded_date) VALUES
+INSERT IGNORE INTO Brand (id, name, business_type, logo_img, ceo_name, hq_address, founded_date, banner_img, description) VALUES
 -- 1. MANUAL_LABOR (물류/상하차)
-(1, '쿠팡', 'MANUAL_LABOR', '/uploads/companyLogo/brandLogo/coupang.png', '로저스 해롤드 린', '서울특별시 송파구 송파대로 570', '2013-07-16'),
-(2, 'CJ대한통운', 'MANUAL_LABOR', '/uploads/companyLogo/brandLogo/cj_logistics.png', '신영수', '서울특별시 종로구 종로5길 7', '1930-11-25'),
-(3, '한진택배', 'MANUAL_LABOR', '/uploads/companyLogo/brandLogo/hanjin.png', '노삼석', '서울특별시 중구 남대문로 63', '1958-03-10'),
-(4, '롯데택배', 'MANUAL_LABOR', '/uploads/companyLogo/brandLogo/lotte_glogis.png', '강병구', '서울특별시 중구 통일로 10', '1988-06-13'),
-(5, '로젠택배', 'MANUAL_LABOR', '/uploads/companyLogo/brandLogo/logen.png', '김동주', '경기도 성남시 수정구 창업로57번길 7', '1999-04-15'),
--- 2. RETAIL_STORE (편의점)
-(6, 'CU', 'RETAIL_STORE', '/uploads/companyLogo/brandLogo/cu.png', '민승배', '서울특별시 강남구 테헤란로 405', '2017-11-01'),
-(7, 'GS25', 'RETAIL_STORE', '/uploads/companyLogo/brandLogo/gs25.png', '허서홍', '서울특별시 강남구 논현로 508', '1971-02-13'),
-(8, '세븐일레븐', 'RETAIL_STORE', '/uploads/companyLogo/brandLogo/seven_eleven.png', '김홍철', '서울특별시 강동구 천호대로 1077', '1988-05-21'),
-(9, '이마트24', 'RETAIL_STORE', '/uploads/companyLogo/brandLogo/emart24.png', '최진일', '서울특별시 성동구 성수이로 42', '2006-06-01'),
--- 3. CAFE (카페)
-(10, '스타벅스', 'CAFE', '/uploads/companyLogo/brandLogo/starbucks.png', '손정현', '서울특별시 중구 소공로 112', '1997-12-01'),
-(11, '메가커피', 'CAFE', '/uploads/companyLogo/brandLogo/megacoffee.png', '김대영', '서울특별시 강남구 강남대로 518', '2015-12-01'),
-(12, '투썸플레이스', 'CAFE', '/uploads/companyLogo/brandLogo/twosome.png', '문영주', '서울특별시 중구 을지로 170', '2002-12-05'),
-(13, '공차', 'CAFE', '/uploads/companyLogo/brandLogo/gongcha.png', '고희경', '서울특별시 종로구 종로 47', '2012-04-01'),
-(14, '매머드커피', 'CAFE', '/uploads/companyLogo/brandLogo/mammoth.png', '김의식', '서울특별시 중구 서소문로 89-20', '2012-12-01'),
-(15, '빽다방', 'CAFE', '/uploads/companyLogo/brandLogo/paikdabang.png', '백종원', '서울특별시 강남구 봉은사로 1길 39', '2006-09-01'),
-(16, '컴포즈커피', 'CAFE', '/uploads/companyLogo/brandLogo/compose.png', '김진성', '부산광역시 기장군 기장해안로 236', '2014-11-01'),
-(17, '이디야', 'CAFE', '/uploads/companyLogo/brandLogo/ediya.png', '문창기', '서울특별시 강남구 논현로 636', '2001-03-01'),
-(18, '커피빈', 'CAFE', '/uploads/companyLogo/brandLogo/coffeebean.png', '박상배', '서울특별시 강남구 테헤란로 409', '2000-06-16'),
--- 4. FOOD_RESTAURANT (음식점)
-(19, '롯데리아', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/lotteria.png', '차우철', '서울특별시 송파구 올림픽로 300', '1979-10-25'),
-(20, '맥도날드', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/mcdonalds.png', '김기원', '서울특별시 종로구 종로 1', '1986-09-01'),
-(21, '맘스터치', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/momstouch.png', '김동전', '서울특별시 강동구 천호대로 1077', '1997-12-01'),
-(22, '버거킹', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/burgerking.png', '이동형', '서울특별시 종로구 삼봉로 71', '1984-04-01'),
-(23, '써브웨이', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/subway.png', '조인수', '서울특별시 서초구 강남대로 535', '1991-05-01'),
-(24, 'KFC', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/kfc.png', '신호상', '서울특별시 중구 세종대로 39', '1984-04-01'),
-(25, '도미노피자', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/dominos.png', '오광현', '서울특별시 강남구 언주로 315', '1990-01-01'),
-(26, '피자헛', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/pizzahut.png', '김진영', '서울특별시 영등포구 의사당대로 83', '1985-02-01'),
-(27, '교촌치킨', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/kyochon.png', '송종화', '경기도 오산시 양산로 12', '1991-03-13'),
-(28, 'BBQ', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/bbq.png', '정승욱', '서울특별시 송파구 중대로 64', '1995-09-01'),
-(29, 'BHC', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/bhc.png', '송호섭', '서울특별시 송파구 올림픽로 300', '2004-09-01'),
-(30, '배스킨라빈스', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/baskinrobbins.png', '도세호', '서울특별시 서초구 남부순환로 2620', '1985-06-01'),
-(31, '역전할머니맥주', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/yukjeon.png', '송성호', '서울특별시 강남구 테헤란로 419', '2016-10-01'),
-(32, '한신포차', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/hanshin.png', '백종원', '서울특별시 강남구 봉은사로 1길 39', '1998-05-01'),
-(33, '투다리', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/tudari.png', '김영길', '인천광역시 미추홀구 경인로 452', '1987-07-13'),
-(34, '던킨', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/dunkin.png', '도세호', '서울특별시 서초구 남부순환로 2620', '1994-01-01'),
-(35, '뚜레쥬르', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/touslesjours.png', '허민회', '서울특별시 중구 마른내로 34', '1997-09-01'),
-(36, '파리바게뜨', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/parisbaguette.png', '허진수', '경기도 성남시 분당구 양현로 167', '1986-10-17'),
--- 5. RETAIL_STORE (PC방 등)
-(37, '3POP PC방', 'RETAIL_STORE', '/uploads/companyLogo/brandLogo/3pop.png', '김성식', '서울특별시 성동구 성수이로 147', '2014-03-10'),
-(38, '아이센스리그 PC방', 'RETAIL_STORE', '/uploads/companyLogo/brandLogo/isense.png', '윤석범', '서울특별시 구로구 디지털로 273', '1998-05-15'),
-(39, '레드포스 PC방', 'RETAIL_STORE', '/uploads/companyLogo/brandLogo/redforce.png', '오지환', '서울특별시 서초구 강남대로 311', '2020-12-01'),
--- 6. DELIVERY_DRIVER (배달 플랫폼)
-(40, '배달의민족', 'DELIVERY_DRIVER', '/uploads/companyLogo/brandLogo/baemin.png', '김범석', '서울특별시 송파구 위례성대로 2', '2011-03-10'),
-(41, '쿠팡이츠', 'DELIVERY_DRIVER', '/uploads/companyLogo/brandLogo/coupangeats.png', '김명규', '서울특별시 송파구 송파대로 570', '2021-05-15'),
-(42, '요기요', 'DELIVERY_DRIVER', '/uploads/companyLogo/brandLogo/yogiyo.png', '전준희', '서울특별시 서초구 서초대로 38길 12', '2011-11-01'),
-(43, '땡겨요', 'DELIVERY_DRIVER', '/uploads/companyLogo/brandLogo/ddangyo.png', '정상혁', '서울특별시 중구 세종대로 9', '2022-01-14');
+(1, '쿠팡', 'MANUAL_LABOR', '/uploads/companyLogo/brandLogo/coupang.png', '로저스 해롤드 린', '서울특별시 송파구 송파대로 570', '2013-07-16', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_manual_lavor.png?raw=true', '대한민국을 대표하는 이커머스 기업, 쿠팡 물류 센터입니다.'),
+(2, 'CJ대한통운', 'MANUAL_LABOR', '/uploads/companyLogo/brandLogo/cj_logistics.png', '신영수', '서울특별시 종로구 종로5길 7', '1930-11-25', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_manual_lavor.png?raw=true', '글로벌 물류 혁신을 선도하는 CJ대한통운 물류 현장입니다.'),
+(3, '한진택배', 'MANUAL_LABOR', '/uploads/companyLogo/brandLogo/hanjin.png', '노삼석', '서울특별시 중구 남대문로 63', '1958-03-10', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_manual_lavor.png?raw=true', '신속하고 정확한 배송 서비스를 제공하는 한진택배입니다.'),
+(4, '롯데택배', 'MANUAL_LABOR', '/uploads/companyLogo/brandLogo/lotte_glogis.png', '강병구', '서울특별시 중구 통일로 10', '1988-06-13', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_manual_lavor.png?raw=true', '롯데글로벌로지스와 함께하는 효율적인 물류 네트워크입니다.'),
+(5, '로젠택배', 'MANUAL_LABOR', '/uploads/companyLogo/brandLogo/logen.png', '김동주', '경기도 성남시 수정구 창업로57번길 7', '1999-04-15', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_manual_lavor.png?raw=true', '고객 중심의 택배 서비스를 추구하는 로젠택배 센터입니다.'),
 
+-- 2. RETAIL_STORE (편의점)
+(6, 'CU', 'RETAIL_STORE', '/uploads/companyLogo/brandLogo/cu.png', '민승배', '서울특별시 강남구 테헤란로 405', '2017-11-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_convenience.png?raw=true', '언제 어디서나 가까운 편의점, 당신을 위한 CU입니다.'),
+(7, 'GS25', 'RETAIL_STORE', '/uploads/companyLogo/brandLogo/gs25.png', '허서홍', '서울특별시 강남구 논현로 508', '1971-02-13', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_convenience.png?raw=true', '라이프스타일 플랫폼, 고객과 함께하는 GS25입니다.'),
+(8, '세븐일레븐', 'RETAIL_STORE', '/uploads/companyLogo/brandLogo/seven_eleven.png', '김홍철', '서울특별시 강동구 천호대로 1077', '1988-05-21', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_convenience.png?raw=true', '생활 속의 즐거움과 편리함을 제공하는 세븐일레븐입니다.'),
+(9, '이마트24', 'RETAIL_STORE', '/uploads/companyLogo/brandLogo/emart24.png', '최진일', '서울특별시 성동구 성수이로 42', '2006-06-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_convenience.png?raw=true', '프리미엄 편의점의 새로운 기준, 이마트24입니다.'),
+
+-- 3. CAFE (카페)
+(10, '스타벅스', 'CAFE', '/uploads/companyLogo/brandLogo/starbucks.png', '손정현', '서울특별시 중구 소공로 112', '1997-12-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_cafe.png?raw=true', '제3의 공간에서 최고의 커피 경험을 선사하는 스타벅스입니다.'),
+(11, '메가커피', 'CAFE', '/uploads/companyLogo/brandLogo/megacoffee.png', '김대영', '서울특별시 강남구 강남대로 518', '2015-12-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_cafe.png?raw=true', '즐거운 커피 문화를 선도하는 가성비 1등 메가커피입니다.'),
+(12, '투썸플레이스', 'CAFE', '/uploads/companyLogo/brandLogo/twosome.png', '문영주', '서울특별시 중구 을지로 170', '2002-12-05', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_cafe.png?raw=true', '디저트와 커피의 조화, 프리미엄 디저트 카페 투썸플레이스입니다.'),
+(13, '공차', 'CAFE', '/uploads/companyLogo/brandLogo/gongcha.png', '고희경', '서울특별시 종로구 종로 47', '2012-04-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_cafe.png?raw=true', '오리지널 티의 풍미를 담은 글로벌 티 전문 브랜드 공차입니다.'),
+(14, '매머드커피', 'CAFE', '/uploads/companyLogo/brandLogo/mammoth.png', '김의식', '서울특별시 중구 서소문로 89-20', '2012-12-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_cafe.png?raw=true', '대용량과 합리적 가격으로 사랑받는 매머드커피입니다.'),
+(15, '빽다방', 'CAFE', '/uploads/companyLogo/brandLogo/paikdabang.png', '백종원', '서울특별시 강남구 봉은사로 1길 39', '2006-09-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_cafe.png?raw=true', '푸짐하고 맛있는 백종원의 커피 전문점 빽다방입니다.'),
+(16, '컴포즈커피', 'CAFE', '/uploads/companyLogo/brandLogo/compose.png', '김진성', '부산광역시 기장군 기장해안로 236', '2014-11-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_cafe.png?raw=true', '본연의 맛에 집중한 신선한 원두를 사용하는 컴포즈커피입니다.'),
+(17, '이디야', 'CAFE', '/uploads/companyLogo/brandLogo/ediya.png', '문창기', '서울특별시 강남구 논현로 636', '2001-03-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_cafe.png?raw=true', '언제나 친근하고 편안한 대한민국 대표 토종 카페 이디야입니다.'),
+(18, '커피빈', 'CAFE', '/uploads/companyLogo/brandLogo/coffeebean.png', '박상배', '서울특별시 강남구 테헤란로 409', '2000-06-16', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_cafe.png?raw=true', '차별화된 원두와 최상의 티를 제공하는 커피빈코리아입니다.'),
+
+-- 4. FOOD_RESTAURANT (음식점)
+(19, '롯데리아', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/lotteria.png', '차우철', '서울특별시 송파구 올림픽로 300', '1979-10-25', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_food_restaurant.png?raw=true', '한국의 맛을 담은 원조 패스트푸드 브랜드 롯데리아입니다.'),
+(20, '맥도날드', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/mcdonalds.png', '김기원', '서울특별시 종로구 종로 1', '1986-09-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_food_restaurant.png?raw=true', '전 세계에서 사랑받는 최고의 버거 브랜드 맥도날드입니다.'),
+(21, '맘스터치', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/momstouch.png', '김동전', '서울특별시 강동구 천호대로 1077', '1997-12-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_food_restaurant.png?raw=true', '엄마의 마음으로 정성을 담아 조리하는 맘스터치입니다.'),
+(22, '버거킹', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/burgerking.png', '이동형', '서울특별시 종로구 삼봉로 71', '1984-04-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_food_restaurant.png?raw=true', '불맛 그대로, 프리미엄 햄버거의 대명사 버거킹입니다.'),
+(23, '써브웨이', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/subway.png', '조인수', '서울특별시 서초구 강남대로 535', '1991-05-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_food_restaurant.png?raw=true', '신선한 야채와 내 마음대로 조합하는 샌드위치 써브웨이입니다.'),
+(24, 'KFC', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/kfc.png', '신호상', '서울특별시 중구 세종대로 39', '1984-04-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_food_restaurant.png?raw=true', '오리지널 레시피로 튀겨낸 치킨의 정석, KFC입니다.'),
+(25, '도미노피자', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/dominos.png', '오광현', '서울특별시 강남구 언주로 315', '1990-01-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_food_restaurant.png?raw=true', '배달 피자 No.1 브랜드, 프리미엄 도미노피자입니다.'),
+(26, '피자헛', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/pizzahut.png', '김진영', '서울특별시 영등포구 의사당대로 83', '1985-02-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_food_restaurant.png?raw=true', '모두가 좋아하는 오리지널 피자 브랜드 피자헛입니다.'),
+(27, '교촌치킨', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/kyochon.png', '송종화', '경기도 오산시 양산로 12', '1991-03-13', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_food_restaurant.png?raw=true', '바삭한 튀김옷과 특별한 소스의 완벽한 조화, 교촌치킨입니다.'),
+(28, 'BBQ', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/bbq.png', '정승욱', '서울특별시 송파구 중대로 64', '1995-09-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_food_restaurant.png?raw=true', '좋은 재료로 만든 최고의 치킨 맛을 자랑하는 BBQ입니다.'),
+(29, 'BHC', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/bhc.png', '송호섭', '서울특별시 송파구 올림픽로 300', '2004-09-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_food_restaurant.png?raw=true', '세상에 없던 맛있는 치킨을 연구하는 BHC입니다.'),
+(30, '배스킨라빈스', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/baskinrobbins.png', '도세호', '서울특별시 서초구 남부순환로 2620', '1985-06-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_food_restaurant.png?raw=true', '골라 먹는 재미가 있는 아이스크림 전문점 배스킨라빈스입니다.'),
+(31, '역전할머니맥주', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/yukjeon.png', '송성호', '서울특별시 강남구 테헤란로 419', '2016-10-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_food_restaurant.png?raw=true', '얼음 맥주의 진수, 서민적인 정을 나누는 역전할머니맥주입니다.'),
+(32, '한신포차', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/hanshin.png', '백종원', '서울특별시 강남구 봉은사로 1길 39', '1998-05-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_food_restaurant.png?raw=true', '매콤한 닭발과 다양한 안주가 있는 감성 포장마차 한신포차입니다.'),
+(33, '투다리', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/tudari.png', '김영길', '인천광역시 미추홀구 경인로 452', '1987-07-13', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_food_restaurant.png?raw=true', '꼬치구이 전문점에서 나누는 따뜻한 이야기, 투다리입니다.'),
+(34, '던킨', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/dunkin.png', '도세호', '서울특별시 서초구 남부순환로 2620', '1994-01-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_food_restaurant.png?raw=true', '매일 아침 즐기는 도넛과 커피의 휴식, 던킨입니다.'),
+(35, '뚜레쥬르', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/touslesjours.png', '허민회', '서울특별시 중구 마른내로 34', '1997-09-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_food_restaurant.png?raw=true', '매일 매장에서 굽는 건강하고 신선한 베이커리 뚜레쥬르입니다.'),
+(36, '파리바게뜨', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/parisbaguette.png', '허진수', '경기도 성남시 분당구 양현로 167', '1986-10-17', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_food_restaurant.png?raw=true', '행복을 굽는 베이커리, 국민 빵집 파리바게뜨입니다.'),
+
+-- 5. RETAIL_STORE (PC방)
+(37, '3POP PC방', 'RETAIL_STORE', '/uploads/companyLogo/brandLogo/3pop.png', '김성식', '서울특별시 성동구 성수이로 147', '2014-03-10', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_pc_room.png?raw=true', '최고의 사양과 쾌적한 환경을 제공하는 3POP PC방입니다.'),
+(38, '아이센스리그 PC방', 'RETAIL_STORE', '/uploads/companyLogo/brandLogo/isense.png', '윤석범', '서울특별시 구로구 디지털로 273', '1998-05-15', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_pc_room.png?raw=true', '국내 No.1 프리미엄 PC방, 아이센스리그 PC방입니다.'),
+(39, '레드포스 PC방', 'RETAIL_STORE', '/uploads/companyLogo/brandLogo/redforce.png', '오지환', '서울특별시 서초구 강남대로 311', '2020-12-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_pc_room.png?raw=true', '프로게이머들의 열정이 느껴지는 레드포스 PC방입니다.'),
+
+-- 6. DELIVERY_DRIVER (배달 플랫폼)
+(40, '배달의민족', 'DELIVERY_DRIVER', '/uploads/companyLogo/brandLogo/baemin.png', '김범석', '서울특별시 송파구 위례성대로 2', '2011-03-10', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_delivery_driver.png?raw=true', '배달의 문화를 혁신하는 대한민국 1등 배달 앱입니다.'),
+(41, '쿠팡이츠', 'DELIVERY_DRIVER', '/uploads/companyLogo/brandLogo/coupangeats.png', '김명규', '서울특별시 송파구 송파대로 570', '2021-05-15', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_delivery_driver.png?raw=true', '빠르고 편리한 맛집 배달의 시작, 쿠팡이츠입니다.'),
+(42, '요기요', 'DELIVERY_DRIVER', '/uploads/companyLogo/brandLogo/yogiyo.png', '전준희', '서울특별시 서초구 서초대로 38길 12', '2011-11-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_delivery_driver.png?raw=true', '즐거움을 전하는 푸드 플랫폼 요기요입니다.'),
+(43, '땡겨요', 'DELIVERY_DRIVER', '/uploads/companyLogo/brandLogo/ddangyo.png', '정상혁', '서울특별시 중구 세종대로 9', '2022-01-14', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_delivery_driver.png?raw=true', '사장님도 고객도 행복한 착한 배달 서비스 땡겨요입니다.');
 
 
 
@@ -385,7 +389,7 @@ INSERT IGNORE INTO individual_profile (id, member_id, is_active, is_special, is_
 INSERT IGNORE INTO business_profile
 (id, member_id, company_name, founded_date, company_image_url, brand_id, business_number, company_phone, company_address, homepage_url) VALUES
 (1, 1001, '한강유통', '2001-03-03', '/uploads/companyLogo/company_01.png', NULL, '101-21-70001', '031-301-4001', '경기도 미추홀구 봉은사로 214', 'https://www.bizcompany01.co.kr'),
-(2, 1002, 'GS25 시흥신천점', '2002-04-05', '/uploads/companyLogo/company_02.png', 7, '102-22-70002', '051-252-5002', '경기도 시흥시 신천동 123-4', 'https://www.bizcompany02.co.kr'),
+(2, 1002, 'GS25 시흥신천점', '2002-04-05', '/uploads/companyLogo/company_02.png', 7, '102-22-70002', '051-252-5002', '경기도 시흥시 신천6길 2-2', 'https://www.bizcompany02.co.kr'),
 (3, 1003, '에이스편의운영', '2003-05-07', '/uploads/companyLogo/company_03.png', NULL, '103-23-70003', '032-283-6003', '경기도 해운대구 올림픽로 88', 'https://www.bizcompany03.co.kr'),
 (4, 1004, '공차 송파잠실점', '2004-06-09', '/uploads/companyLogo/company_04.png', 13, '104-24-70004', '02-204-3004', '서울특별시 송파구 잠실동 40-1', 'https://www.bizcompany04.co.kr'),
 (5, 1005, '스피드딜리버리', '2005-07-11', '/uploads/companyLogo/company_05.png', NULL, '105-25-70005', '031-305-4005', '부산광역시 미추홀구 가산디지털1로 71', NULL),
@@ -437,7 +441,7 @@ INSERT IGNORE INTO business_profile
 
 INSERT IGNORE INTO recruit (id, business_member_id, title, brand_id, is_urgent, recruit_status, deadline, salary, salary_type, head_count, region_id, detail_address, description, resume_form_url) VALUES
 (1, 1001, '카페 바리스타 및 매장관리 모집', NULL, FALSE, 'OPEN', '2026-05-03', 10493, 'HOURLY', 2, 53, '주안동 214-1', '근무 태도 성실하고 시간 약속을 잘 지키는 분을 우대합니다. 초보 가능하며 업무 매뉴얼과 교육을 제공합니다. 공고번호 001.', NULL),
-(2, 1002, 'GS25 시흥신천점 매장관리 및 캐셔 스태프 모집', 7, FALSE, 'OPEN', '2026-05-05', 10666, 'HOURLY', 3, 99, '신천동 123-4', '근무 태도 성실하고 시간 약속을 잘 지키는 분을 우대합니다. 초보 가능하며 업무 매뉴얼과 교육을 제공합니다. 공고번호 002.', NULL),
+(2, 1002, 'GS25 시흥신천점 매장관리 및 캐셔 스태프 모집', 7, FALSE, 'OPEN', '2026-05-05', 10666, 'HOURLY', 3, 99, '신천6길 2-2', '근무 태도 성실하고 시간 약속을 잘 지키는 분을 우대합니다. 초보 가능하며 업무 매뉴얼과 교육을 제공합니다. 공고번호 002.', NULL),
 (3, 1003, '매장 운영 및 고객응대 스태프 모집', NULL, TRUE, 'OPEN', '2026-05-07', 10839, 'HOURLY', 4, 34, '우동 88-1', '근무 태도 성실하고 시간 약속을 잘 지키는 분을 우대합니다. 초보 가능하며 업무 매뉴얼과 교육을 제공합니다. 공고번호 003.', NULL),
 (4, 1004, '공차 송파잠실점 바리스타 및 매장 스태프 모집', 13, FALSE, 'OPEN', '2026-05-09', 2255164, 'MONTHLY', 5, 24, '잠실동 40-1', '근무 태도 성실하고 시간 약속을 잘 지키는 분을 우대합니다. 초보 가능하며 업무 매뉴얼과 교육을 제공합니다. 공고번호 004.', '/uploads/businessResumes/resume_form_004.hwp'),
 (5, 1005, '물류 상하차/분류 스태프 모집', NULL, FALSE, 'OPEN', '2026-05-11', 11185, 'HOURLY', 6, 53, '도화동 71-3', '근무 태도 성실하고 시간 약속을 잘 지키는 분을 우대합니다. 초보 가능하며 업무 매뉴얼과 교육을 제공합니다. 공고번호 005.', NULL),

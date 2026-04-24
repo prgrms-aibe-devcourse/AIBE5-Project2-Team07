@@ -5,6 +5,7 @@ import AppFooter from '../components/AppFooter';
 
 import Sidebar from '../components/mypage/Sidebar';
 import DashboardContent from '../components/mypage/DashboardContent';
+import ApplyStatusContent from '../components/mypage/ApplyStatusContent';
 import WorkContent from '../components/mypage/WorkContent';
 import ScrapContent from '../components/mypage/ScrapContent';
 import InfoEditContent from '../components/mypage/InfoEditContent';
@@ -53,7 +54,7 @@ export default function PersonalMyPage() {
 
   useEffect(() => {
     const tab = searchParams.get('tab');
-    const allowedTabs = ['dashboard', 'work', 'resume', 'review', 'scrap', 'info'];
+    const allowedTabs = ['dashboard', 'status', 'work', 'resume', 'review', 'scrap', 'info'];
 
     if (tab && allowedTabs.includes(tab) && tab !== activeTab) {
       setActiveTab(tab);
@@ -79,8 +80,11 @@ export default function PersonalMyPage() {
             />
         );
 
+      case 'status':
+        return <ApplyStatusContent account={account} />;
+
       case 'work':
-        return <WorkContent />;
+        return <WorkContent account={account} />;
 
       case 'resume':
         return (

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import TopNavBar from '../components/TopNavBar';
 import MobileBottomNav from '../components/MobileBottomNav';
 import AppFooter from '../components/AppFooter';
@@ -177,10 +177,34 @@ function formatDate(dateText) {
   return date.toLocaleDateString('ko-KR');
 }
 
+function toYmd(dateText) {
+  if (!dateText) {
+	return '';
+  }
+
+  const raw = String(dateText);
+  if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
+	return raw.slice(0, 10);
+  }
+
+  const date = new Date(dateText);
+  if (Number.isNaN(date.getTime())) {
+	return '';
+  }
+
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 export default function RecruitInformationPage() {
+  const [searchParams] = useSearchParams();
   const [tabType, setTabType] = useState('ALL');
   const [keywordInput, setKeywordInput] = useState('');
   const [keyword, setKeyword] = useState('');
+  const [shortWorkDateInput, setShortWorkDateInput] = useState('');
+  const [shortWorkDates, setShortWorkDates] = useState([]);
   const [sort, setSort] = useState('LATEST');
   const [page, setPage] = useState(1);
   const [openPanel, setOpenPanel] = useState(null);
@@ -205,6 +229,7 @@ export default function RecruitInformationPage() {
   const [error, setError] = useState('');
 
   const size = 20;
+  const isShortTab = tabType === 'SHORT';
 
   const regionOptions = useMemo(() => {
 	if (regions.length > 0) {
@@ -267,9 +292,14 @@ export default function RecruitInformationPage() {
 	filters.businessType.forEach((value) => {
 	  badges.push({ key: 'businessType', value, label: `업종 ${businessMap[value] || value}` });
 	});
+	if (isShortTab && shortWorkDates.length > 0) {
+	  shortWorkDates.forEach((dateValue) => {
+		badges.push({ key: 'shortWorkDate', value: dateValue, label: `근무일 ${formatDate(dateValue)}` });
+	  });
+	}
 
 	return badges;
-  }, [filters, regionMap, regionOptions]);
+  }, [filters, isShortTab, regionMap, regionOptions, shortWorkDates]);
 
   const pageNumbers = useMemo(() => {
 	const total = Math.max(recruitPage.totalPages || 1, 1);
@@ -281,6 +311,27 @@ export default function RecruitInformationPage() {
 	}
 	return numbers;
   }, [page, recruitPage.totalPages]);
+
+  useEffect(() => {
+  window.scrollTo(0, 0);
+  }, []);
+
+  useEffect(() => {
+	const requestedTab = String(searchParams.get('tab') || 'ALL').toUpperCase();
+	const requestedSort = String(searchParams.get('sort') || 'LATEST').toUpperCase();
+	const requestedUrgent = String(searchParams.get('isUrgent') || '').toLowerCase() === 'true';
+	const nextTab = ['ALL', 'SHORT', 'LONG'].includes(requestedTab) ? requestedTab : 'ALL';
+	const nextSort = SORT_OPTIONS.some((option) => option.value === requestedSort) ? requestedSort : 'LATEST';
+
+	setTabType(nextTab);
+	setSort(nextSort);
+	setPage(1);
+	setOpenPanel(null);
+	setFilters((prev) => ({
+	  ...prev,
+	  isUrgent: requestedUrgent,
+	}));
+  }, [searchParams]);
 
   useEffect(() => {
 	if (!selectedSido && sidoOptions.length > 0) {
@@ -313,7 +364,7 @@ export default function RecruitInformationPage() {
 		if (normalized.length > 0) {
 		  setRegions(normalized);
 		}
-	  } catch (fetchRegionError) {
+	  } catch {
 		// 지역 API 실패 시 목록 응답에서 모은 regionMap 데이터로 fallback
 	  }
 	};
@@ -348,14 +399,20 @@ export default function RecruitInformationPage() {
 		filters.workTime.forEach((value) => params.append('workTime', value));
 		filters.workDays.forEach((value) => params.append('workDays', value));
 		filters.businessType.forEach((value) => params.append('businessType', value));
+		if (isShortTab && shortWorkDates.length > 0) {
+		  shortWorkDates.forEach((dateValue) => params.append('deadline', dateValue));
+		}
 
 		const result = await fetchJsonWithFallback(`/recruits?${params.toString()}`);
 		const rawContent = Array.isArray(result.content) ? result.content : [];
-		const content = rawContent.filter((item) => !isExpiredRecruit(item?.status));
+		let content = rawContent.filter((item) => !isExpiredRecruit(item?.status));
+		if (isShortTab && shortWorkDates.length > 0) {
+		  content = content.filter((item) => shortWorkDates.includes(toYmd(item?.deadline)));
+		}
 		setRecruitPage({
 		  content,
 		  totalPages: Math.max(result.totalPages || 1, 1),
-		  totalElements: result.totalElements ?? content.length
+		  totalElements: (isShortTab && shortWorkDates.length > 0) ? content.length : (result.totalElements ?? content.length)
 		});
 
 		setRegionMap((prev) => {
@@ -375,7 +432,7 @@ export default function RecruitInformationPage() {
 	};
 
 	fetchRecruitList();
-  }, [tabType, keyword, sort, page, filters]);
+  }, [tabType, keyword, sort, page, filters, isShortTab, shortWorkDates]);
 
   const handleSearchSubmit = () => {
 	setPage(1);
@@ -400,6 +457,10 @@ export default function RecruitInformationPage() {
 
   const removeBadge = (key, value) => {
 	setPage(1);
+	if (key === 'shortWorkDate') {
+	  setShortWorkDates((prev) => prev.filter((item) => item !== value));
+	  return;
+	}
 	setFilters((prev) => {
 	  if (key === 'isUrgent') {
 		return { ...prev, isUrgent: false };
@@ -416,6 +477,8 @@ export default function RecruitInformationPage() {
 	setKeyword('');
 	setKeywordInput('');
 	setSort('LATEST');
+	setShortWorkDateInput('');
+	setShortWorkDates([]);
 	setPage(1);
 	setFilters({
 	  isUrgent: false,
@@ -496,6 +559,26 @@ export default function RecruitInformationPage() {
 				업종별
 			  </CommonButton>
 
+			  {isShortTab && (
+				<div className="flex items-center gap-2 bg-white border border-[#e0e0e0] rounded-lg px-3 py-2">
+				  <span className="text-xs font-semibold text-on-surface-variant">근무일</span>
+				  <input
+					type="date"
+					className="text-sm bg-transparent outline-none"
+					value={shortWorkDateInput}
+					onChange={(event) => {
+					  const nextDate = event.target.value;
+					  setShortWorkDateInput(nextDate);
+					  if (!nextDate) {
+						return;
+					  }
+					  setPage(1);
+					  setShortWorkDates((prev) => (prev.includes(nextDate) ? prev : [...prev, nextDate]));
+					}}
+				  />
+				</div>
+			  )}
+
 			  <CommonButton className="ml-1 p-2" variant="toggle" title="초기화" onClick={resetFilters}>
 				<span className="material-symbols-outlined">restart_alt</span>
 			  </CommonButton>
@@ -523,7 +606,6 @@ export default function RecruitInformationPage() {
 					  {districtOptions.map((region) => (
 						<button
 						  key={region.value}
-						  type="button"
 						  className={filterChipClass(filters.regionIds.includes(region.value))}
 						  onClick={() => toggleMultiFilter('regionIds', region.value)}
 						>
@@ -648,7 +730,7 @@ export default function RecruitInformationPage() {
 				  <div className="text-center">급여정보</div>
 				  <div className="text-center">근무기간</div>
 				  <div className="text-center">근무시간</div>
-				  <div className="text-center">마감일</div>
+				  <div className="text-center">{isShortTab ? '근무일' : '마감일'}</div>
 				  <div className="text-center">등록일</div>
 				</div>
 

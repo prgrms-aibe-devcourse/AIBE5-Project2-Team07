@@ -93,7 +93,7 @@ export default function RegionSection({
     return (
         <section className="bg-white p-8 rounded-2xl border border-[#EAE5E3] shadow-sm space-y-6">
             <div>
-                <label className="text-[11px] font-bold text-[#6B6766] uppercase tracking-wider block mb-2">
+                <label className="text-[15px] font-bold text-[#1F1D1D] uppercase tracking-wider block mb-2">
                     선호 지역
                 </label>
                 <p className="text-sm text-[#6B6766] font-medium">
@@ -106,7 +106,7 @@ export default function RegionSection({
             ) : (
                 <div className="flex flex-col md:flex-row gap-4">
                     <div className="md:w-1/3 border-b md:border-b-0 md:border-r border-[#EAE5E3] pb-3 md:pb-0 md:pr-4">
-                        <div className="text-xs font-semibold text-[#6B6766] mb-3">시/도</div>
+                        <div className="text-s font-semibold text-[#6B6766] mb-3">시/도</div>
                         <div className="flex flex-col gap-2 max-h-72 overflow-y-auto">
                             {sidoOptions.map((sido) => (
                                 <button
@@ -126,7 +126,7 @@ export default function RegionSection({
                     </div>
 
                     <div className="flex-1">
-                        <div className="text-xs font-semibold text-[#6B6766] mb-3">시/군/구</div>
+                        <div className="text-s font-semibold text-[#6B6766] mb-3">시/군/구</div>
 
                         {!selectedSido ? (
                             <div className="text-sm text-[#6B6766]">

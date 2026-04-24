@@ -58,7 +58,7 @@ export default function LicenseSection({ licenses, setLicenses }) {
                             className="grid grid-cols-1 md:grid-cols-5 gap-4 bg-gray-50/50 p-5 rounded-xl border border-[#EAE5E3]/60 relative"
                         >
                             <div>
-                                <label className="text-[10px] font-bold text-[#6B6766] block mb-1.5">자격증명</label>
+                                <label className="text-[13px] font-bold text-[#6B6766] block mb-1.5">자격증명</label>
                                 <input
                                     type="text"
                                     value={license.licenseName || ''}
@@ -67,7 +67,7 @@ export default function LicenseSection({ licenses, setLicenses }) {
                                 />
                             </div>
                             <div>
-                                <label className="text-[10px] font-bold text-[#6B6766] block mb-1.5">자격번호</label>
+                                <label className="text-[13px] font-bold text-[#6B6766] block mb-1.5">자격번호</label>
                                 <input
                                     type="text"
                                     value={license.licenseNumber || ''}
@@ -76,7 +76,7 @@ export default function LicenseSection({ licenses, setLicenses }) {
                                 />
                             </div>
                             <div>
-                                <label className="text-[10px] font-bold text-[#6B6766] block mb-1.5">취득일</label>
+                                <label className="text-[13px] font-bold text-[#6B6766] block mb-1.5">취득일</label>
                                 <input
                                     type="date"
                                     value={license.acquisitionDate || ''}
@@ -85,7 +85,7 @@ export default function LicenseSection({ licenses, setLicenses }) {
                                 />
                             </div>
                             <div>
-                                <label className="text-[10px] font-bold text-[#6B6766] block mb-1.5">발급기관</label>
+                                <label className="text-[13px] font-bold text-[#6B6766] block mb-1.5">발급기관</label>
                                 <input
                                     type="text"
                                     value={license.issuedBy || ''}

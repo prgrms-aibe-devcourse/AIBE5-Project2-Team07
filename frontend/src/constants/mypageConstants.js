@@ -1,5 +1,6 @@
 export const SIDEBAR_MENUS = [
     { key: 'dashboard', label: '대시보드', icon: 'dashboard' },
+    { key: 'status', label: '지원/제의 현황', icon: 'assignment' },
     { key: 'work', label: '근무 관리', icon: 'work_history' },
     { key: 'resume', label: '이력서 관리', icon: 'article' },
     { key: 'review', label: '리뷰 관리', icon: 'rate_review' },
