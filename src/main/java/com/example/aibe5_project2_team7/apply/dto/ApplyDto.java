@@ -22,4 +22,8 @@ public class ApplyDto {
     private LocalDateTime createdAt;
     private Long resumeId;
     private ApplyMethod method;
+    private Long businessMemberId; //사업자 memberId
+    private String recruitTitle; //공고 제목
+    private String companyName; //회사명
+    private String individualName; //개인회원 이름
 }
