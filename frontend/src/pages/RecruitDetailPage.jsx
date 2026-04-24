@@ -804,7 +804,13 @@ export default function RecruitDetailPage() {
               <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: isScrapped ? '"FILL" 1' : '"FILL" 0' }}>bookmark</span>
               <span className="text-[10px] font-bold">스크랩</span>
             </button>
-            <button className="flex flex-col items-center gap-1 text-on-surface-variant hover:text-primary transition-colors">
+            <button
+              type="button"
+              className={`flex flex-col items-center gap-1 transition-colors ${currentMember?.id === detail?.businessMemberId ? 'text-gray-400 cursor-not-allowed' : 'text-on-surface-variant hover:text-primary'}`}
+              onClick={handleChatClick}
+              disabled={currentMember?.id === detail?.businessMemberId}
+              aria-label="채팅 시작"
+            >
               <span className="material-symbols-outlined text-2xl">chat</span>
               <span className="text-[10px] font-bold">채팅</span>
             </button>
