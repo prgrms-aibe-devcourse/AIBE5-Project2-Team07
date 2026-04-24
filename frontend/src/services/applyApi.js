@@ -1,5 +1,47 @@
 import { requestWithAuth, getStoredMember } from './authApi';
 
+export async function getBusinessApplications(params = {}) {
+    const storedMember = getStoredMember();
+    const {
+        page = 0,
+        size = 10,
+        recruitId,
+    } = params;
+
+    const businessProfileId =
+        storedMember?.businessProfileId ||
+        storedMember?.businessProfile?.id ||
+        storedMember?.profileId ||
+        '';
+
+    const searchParams = new URLSearchParams();
+    searchParams.set('page', String(page));
+    searchParams.set('size', String(size));
+    if (recruitId) searchParams.set('recruitId', String(recruitId));
+
+    return requestWithAuth(`/applies/business/applications?${searchParams.toString()}`, {
+        method: 'GET',
+        headers: {
+            'X-Business-Profile-Id': String(businessProfileId),
+        },
+    });
+}
+
+export async function decideBusinessApplication(applyId, accept) {
+    const storedMember = getStoredMember();
+    const businessProfileId =
+        storedMember?.businessProfileId ||
+        storedMember?.businessProfile?.id ||
+        storedMember?.profileId ||
+        '';
+
+    return requestWithAuth(`/applies/${encodeURIComponent(applyId)}/decision`, {
+        method: 'PATCH',
+        headers: {
+            'X-Business-Profile-Id': String(businessProfileId),
+        },
+        body: JSON.stringify({ accept: Boolean(accept) }),
+    });
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 function resolveMemberId(memberId) {
