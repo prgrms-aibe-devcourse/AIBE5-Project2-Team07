@@ -1,80 +1,24 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import CommonButton from './CommonButton';
 import GlobalAiChatbotPanel from './GlobalAiChatbotPanel';
 import GlobalMemberMessagePanel from './GlobalMemberMessagePanel';
-import { getStoredMember } from '../services/authApi';
-import { getChatHistory, getMyChatRooms, getDirectRoom } from '../services/chatApi';
-import { createChatSocketClient } from '../services/chatSocket';
-
-function readCurrentMember() {
-  const token = localStorage.getItem('token');
-  const member = getStoredMember();
-  return token && member ? member : null;
-}
-
-function getRoleLabel(memberType) {
-  if (memberType === 'BUSINESS') {
-    return '개인회원';
-  }
-  if (memberType === 'INDIVIDUAL') {
-    return '사업자회원';
-  }
-  return '회원';
-}
-
-function normalizeRoom(room, currentMember) {
-  const partnerUserId = room?.partnerUserId ?? null;
-  const roleLabel = getRoleLabel(currentMember?.memberType);
-
-  return {
-    roomId: room.roomId,
-    partnerUserId,
-    displayName: partnerUserId ? `${roleLabel} #${partnerUserId}` : room.roomId,
-    roleLabel,
-    preview: room.lastMessageContent || '대화를 시작해보세요.',
-    lastMessageAt: room.lastMessageAt || null,
-    unreadCount: Number(room.unreadCount || 0),
-  };
-}
-
-function normalizeMessage(message, currentMemberId) {
-  return {
-    id: message.id,
-    mine: message.senderId === currentMemberId,
-    text: message.content,
-    sentAt: message.sentAt,
-    senderId: message.senderId,
-    roomId: message.roomId,
-    type: message.type,
-  };
-}
-
-function uniqueMessages(messages) {
-  const seen = new Set();
-  return messages.filter((message) => {
-    const key = message.id ?? `${message.roomId}-${message.sentAt}-${message.text}`;
-    if (seen.has(key)) {
-      return false;
-    }
-    seen.add(key);
-    return true;
-  });
-}
-
-function sortRoomsByRecent(rooms) {
-  return [...rooms].sort((a, b) => {
-    const aTime = a.lastMessageAt ? new Date(a.lastMessageAt).getTime() : 0;
-    const bTime = b.lastMessageAt ? new Date(b.lastMessageAt).getTime() : 0;
-    return bTime - aTime;
-  });
-}
+import {
+  createDirectRoom,
+  getChatMessages,
+  getCurrentMember,
+  getCurrentMemberId,
+  getCurrentMemberType,
+  getMyChatRooms,
+  isMemberLoggedIn,
+} from '../services/chatApi';
+import { createChatClient, publishChat, subscribeRoom } from '../services/chatSocket';
 
 export default function GlobalAiChatbotButton() {
+  const navigate = useNavigate();
   const location = useLocation();
 
   const [activePanel, setActivePanel] = useState(null);
-  const [currentMember, setCurrentMember] = useState(() => readCurrentMember());
 
   const [aiInputValue, setAiInputValue] = useState('');
   const [aiMessages, setAiMessages] = useState([
@@ -85,313 +29,44 @@ export default function GlobalAiChatbotButton() {
     },
   ]);
 
+  const [member, setMember] = useState(() => getCurrentMember());
   const [rooms, setRooms] = useState([]);
+  const [roomsLoading, setRoomsLoading] = useState(false);
   const [selectedRoomId, setSelectedRoomId] = useState(null);
-  const [messageStateByRoom, setMessageStateByRoom] = useState({});
+  const [messages, setMessages] = useState([]);
+  const [messagesLoading, setMessagesLoading] = useState(false);
+  const [hasMore, setHasMore] = useState(false);
+  const [nextCursorId, setNextCursorId] = useState(null);
+  const [loadingMore, setLoadingMore] = useState(false);
   const [memberReply, setMemberReply] = useState('');
-  const [loadingRooms, setLoadingRooms] = useState(false);
-  const [loadingRoomId, setLoadingRoomId] = useState(null);
-  const [chatError, setChatError] = useState('');
-  const [isSocketConnected, setIsSocketConnected] = useState(false);
+  const [sendLoading, setSendLoading] = useState(false);
+  const [memberError, setMemberError] = useState('');
 
-  const socketRef = useRef(null);
-  const selectedRoomIdRef = useRef(null);
-  const activePanelRef = useRef(null);
-  const roomsRef = useRef([]);
-  const memberRef = useRef(currentMember);
+  const clientRef = useRef(null);
+  const currentSubscriptionRef = useRef(null);
 
-  useEffect(() => {
-    selectedRoomIdRef.current = selectedRoomId;
-  }, [selectedRoomId]);
-
-  useEffect(() => {
-    activePanelRef.current = activePanel;
-  }, [activePanel]);
-
-  useEffect(() => {
-    roomsRef.current = rooms;
-  }, [rooms]);
-
-  useEffect(() => {
-    memberRef.current = currentMember;
-  }, [currentMember]);
-
-  useEffect(() => {
-    const syncMember = () => {
-      setCurrentMember(readCurrentMember());
-    };
-
-    syncMember();
-    window.addEventListener('storage', syncMember);
-
-    return () => {
-      window.removeEventListener('storage', syncMember);
-    };
-  }, [location.pathname]);
-
-  const isLoggedIn = Boolean(currentMember?.id);
+  const isLoggedIn = useMemo(() => isMemberLoggedIn(), [member, location.pathname]);
+  const currentMemberId = useMemo(() => getCurrentMemberId(), [member, location.pathname]);
+  const currentMemberType = useMemo(() => getCurrentMemberType(), [member, location.pathname]);
 
   const selectedRoom = useMemo(
     () => rooms.find((room) => room.roomId === selectedRoomId) || null,
     [rooms, selectedRoomId],
   );
 
-  const selectedRoomState = useMemo(
-    () => messageStateByRoom[selectedRoomId] || { messages: [], nextCursorId: null, hasNext: false },
-    [messageStateByRoom, selectedRoomId],
-  );
-
-  const totalUnreadCount = useMemo(
-    () => rooms.reduce((sum, room) => sum + Number(room.unreadCount || 0), 0),
-    [rooms],
-  );
-
-  const syncRoomSubscriptions = useCallback((nextRooms) => {
-    if (!socketRef.current?.isConnected()) {
-      return;
-    }
-
-    const destinations = nextRooms.map((room) => `/sub/room/${room.roomId}`);
-    socketRef.current.syncSubscriptions(destinations);
+  const syncMember = useCallback(() => {
+    setMember(getCurrentMember());
   }, []);
 
-  const refreshRooms = useCallback(async ({ preserveSelection = true, selectFirstRoom = false, preferredRoomId = null } = {}) => {
-    if (!memberRef.current?.id) {
-      return [];
-    }
-
-    setLoadingRooms(true);
-    setChatError('');
-
-    try {
-      const result = await getMyChatRooms(memberRef.current.id);
-      const normalizedRooms = sortRoomsByRecent((result || []).map((room) => normalizeRoom(room, memberRef.current)));
-
-      setRooms(normalizedRooms);
-      syncRoomSubscriptions(normalizedRooms);
-
-      const previousSelected = preserveSelection ? selectedRoomIdRef.current : null;
-      const preferredSelected =
-        preferredRoomId && normalizedRooms.some((room) => room.roomId === preferredRoomId)
-          ? preferredRoomId
-          : null;
-      const nextSelectedRoomId =
-        preferredSelected ||
-        (previousSelected && normalizedRooms.some((room) => room.roomId === previousSelected)
-          ? previousSelected
-          : normalizedRooms[0]?.roomId || null);
-
-      setSelectedRoomId(nextSelectedRoomId);
-
-      if (selectFirstRoom && nextSelectedRoomId) {
-        return normalizedRooms;
-      }
-
-      return normalizedRooms;
-    } catch (error) {
-      setChatError(error.message || '채팅 목록을 불러오지 못했습니다.');
-      return [];
-    } finally {
-      setLoadingRooms(false);
-    }
-  }, [syncRoomSubscriptions]);
-
-  const markRoomAsRead = useCallback((room) => {
-    if (!room || !memberRef.current || !socketRef.current?.isConnected()) {
-      return;
-    }
-
-    try {
-      socketRef.current.publish('/pub/chat/message', {
-        senderId: memberRef.current.id,
-        receiverId: room.partnerUserId,
-        email: memberRef.current.email,
-        roomId: room.roomId,
-        type: 'ENTER',
-      });
-    } catch (error) {
-      setChatError(error.message || '읽음 상태를 갱신하지 못했습니다.');
-    }
-
-    setRooms((prev) =>
-      prev.map((item) => (item.roomId === room.roomId ? { ...item, unreadCount: 0 } : item)),
-    );
-  }, []);
-
-  const loadRoomMessages = useCallback(async (roomId, { cursorId = null, appendOlder = false } = {}) => {
-    if (!memberRef.current?.id || !roomId) {
-      return;
-    }
-
-    setLoadingRoomId(roomId);
-    setChatError('');
-
-    try {
-      const history = await getChatHistory(roomId, cursorId, 30);
-      const normalizedMessages = (history?.messages || []).map((message) => normalizeMessage(message, memberRef.current.id));
-
-      setMessageStateByRoom((prev) => {
-        const current = prev[roomId] || { messages: [], nextCursorId: null, hasNext: false };
-        const mergedMessages = appendOlder
-          ? uniqueMessages([...normalizedMessages, ...current.messages])
-          : uniqueMessages(normalizedMessages);
-
-        return {
-          ...prev,
-          [roomId]: {
-            messages: mergedMessages,
-            nextCursorId: history?.nextCursorId ?? null,
-            hasNext: Boolean(history?.hasNext),
-          },
-        };
-      });
-    } catch (error) {
-      setChatError(error.message || '채팅 내역을 불러오지 못했습니다.');
-    } finally {
-      setLoadingRoomId((prev) => (prev === roomId ? null : prev));
-    }
-  }, []);
-
-  const handleIncomingChatMessage = useCallback(
-    (payload) => {
-      if (!payload?.roomId || payload.type === 'ENTER' || payload.type === 'LEAVE') {
-        return;
-      }
-
-      const me = memberRef.current;
-      if (!me?.id) {
-        return;
-      }
-
-      const incomingMessage = normalizeMessage(payload, me.id);
-      const isCurrentRoomOpen = activePanelRef.current === 'member' && selectedRoomIdRef.current === payload.roomId;
-
-      setMessageStateByRoom((prev) => {
-        const current = prev[payload.roomId] || { messages: [], nextCursorId: null, hasNext: false };
-        return {
-          ...prev,
-          [payload.roomId]: {
-            ...current,
-            messages: uniqueMessages([...current.messages, incomingMessage]),
-          },
-        };
-      });
-
-      setRooms((prev) => {
-        const existingRoom = prev.find((room) => room.roomId === payload.roomId);
-        const fallbackRoleLabel = getRoleLabel(me.memberType);
-        const nextUnreadCount = incomingMessage.mine || isCurrentRoomOpen
-          ? 0
-          : Number(existingRoom?.unreadCount || 0) + 1;
-
-        const updatedRoom = {
-          roomId: payload.roomId,
-          partnerUserId:
-            existingRoom?.partnerUserId ||
-            (incomingMessage.mine ? null : incomingMessage.senderId),
-          displayName:
-            existingRoom?.displayName ||
-            (incomingMessage.mine ? payload.roomId : `${fallbackRoleLabel} #${incomingMessage.senderId}`),
-          roleLabel: existingRoom?.roleLabel || fallbackRoleLabel,
-          preview: incomingMessage.text,
-          lastMessageAt: incomingMessage.sentAt,
-          unreadCount: nextUnreadCount,
-        };
-
-        const filteredRooms = prev.filter((room) => room.roomId !== payload.roomId);
-        return sortRoomsByRecent([updatedRoom, ...filteredRooms]);
-      });
-
-      if (!incomingMessage.mine && isCurrentRoomOpen) {
-        const room = roomsRef.current.find((item) => item.roomId === payload.roomId);
-        markRoomAsRead(room || { roomId: payload.roomId, partnerUserId: incomingMessage.senderId });
-      }
-    },
-    [markRoomAsRead],
-  );
+  useEffect(() => {
+    syncMember();
+  }, [location.pathname, syncMember]);
 
   useEffect(() => {
-    if (!isLoggedIn) {
-      setRooms([]);
-      setSelectedRoomId(null);
-      setMessageStateByRoom({});
-      setMemberReply('');
-      setChatError('');
-      setIsSocketConnected(false);
-      setActivePanel((prev) => (prev === 'member' ? null : prev));
-
-      if (socketRef.current) {
-        socketRef.current.deactivate();
-        socketRef.current = null;
-      }
-      return undefined;
-    }
-
-    let isMounted = true;
-
-    try {
-      const socketClient = createChatSocketClient({
-        email: currentMember.email,
-        onConnect: async () => {
-          if (!isMounted) {
-            return;
-          }
-          setIsSocketConnected(true);
-          await refreshRooms({ preserveSelection: true, selectFirstRoom: activePanelRef.current === 'member' });
-        },
-        onDisconnect: () => {
-          if (isMounted) {
-            setIsSocketConnected(false);
-          }
-        },
-        onMessage: handleIncomingChatMessage,
-        onError: (message) => {
-          if (isMounted) {
-            setChatError(message);
-          }
-        },
-      });
-
-      socketRef.current = socketClient;
-      socketClient.activate();
-    } catch (error) {
-      setChatError(error.message || '채팅 연결을 시작하지 못했습니다.');
-    }
-
-    return () => {
-      isMounted = false;
-      if (socketRef.current) {
-        socketRef.current.deactivate();
-        socketRef.current = null;
-      }
-      setIsSocketConnected(false);
-    };
-  }, [currentMember?.email, handleIncomingChatMessage, isLoggedIn, refreshRooms]);
-
-  useEffect(() => {
-    if (activePanel !== 'member' || !isLoggedIn) {
-      return;
-    }
-
-    refreshRooms({ preserveSelection: true });
-  }, [activePanel, isLoggedIn, refreshRooms]);
-
-  useEffect(() => {
-    if (activePanel !== 'member' || !selectedRoomId || !isLoggedIn) {
-      return;
-    }
-
-    const currentRoomState = messageStateByRoom[selectedRoomId];
-    const room = rooms.find((item) => item.roomId === selectedRoomId);
-
-    if (!currentRoomState) {
-      loadRoomMessages(selectedRoomId);
-    }
-
-    if (room) {
-      markRoomAsRead(room);
-    }
-  }, [activePanel, isLoggedIn, loadRoomMessages, markRoomAsRead, messageStateByRoom, rooms, selectedRoomId]);
+    const handleStorage = () => syncMember();
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, [syncMember]);
 
   const submitAiMessage = (text) => {
     const nextText = text.trim();
@@ -411,112 +86,274 @@ export default function GlobalAiChatbotButton() {
     setAiInputValue('');
   };
 
-  const handleSelectRoom = async (roomId) => {
-    setSelectedRoomId(roomId);
-    setMemberReply('');
-    const room = rooms.find((item) => item.roomId === roomId);
-
-    await loadRoomMessages(roomId);
-
-    if (room) {
-      markRoomAsRead(room);
-    }
-  };
-
-  const handleLoadOlderMessages = async () => {
-    if (!selectedRoomId || !selectedRoomState.nextCursorId) {
-      return;
+  const loadRooms = useCallback(async (preferredRoomId = null) => {
+    if (!isLoggedIn || !currentMemberId) {
+      setRooms([]);
+      setSelectedRoomId(null);
+      return [];
     }
 
-    await loadRoomMessages(selectedRoomId, {
-      cursorId: selectedRoomState.nextCursorId,
-      appendOlder: true,
-    });
-  };
-
-  const openDirectChat = useCallback(async ({ targetUserId }) => {
-    if (!memberRef.current?.id) {
-      setActivePanel('menu');
-      setChatError('로그인 후 채팅을 시작할 수 있습니다.');
-      return;
-    }
-
-    if (!targetUserId) {
-      setChatError('채팅을 시작할 회원 정보를 찾지 못했습니다.');
-      return;
-    }
-
-    if (memberRef.current.id === targetUserId) {
-      setChatError('본인과의 채팅은 시작할 수 없습니다.');
-      return;
-    }
-
-    setActivePanel('member');
-    setChatError('');
+    setRoomsLoading(true);
+    setMemberError('');
 
     try {
-      const result = await getDirectRoom(memberRef.current.id, targetUserId);
-      const roomId = result?.roomId;
+      const roomRows = await getMyChatRooms(currentMemberId);
+      const mappedRooms = (roomRows || []).map((room) => ({
+        ...room,
+        displayName: `회원 #${room.partnerUserId ?? '-'}`,
+      }));
 
-      if (!roomId) {
-        throw new Error('채팅방 정보를 받아오지 못했습니다.');
-      }
+      setRooms(mappedRooms);
 
-      const refreshedRooms = await refreshRooms({ preserveSelection: false, preferredRoomId: roomId });
-      let room = (refreshedRooms || []).find((item) => item.roomId === roomId) || null;
+      const targetRoomId =
+        preferredRoomId ||
+        (mappedRooms.some((room) => room.roomId === selectedRoomId) ? selectedRoomId : mappedRooms[0]?.roomId ?? null);
 
-      if (!room) {
-        room = {
-          roomId,
-          partnerUserId: targetUserId,
-          displayName: `${getRoleLabel(memberRef.current.memberType)} #${targetUserId}` ,
-          roleLabel: getRoleLabel(memberRef.current.memberType),
-          preview: '대화를 시작해보세요.',
-          lastMessageAt: null,
-          unreadCount: 0,
-        };
-        setRooms((prev) => sortRoomsByRecent([room, ...prev.filter((item) => item.roomId !== roomId)]));
-      }
-
-      setSelectedRoomId(roomId);
-      setMemberReply('');
-      await loadRoomMessages(roomId);
-      markRoomAsRead(room);
+      setSelectedRoomId(targetRoomId);
+      return mappedRooms;
     } catch (error) {
-      setChatError(error.message || '채팅방을 열지 못했습니다.');
+      setMemberError(error.message || '메시지 목록을 불러오지 못했습니다.');
+      return [];
+    } finally {
+      setRoomsLoading(false);
     }
-  }, [loadRoomMessages, markRoomAsRead, refreshRooms]);
+  }, [currentMemberId, isLoggedIn, selectedRoomId]);
 
-  useEffect(() => {
-    const handleOpenDirectChatEvent = (event) => {
-      openDirectChat({ targetUserId: event?.detail?.targetUserId });
+  const ensureSocketClient = useCallback(() => {
+    if (clientRef.current) {
+      if (!clientRef.current.active) {
+        clientRef.current.activate();
+      }
+      return;
+    }
+
+    const client = createChatClient({
+      email: member?.email || '',
+      onError: (error) => {
+        setMemberError(error.message || '채팅 서버 연결에 실패했습니다.');
+      },
+    });
+
+    client.onConnect = async () => {
+      setMemberError('');
+      if (selectedRoomId) {
+        currentSubscriptionRef.current?.unsubscribe?.();
+        currentSubscriptionRef.current = subscribeRoom(client, selectedRoomId, (payload) => {
+          setMessages((prev) => {
+            const key = payload.id ?? `${payload.type}-${payload.sentAt}-${payload.content}`;
+            const exists = prev.some(
+              (message) =>
+                (message.id && payload.id && message.id === payload.id) ||
+                (!message.id && !payload.id && `${message.type}-${message.sentAt}-${message.content}` === key),
+            );
+
+            if (exists) {
+              return prev;
+            }
+            return [...prev, payload];
+          });
+          loadRooms(selectedRoomId);
+        });
+
+        try {
+          publishChat(client, {
+            senderId: currentMemberId,
+            receiverId: selectedRoom?.partnerUserId ?? null,
+            roomId: selectedRoomId,
+            email: member?.email || '',
+            type: 'ENTER',
+          });
+        } catch (error) {
+          console.error(error);
+        }
+      }
     };
 
-    window.addEventListener('open-direct-chat', handleOpenDirectChatEvent);
-    return () => window.removeEventListener('open-direct-chat', handleOpenDirectChatEvent);
-  }, [openDirectChat]);
+    client.activate();
+    clientRef.current = client;
+  }, [currentMemberId, loadRooms, member?.email, selectedRoom?.partnerUserId, selectedRoomId]);
 
-  const submitMemberReply = () => {
+  useEffect(() => {
+    if (activePanel === 'member' && isLoggedIn) {
+      ensureSocketClient();
+      loadRooms();
+    }
+  }, [activePanel, ensureSocketClient, isLoggedIn, loadRooms]);
+
+  useEffect(() => {
+    return () => {
+      currentSubscriptionRef.current?.unsubscribe?.();
+      if (clientRef.current?.active) {
+        clientRef.current.deactivate();
+      }
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!isLoggedIn || !selectedRoomId) {
+      setMessages([]);
+      setHasMore(false);
+      setNextCursorId(null);
+      currentSubscriptionRef.current?.unsubscribe?.();
+      currentSubscriptionRef.current = null;
+      return;
+    }
+
+    let mounted = true;
+
+    const loadInitialMessages = async () => {
+      setMessagesLoading(true);
+      setMemberError('');
+
+      try {
+        const response = await getChatMessages(selectedRoomId, null, 50);
+        if (!mounted) {
+          return;
+        }
+
+        setMessages(response?.messages || []);
+        setHasMore(Boolean(response?.hasNext));
+        setNextCursorId(response?.nextCursorId ?? null);
+      } catch (error) {
+        if (!mounted) {
+          return;
+        }
+        setMemberError(error.message || '메시지를 불러오지 못했습니다.');
+      } finally {
+        if (mounted) {
+          setMessagesLoading(false);
+        }
+      }
+    };
+
+    loadInitialMessages();
+
+    const client = clientRef.current;
+    if (client?.connected) {
+      currentSubscriptionRef.current?.unsubscribe?.();
+      currentSubscriptionRef.current = subscribeRoom(client, selectedRoomId, (payload) => {
+        setMessages((prev) => {
+          const key = payload.id ?? `${payload.type}-${payload.sentAt}-${payload.content}`;
+          const exists = prev.some(
+            (message) =>
+              (message.id && payload.id && message.id === payload.id) ||
+              (!message.id && !payload.id && `${message.type}-${message.sentAt}-${message.content}` === key),
+          );
+
+          if (exists) {
+            return prev;
+          }
+          return [...prev, payload];
+        });
+        loadRooms(selectedRoomId);
+      });
+
+      try {
+        publishChat(client, {
+          senderId: currentMemberId,
+          receiverId: selectedRoom?.partnerUserId ?? null,
+          roomId: selectedRoomId,
+          email: member?.email || '',
+          type: 'ENTER',
+        });
+      } catch (error) {
+        console.error(error);
+      }
+    }
+
+    return () => {
+      mounted = false;
+    };
+  }, [currentMemberId, isLoggedIn, loadRooms, member?.email, selectedRoom?.partnerUserId, selectedRoomId]);
+
+  const loadOlderMessages = useCallback(async () => {
+    if (!selectedRoomId || !nextCursorId || loadingMore) {
+      return;
+    }
+
+    setLoadingMore(true);
+    setMemberError('');
+
+    try {
+      const response = await getChatMessages(selectedRoomId, nextCursorId, 50);
+      const olderMessages = response?.messages || [];
+      setMessages((prev) => [...olderMessages, ...prev]);
+      setHasMore(Boolean(response?.hasNext));
+      setNextCursorId(response?.nextCursorId ?? null);
+    } catch (error) {
+      setMemberError(error.message || '이전 메시지를 불러오지 못했습니다.');
+    } finally {
+      setLoadingMore(false);
+    }
+  }, [loadingMore, nextCursorId, selectedRoomId]);
+
+  const submitMemberReply = useCallback(async () => {
     const nextText = memberReply.trim();
-    if (!nextText || !selectedRoom || !currentMember || !socketRef.current?.isConnected()) {
+    if (!nextText || !selectedRoom || !currentMemberId) {
+      return;
+    }
+
+    const client = clientRef.current;
+    if (!client?.connected) {
+      setMemberError('채팅 서버 연결이 아직 완료되지 않았습니다. 잠시 후 다시 시도해 주세요.');
       return;
     }
 
     try {
-      socketRef.current.publish('/pub/chat/message', {
-        senderId: currentMember.id,
+      setSendLoading(true);
+      setMemberError('');
+
+      publishChat(client, {
+        senderId: currentMemberId,
         receiverId: selectedRoom.partnerUserId,
-        email: currentMember.email,
         roomId: selectedRoom.roomId,
+        email: member?.email || '',
         content: nextText,
         type: 'TALK',
       });
+
       setMemberReply('');
-      setChatError('');
+      loadRooms(selectedRoom.roomId);
     } catch (error) {
-      setChatError(error.message || '메시지 전송에 실패했습니다.');
+      setMemberError(error.message || '메시지 전송에 실패했습니다.');
+    } finally {
+      setSendLoading(false);
     }
-  };
+  }, [currentMemberId, loadRooms, member?.email, memberReply, selectedRoom]);
+
+  useEffect(() => {
+    const handleOpenDirectChat = async (event) => {
+      const partnerUserId = event?.detail?.partnerUserId;
+      if (!partnerUserId) {
+        return;
+      }
+
+      if (!isLoggedIn || !currentMemberId) {
+        navigate('/login');
+        return;
+      }
+
+      if (partnerUserId === currentMemberId) {
+        setMemberError('본인과의 채팅은 시작할 수 없습니다.');
+        return;
+      }
+
+      try {
+        setActivePanel('member');
+        ensureSocketClient();
+        const response = await createDirectRoom(currentMemberId, partnerUserId);
+        const roomId = response?.roomId;
+        await loadRooms(roomId);
+        setSelectedRoomId(roomId);
+      } catch (error) {
+        setMemberError(error.message || '채팅방을 여는 데 실패했습니다.');
+        setActivePanel('member');
+      }
+    };
+
+    window.addEventListener('open-direct-chat', handleOpenDirectChat);
+    return () => window.removeEventListener('open-direct-chat', handleOpenDirectChat);
+  }, [currentMemberId, ensureSocketClient, isLoggedIn, loadRooms, navigate]);
 
   const toggleLauncher = () => {
     setActivePanel((prev) => (prev ? null : 'menu'));
@@ -526,7 +363,7 @@ export default function GlobalAiChatbotButton() {
     <div className="fixed right-6 bottom-24 md:right-10 md:bottom-10 z-[60]">
       <div
         className={[
-          'absolute right-0 bottom-20 md:bottom-24 w-52 bg-white border border-outline rounded-xl shadow-xl p-2',
+          'absolute right-0 bottom-20 md:bottom-24 w-44 bg-white border border-outline rounded-xl shadow-xl p-2',
           'transition-all duration-200 origin-bottom-right',
           activePanel === 'menu' ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-2 pointer-events-none',
         ].join(' ')}
@@ -553,19 +390,16 @@ export default function GlobalAiChatbotButton() {
           inactiveClassName="text-on-surface hover:bg-primary-soft"
           icon={<span className="material-symbols-outlined text-[18px]">forum</span>}
           iconPosition="left"
+          disabled={!isLoggedIn}
           onClick={() => {
             if (!isLoggedIn) {
               return;
             }
             setActivePanel('member');
           }}
-          disabled={!isLoggedIn}
         >
           회원 메시지함
         </CommonButton>
-        {!isLoggedIn ? (
-          <p className="mt-2 px-3 text-[11px] leading-4 text-on-surface-variant">회원 메시지함은 로그인 후 사용할 수 있습니다.</p>
-        ) : null}
       </div>
 
       <GlobalAiChatbotPanel
@@ -582,41 +416,36 @@ export default function GlobalAiChatbotButton() {
         isOpen={activePanel === 'member'}
         isLoggedIn={isLoggedIn}
         rooms={rooms}
+        roomsLoading={roomsLoading}
         selectedRoomId={selectedRoomId}
-        onSelectRoom={handleSelectRoom}
-        messages={selectedRoomState.messages}
-        loadingRooms={loadingRooms}
-        loadingMessages={loadingRoomId === selectedRoomId}
-        connected={isSocketConnected}
-        historyHasNext={selectedRoomState.hasNext}
-        onLoadOlder={handleLoadOlderMessages}
+        messages={messages}
+        messagesLoading={messagesLoading}
+        hasMore={hasMore}
+        loadingMore={loadingMore}
         replyValue={memberReply}
+        sendLoading={sendLoading}
+        memberError={memberError}
+        onSelectConversation={setSelectedRoomId}
         onReplyChange={setMemberReply}
         onSendReply={submitMemberReply}
-        onRefreshRooms={() => refreshRooms({ preserveSelection: true })}
+        onLoadMore={loadOlderMessages}
         onClose={() => setActivePanel(null)}
-        errorMessage={chatError}
+        onGoLogin={() => navigate('/login')}
+        currentMemberId={currentMemberId}
+        currentMemberType={currentMemberType}
       />
 
-      <div className="relative">
-        <CommonButton
-          variant="fab"
-          size="fab"
-          className="shadow-2xl"
-          aria-label="대타 메시지 도구 열기"
-          onClick={toggleLauncher}
-        >
-          <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-            {activePanel ? 'close' : 'chat_bubble'}
-          </span>
-        </CommonButton>
-
-        {isLoggedIn && totalUnreadCount > 0 ? (
-          <span className="absolute -top-1 -right-1 min-w-6 h-6 px-1 rounded-full bg-red-500 text-white text-[11px] font-bold flex items-center justify-center border-2 border-white shadow-md">
-            {totalUnreadCount > 99 ? '99+' : totalUnreadCount}
-          </span>
-        ) : null}
-      </div>
+      <CommonButton
+        variant="fab"
+        size="fab"
+        className="shadow-2xl"
+        aria-label="대타 메시지 도구 열기"
+        onClick={toggleLauncher}
+      >
+        <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+          {activePanel ? 'close' : 'chat_bubble'}
+        </span>
+      </CommonButton>
     </div>
   );
 }

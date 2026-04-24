@@ -1,103 +1,56 @@
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+import { Client } from '@stomp/stompjs';
+import SockJS from 'sockjs-client/dist/sockjs';
 
-function buildSocketUrl() {
-  return `${API_BASE}/ws-connect`;
-}
+const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/+$/, '');
 
-export function createChatSocketClient({ email, onConnect, onDisconnect, onMessage, onError }) {
-  const SockJS = window.SockJS;
-  const StompJs = window.StompJs;
-
-  if (!SockJS || !StompJs?.Client) {
-    throw new Error('채팅 라이브러리를 불러오지 못했습니다. 페이지를 새로고침 해주세요.');
-  }
-
-  const subscriptions = new Map();
-
-  const client = new StompJs.Client({
-    webSocketFactory: () => new SockJS(buildSocketUrl()),
-    connectHeaders: {
-      email: email || '',
-    },
+export function createChatClient({ email, onConnect, onError }) {
+  const client = new Client({
+    webSocketFactory: () => new SockJS(`${API_BASE}/ws-connect`),
+    connectHeaders: email ? { email } : {},
     reconnectDelay: 3000,
     heartbeatIncoming: 10000,
     heartbeatOutgoing: 10000,
     debug: () => {},
-    onConnect: () => {
-      onConnect?.();
+    onConnect: (frame) => {
+      onConnect?.(frame);
     },
     onStompError: (frame) => {
-      const message = frame?.headers?.message || '채팅 서버와 통신 중 오류가 발생했습니다.';
-      onError?.(message);
-    },
-    onWebSocketClose: () => {
-      onDisconnect?.();
+      onError?.(new Error(frame.headers?.message || 'STOMP 오류가 발생했습니다.'));
     },
     onWebSocketError: () => {
-      onError?.('채팅 소켓 연결 중 오류가 발생했습니다.');
+      onError?.(new Error('웹소켓 연결 중 오류가 발생했습니다.'));
     },
   });
 
-  return {
-    activate() {
-      client.activate();
-    },
-    async deactivate() {
-      subscriptions.clear();
-      await client.deactivate();
-    },
-    isConnected() {
-      return client.connected;
-    },
-    subscribe(destination) {
-      if (!client.connected || subscriptions.has(destination)) {
-        return;
-      }
+  return client;
+}
 
-      const subscription = client.subscribe(destination, (message) => {
-        try {
-          const payload = JSON.parse(message.body);
-          onMessage?.(payload, destination);
-        } catch (error) {
-          onError?.('채팅 메시지를 읽는 중 오류가 발생했습니다.');
-        }
-      });
+export function subscribeRoom(client, roomId, onMessage) {
+  if (!client || !client.connected || !roomId) {
+    return null;
+  }
 
-      subscriptions.set(destination, subscription);
-    },
-    unsubscribe(destination) {
-      const subscription = subscriptions.get(destination);
-      if (!subscription) {
-        return;
-      }
+  return client.subscribe(`/sub/room/${roomId}`, (messageFrame) => {
+    if (!messageFrame?.body) {
+      return;
+    }
 
-      subscription.unsubscribe();
-      subscriptions.delete(destination);
-    },
-    syncSubscriptions(destinations = []) {
-      const next = new Set(destinations);
+    try {
+      const payload = JSON.parse(messageFrame.body);
+      onMessage?.(payload);
+    } catch (error) {
+      console.error('채팅 메시지 파싱 실패:', error);
+    }
+  });
+}
 
-      Array.from(subscriptions.keys()).forEach((destination) => {
-        if (!next.has(destination)) {
-          this.unsubscribe(destination);
-        }
-      });
+export function publishChat(client, payload) {
+  if (!client || !client.connected) {
+    throw new Error('채팅 서버와 연결되어 있지 않습니다.');
+  }
 
-      destinations.forEach((destination) => {
-        if (!subscriptions.has(destination)) {
-          this.subscribe(destination);
-        }
-      });
-    },
-    publish(destination, payload) {
-      if (!client.connected) {
-        throw new Error('채팅 서버에 아직 연결되지 않았습니다.');
-      }
-
-      client.publish({
-        destination,
-        body: JSON.stringify(payload),
-      });
-    },
-  };
+  client.publish({
+    destination: '/pub/chat/message',
+    body: JSON.stringify(payload),
+  });
 }
