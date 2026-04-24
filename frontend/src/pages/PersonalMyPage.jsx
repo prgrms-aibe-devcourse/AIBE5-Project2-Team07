@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import TopNavBarLoggedIn from '../components/TopNavBarLoggedIn';
 import AppFooter from '../components/AppFooter';
 
@@ -14,6 +15,7 @@ import { getMyAccount } from '../services/accountApi';
 import { getMyResume } from '../services/resumeApi';
 
 export default function PersonalMyPage() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [account, setAccount] = useState(null);
   const [resume, setResume] = useState(null);
@@ -49,6 +51,20 @@ export default function PersonalMyPage() {
     loadMyPageData();
   }, []);
 
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    const allowedTabs = ['dashboard', 'work', 'resume', 'review', 'scrap', 'info'];
+
+    if (tab && allowedTabs.includes(tab) && tab !== activeTab) {
+      setActiveTab(tab);
+    }
+  }, [activeTab, searchParams]);
+
+  const handleTabChange = (nextTab) => {
+    setActiveTab(nextTab);
+    setSearchParams(nextTab === 'dashboard' ? {} : { tab: nextTab });
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
@@ -58,8 +74,8 @@ export default function PersonalMyPage() {
                 resume={resume}
                 loading={loading}
                 error={error}
-                onMoveInfo={() => setActiveTab('info')}
-                onMoveResume={() => setActiveTab('resume')}
+                onMoveInfo={() => handleTabChange('info')}
+                onMoveResume={() => handleTabChange('resume')}
             />
         );
 
@@ -95,8 +111,8 @@ export default function PersonalMyPage() {
                 resume={resume}
                 loading={loading}
                 error={error}
-                onMoveInfo={() => setActiveTab('info')}
-                onMoveResume={() => setActiveTab('resume')}
+                onMoveInfo={() => handleTabChange('info')}
+                onMoveResume={() => handleTabChange('resume')}
             />
         );
     }
@@ -107,7 +123,7 @@ export default function PersonalMyPage() {
         <TopNavBarLoggedIn />
 
         <main className="flex-grow w-full custom-container pt-28 pb-12 flex flex-col lg:flex-row gap-8 items-start">
-          <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+          <Sidebar activeTab={activeTab} setActiveTab={handleTabChange} />
 
           <div className="flex-1 min-w-0 w-full">
             {renderContent()}

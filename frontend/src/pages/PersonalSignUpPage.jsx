@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import TopNavBar from '../components/TopNavBar';
 import AppFooter from '../components/AppFooter';
 import CommonButton from '../components/CommonButton';
-import AddressSearchField from '../components/AddressSearchField';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
@@ -83,7 +82,7 @@ export default function PersonalSignupPage() {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result?.error || '회원가입에 실패했습니다.');
+        throw new Error(result?.error || result?.message || '회원가입에 실패했습니다.');
       }
 
       setSuccess('개인회원 가입이 완료되었습니다.');
@@ -108,6 +107,22 @@ export default function PersonalSignupPage() {
               <p className="text-on-surface-variant text-sm mb-8">
                 기본 정보를 입력하고 대타 서비스를 시작해보세요.
               </p>
+
+              <div className="grid grid-cols-2 gap-2 mb-8 p-1 rounded-2xl bg-[#F8F9FA] border border-outline">
+                <button
+                    type="button"
+                    className="px-4 py-3 rounded-xl bg-primary text-white font-bold text-sm"
+                >
+                  개인회원
+                </button>
+                <button
+                    type="button"
+                    onClick={() => navigate('/signup/business')}
+                    className="px-4 py-3 rounded-xl text-on-surface-variant font-bold text-sm hover:bg-white transition-colors"
+                >
+                  사업자회원
+                </button>
+              </div>
 
               <form className="space-y-4" onSubmit={handleSubmit}>
                 <div>

@@ -9,4 +9,5 @@ import java.util.Optional;
 public interface BusinessProfileRepository extends JpaRepository<BusinessProfile, Long> {
     @Query("SELECT bp FROM BusinessProfile bp WHERE bp.memberId = :memberId")
     Optional<BusinessProfile> findByMemberId(@Param("memberId") Long memberId);
+
 }

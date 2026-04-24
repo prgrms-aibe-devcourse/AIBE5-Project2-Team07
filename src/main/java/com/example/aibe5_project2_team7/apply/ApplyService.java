@@ -25,7 +25,6 @@ import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
-import java.util.Optional;
 
 @Service
 @Transactional
@@ -270,7 +269,6 @@ public class ApplyService {
         Member member = memberRepository.findById(apply.getIndividualId())
                 .orElseThrow(EntityNotFoundException::new);
         dto.setIndividualName(member.getName());
-
         return dto;
     }
 
