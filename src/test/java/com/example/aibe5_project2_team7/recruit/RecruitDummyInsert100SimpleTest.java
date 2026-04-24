@@ -77,7 +77,7 @@ class RecruitDummyInsert100SimpleTest {
         Times time = pickTime(index);
         SalaryType salaryType = pickSalaryType(index);
 
-        recruit.setBusinessMemberId((long) ((index % 20) + 1));
+        recruit.setBusinessMemberId((long) ((index % 50) + 1001));
         recruit.setTitle(buildTitle(index, seed, businessTypeName));
         recruit.setBrand(null);
         recruit.setUrgent(index % 7 == 0);
