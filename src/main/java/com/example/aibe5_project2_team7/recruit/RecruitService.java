@@ -213,6 +213,7 @@ public class RecruitService {
                 .homepageUrl(profile != null ? profile.getHomepageUrl() : null)
                 .latitude(recruit.getLatitude())      // 엔티티에 latitude 필드 있으면 추가
                 .longitude(recruit.getLongitude())    // 엔티티에 longitude 필드 있으면 추가
+                .businessMemberId(recruit.getBusinessMemberId())
                 // reviewSummary → 리뷰 기능 구현 후 추가 예정
                 // applyStatus  → 로그인/지원 기능 구현 후 추가 예정
                 .build();

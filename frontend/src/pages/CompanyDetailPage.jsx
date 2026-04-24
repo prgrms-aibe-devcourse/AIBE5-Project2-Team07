@@ -27,14 +27,6 @@ async function fetchJsonWithFallback(path, options = {}) {
   throw lastError || new Error('기업 정보를 불러오지 못했습니다.');
 }
 
-async function fetchRecruitsFallback(path) {
-  try {
-    const response = await fetch(path);
-    if (response.ok) return response.json();
-  } catch { /* ignore */ }
-  return null;
-}
-
 function resolveImageUrl(rawUrl) {
   if (!rawUrl) return '';
   if (/^(https?:)?\/\//.test(rawUrl) || rawUrl.startsWith('data:') || rawUrl.startsWith('blob:')) return rawUrl;
@@ -70,12 +62,25 @@ function renderStars(rating, className = 'text-lg') {
   return (
     <div className="flex text-primary">
       {Array.from({ length: 5 }).map((_, index) => (
-        <span key={`star-${index}`} className={`material-symbols-outlined ${className}`}>
+        <span
+          key={`star-${index}`}
+          className={`material-symbols-outlined ${className}`}
+          style={index < safeRating ? { fontVariationSettings: "'FILL' 1" } : {}}
+        >
           {index < safeRating ? 'star' : 'star_outline'}
         </span>
       ))}
     </div>
   );
+}
+
+function maskName(name) {
+  if (!name || typeof name !== 'string') return null;
+  const s = name.trim();
+  if (s.length === 0) return null;
+  if (s.length === 1) return s;
+  if (s.length === 2) return s[0] + '*';
+  return s[0] + '*' + s[s.length - 1];
 }
 
 export default function CompanyDetailPage() {
@@ -94,6 +99,10 @@ export default function CompanyDetailPage() {
   const [reviewLoading, setReviewLoading] = useState(false);
   const [reviewError, setReviewError] = useState('');
   const [showReviewModal, setShowReviewModal] = useState(false);
+  const reviewTargetId = useMemo(
+    () => recruitDetail?.businessMemberId ?? brandSummary?.businessMemberId ?? null,
+    [recruitDetail?.businessMemberId, brandSummary?.businessMemberId]
+  );
 
   useEffect(() => { window.scrollTo(0, 0); }, []);
 
@@ -129,27 +138,18 @@ export default function CompanyDetailPage() {
   // 모집중인 공고 로드
   useEffect(() => {
     const loadRecruits = async () => {
-      const resolvedBrandId = brandId || recruitDetail?.brandId;
       const businessMemberId = recruitDetail?.businessMemberId;
-      const fallbackCompanyName = (recruitDetail?.companyName || brandSummary?.name || '').trim();
 
       setRecruitsLoading(true);
       try {
         let list = [];
 
-        if (resolvedBrandId) {
-          const data = await fetchRecruitsFallback(`/api/brand/${resolvedBrandId}/recruits?page=1`);
-          list = Array.isArray(data?.recruits) ? data.recruits : [];
-        } else if (businessMemberId != null) {
+        if (businessMemberId != null) {
           const data = await fetchJsonWithFallback(`/recruits/business/${businessMemberId}`, { prefixes: [''] });
           list = Array.isArray(data) ? data : [];
         } else {
-          // 구형 상세 응답(사업자 ID 미포함) 대비: 전체 목록에서 회사명 기준으로 fallback
-          const data = await fetchJsonWithFallback('/recruits?page=1&size=100', { prefixes: ['/api'] });
-          const content = Array.isArray(data?.content) ? data.content : [];
-          list = fallbackCompanyName
-            ? content.filter((item) => String(item?.companyName || '').trim() === fallbackCompanyName)
-            : content;
+          // 사업자 식별자가 없으면 지점 단위 필터가 불가능하므로 빈 목록 처리
+          list = [];
         }
 
         const currentRecruitId = Number(recruitId);
@@ -169,11 +169,10 @@ export default function CompanyDetailPage() {
       }
     };
     if (!loading) loadRecruits();
-  }, [loading, brandId, recruitDetail, recruitId, brandSummary]);
+  }, [loading, recruitDetail, recruitId]);
 
   useEffect(() => {
-    const businessMemberId = recruitDetail?.businessMemberId;
-    if (!businessMemberId) {
+    if (!reviewTargetId) {
       setReviews([]);
       return;
     }
@@ -182,7 +181,7 @@ export default function CompanyDetailPage() {
       try {
         setReviewLoading(true);
         setReviewError('');
-        const response = await getPublicReviewsByTarget(businessMemberId);
+        const response = await getPublicReviewsByTarget(reviewTargetId);
         const list = Array.isArray(response) ? response.map(normalizeReview) : [];
         setReviews(list);
       } catch (fetchError) {
@@ -194,7 +193,7 @@ export default function CompanyDetailPage() {
     };
 
     loadReviews();
-  }, [recruitDetail?.businessMemberId]);
+  }, [reviewTargetId]);
 
   const companyName = useMemo(() => recruitDetail?.companyName || brandSummary?.name || '-', [recruitDetail, brandSummary]);
   const logoUrl = useMemo(() => {
@@ -230,6 +229,18 @@ export default function CompanyDetailPage() {
     const sum = sortedReviews.reduce((acc, review) => acc + Number(review?.rating || 0), 0);
     return sum / sortedReviews.length;
   }, [sortedReviews]);
+  const memberAverageRating = useMemo(() => {
+    const candidates = [recruitDetail, brandSummary];
+    for (const source of candidates) {
+      const ratingSum = Number(source?.ratingSum);
+      const ratingCount = Number(source?.ratingCount);
+      if (Number.isFinite(ratingSum) && Number.isFinite(ratingCount) && ratingCount > 0) {
+        return ratingSum / ratingCount;
+      }
+    }
+    return null;
+  }, [recruitDetail, brandSummary]);
+  const displayAverageRating = memberAverageRating ?? averageRating;
   const topLabels = useMemo(() => {
     const labelCountMap = new Map();
     sortedReviews.forEach((review) => {
@@ -324,8 +335,7 @@ export default function CompanyDetailPage() {
                   <button
                     type="button"
                     onClick={() => setShowReviewModal(true)}
-                    disabled={sortedReviews.length === 0}
-                    className="border border-outline rounded-lg px-4 py-2 text-sm font-bold hover:bg-surface-variant transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="border border-outline rounded-lg px-4 py-2 text-sm font-bold hover:bg-surface-variant transition-colors"
                   >
                     리뷰 더보기 +
                   </button>
@@ -336,8 +346,8 @@ export default function CompanyDetailPage() {
                 {!reviewLoading && !reviewError && (
                   <>
                     <div className="flex flex-wrap items-center gap-2 mb-4">
-                      {renderStars(averageRating)}
-                      <span className="font-black text-lg">{averageRating.toFixed(1)}</span>
+                      {renderStars(displayAverageRating)}
+                      <span className="font-black text-lg">{displayAverageRating.toFixed(1)}</span>
                       <span className="text-on-surface-variant">/ 5.0</span>
                       <span className="text-on-surface-variant text-sm">리뷰 {sortedReviews.length}개</span>
                     </div>
@@ -369,7 +379,7 @@ export default function CompanyDetailPage() {
                                   {label}
                                 </span>
                               ))}
-                              <span className="text-xs text-on-surface-variant">작성자 #{review.writerId}</span>
+                              <span className="text-xs text-on-surface-variant">{maskName(review.writerName) || (review.writerId ? `작성자 #${review.writerId}` : '작성자')}</span>
                             </div>
                           </div>
                         ))}

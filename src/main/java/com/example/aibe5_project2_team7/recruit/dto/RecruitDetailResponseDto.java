@@ -35,5 +35,6 @@ public class RecruitDetailResponseDto { //공고 상세 조회할 때
     private String applyStatus;         // 로그인 유저의 지원 상태
     private Double latitude;   // 위도
     private Double longitude;  // 경도
+    private Long businessMemberId; // 작성한 사업자 멤버 아이디
 
 }

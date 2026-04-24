@@ -175,12 +175,25 @@ function renderStars(rating, className = 'text-lg') {
   return (
     <div className="flex text-primary">
       {Array.from({ length: 5 }).map((_, index) => (
-        <span key={`star-${index}`} className={`material-symbols-outlined ${className}`}>
+        <span
+          key={`star-${index}`}
+          className={`material-symbols-outlined ${className}`}
+          style={index < safeRating ? { fontVariationSettings: "'FILL' 1" } : {}}
+        >
           {index < safeRating ? 'star' : 'star_outline'}
         </span>
       ))}
     </div>
   );
+}
+
+function maskName(name) {
+  if (!name || typeof name !== 'string') return null;
+  const s = name.trim();
+  if (s.length === 0) return null;
+  if (s.length === 1) return s;
+  if (s.length === 2) return s[0] + '*';
+  return s[0] + '*' + s[s.length - 1];
 }
 
 function resolveImageUrl(rawUrl) {
@@ -221,6 +234,10 @@ export default function RecruitDetailPage() {
   const [reviewError, setReviewError] = useState('');
   const [showReviewModal, setShowReviewModal] = useState(false);
   const navigate = useNavigate();
+  const reviewTargetId = useMemo(
+    () => detail?.businessMemberId ?? detail?.memberId ?? null,
+    [detail?.businessMemberId, detail?.memberId]
+  );
 
   useEffect(() => {
     const fetchRecruitDetail = async () => {
@@ -247,8 +264,7 @@ export default function RecruitDetailPage() {
   }, [recruitId]);
 
   useEffect(() => {
-    const businessMemberId = detail?.businessMemberId;
-    if (!businessMemberId) {
+    if (!reviewTargetId) {
       setReviews([]);
       return;
     }
@@ -257,7 +273,7 @@ export default function RecruitDetailPage() {
       try {
         setReviewLoading(true);
         setReviewError('');
-        const response = await getPublicReviewsByTarget(businessMemberId);
+        const response = await getPublicReviewsByTarget(reviewTargetId);
         const list = Array.isArray(response) ? response.map(normalizeReview) : [];
         setReviews(list);
       } catch (fetchError) {
@@ -269,7 +285,7 @@ export default function RecruitDetailPage() {
     };
 
     loadReviews();
-  }, [detail?.businessMemberId]);
+  }, [reviewTargetId]);
 
   useEffect(() => {
     let isMounted = true;
@@ -418,6 +434,13 @@ export default function RecruitDetailPage() {
     const sum = sortedReviews.reduce((acc, review) => acc + Number(review?.rating || 0), 0);
     return sum / sortedReviews.length;
   }, [sortedReviews]);
+  const memberAverageRating = useMemo(() => {
+    const ratingSum = Number(detail?.ratingSum);
+    const ratingCount = Number(detail?.ratingCount);
+    if (!Number.isFinite(ratingSum) || !Number.isFinite(ratingCount) || ratingCount <= 0) return null;
+    return ratingSum / ratingCount;
+  }, [detail?.ratingSum, detail?.ratingCount]);
+  const displayAverageRating = memberAverageRating ?? averageRating;
   const topLabels = useMemo(() => {
     const labelCountMap = new Map();
     sortedReviews.forEach((review) => {
@@ -634,7 +657,6 @@ export default function RecruitDetailPage() {
                     type="button"
                     className="text-primary text-xs font-bold hover:underline"
                     onClick={() => setShowReviewModal(true)}
-                    disabled={sortedReviews.length === 0}
                   >
                     리뷰 더보기 +
                   </button>
@@ -646,8 +668,8 @@ export default function RecruitDetailPage() {
                 {!reviewLoading && !reviewError && (
                   <>
                     <div className="flex flex-wrap items-center gap-2 mb-5">
-                      {renderStars(averageRating)}
-                      <span className="font-black text-lg text-on-surface">{averageRating.toFixed(1)}</span>
+                      {renderStars(displayAverageRating)}
+                      <span className="font-black text-lg text-on-surface">{displayAverageRating.toFixed(1)}</span>
                       <span className="text-on-surface-variant text-sm">/ 5.0 · 리뷰 {sortedReviews.length}개</span>
                     </div>
 
