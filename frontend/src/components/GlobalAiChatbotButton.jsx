@@ -4,7 +4,7 @@ import CommonButton from './CommonButton';
 import GlobalAiChatbotPanel from './GlobalAiChatbotPanel';
 import GlobalMemberMessagePanel from './GlobalMemberMessagePanel';
 import { getStoredMember } from '../services/authApi';
-import { getChatHistory, getMyChatRooms } from '../services/chatApi';
+import { getChatHistory, getMyChatRooms, getDirectRoom } from '../services/chatApi';
 import { createChatSocketClient } from '../services/chatSocket';
 
 function readCurrentMember() {
@@ -155,7 +155,7 @@ export default function GlobalAiChatbotButton() {
     socketRef.current.syncSubscriptions(destinations);
   }, []);
 
-  const refreshRooms = useCallback(async ({ preserveSelection = true, selectFirstRoom = false } = {}) => {
+  const refreshRooms = useCallback(async ({ preserveSelection = true, selectFirstRoom = false, preferredRoomId = null } = {}) => {
     if (!memberRef.current?.id) {
       return [];
     }
@@ -171,10 +171,15 @@ export default function GlobalAiChatbotButton() {
       syncRoomSubscriptions(normalizedRooms);
 
       const previousSelected = preserveSelection ? selectedRoomIdRef.current : null;
+      const preferredSelected =
+        preferredRoomId && normalizedRooms.some((room) => room.roomId === preferredRoomId)
+          ? preferredRoomId
+          : null;
       const nextSelectedRoomId =
-        previousSelected && normalizedRooms.some((room) => room.roomId === previousSelected)
+        preferredSelected ||
+        (previousSelected && normalizedRooms.some((room) => room.roomId === previousSelected)
           ? previousSelected
-          : normalizedRooms[0]?.roomId || null;
+          : normalizedRooms[0]?.roomId || null);
 
       setSelectedRoomId(nextSelectedRoomId);
 
@@ -428,6 +433,68 @@ export default function GlobalAiChatbotButton() {
       appendOlder: true,
     });
   };
+
+  const openDirectChat = useCallback(async ({ targetUserId }) => {
+    if (!memberRef.current?.id) {
+      setActivePanel('menu');
+      setChatError('로그인 후 채팅을 시작할 수 있습니다.');
+      return;
+    }
+
+    if (!targetUserId) {
+      setChatError('채팅을 시작할 회원 정보를 찾지 못했습니다.');
+      return;
+    }
+
+    if (memberRef.current.id === targetUserId) {
+      setChatError('본인과의 채팅은 시작할 수 없습니다.');
+      return;
+    }
+
+    setActivePanel('member');
+    setChatError('');
+
+    try {
+      const result = await getDirectRoom(memberRef.current.id, targetUserId);
+      const roomId = result?.roomId;
+
+      if (!roomId) {
+        throw new Error('채팅방 정보를 받아오지 못했습니다.');
+      }
+
+      const refreshedRooms = await refreshRooms({ preserveSelection: false, preferredRoomId: roomId });
+      let room = (refreshedRooms || []).find((item) => item.roomId === roomId) || null;
+
+      if (!room) {
+        room = {
+          roomId,
+          partnerUserId: targetUserId,
+          displayName: `${getRoleLabel(memberRef.current.memberType)} #${targetUserId}` ,
+          roleLabel: getRoleLabel(memberRef.current.memberType),
+          preview: '대화를 시작해보세요.',
+          lastMessageAt: null,
+          unreadCount: 0,
+        };
+        setRooms((prev) => sortRoomsByRecent([room, ...prev.filter((item) => item.roomId !== roomId)]));
+      }
+
+      setSelectedRoomId(roomId);
+      setMemberReply('');
+      await loadRoomMessages(roomId);
+      markRoomAsRead(room);
+    } catch (error) {
+      setChatError(error.message || '채팅방을 열지 못했습니다.');
+    }
+  }, [loadRoomMessages, markRoomAsRead, refreshRooms]);
+
+  useEffect(() => {
+    const handleOpenDirectChatEvent = (event) => {
+      openDirectChat({ targetUserId: event?.detail?.targetUserId });
+    };
+
+    window.addEventListener('open-direct-chat', handleOpenDirectChatEvent);
+    return () => window.removeEventListener('open-direct-chat', handleOpenDirectChatEvent);
+  }, [openDirectChat]);
 
   const submitMemberReply = () => {
     const nextText = memberReply.trim();

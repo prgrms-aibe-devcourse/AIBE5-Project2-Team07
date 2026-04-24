@@ -5,6 +5,7 @@ import MobileBottomNav from '../components/MobileBottomNav';
 import AppFooter from '../components/AppFooter';
 import CommonButton from '../components/CommonButton';
 import KakaoMap from '../components/KakaoMap';
+import { getStoredMember } from '../services/authApi';
 
 const API_PREFIXES = ['/api', ''];
 
@@ -147,12 +148,28 @@ export default function RecruitDetailPage() {
   const [searchParams] = useSearchParams();
   const recruitId = searchParams.get('recruitId');
 
-  const isLoggedIn = false;
+  const [currentMember, setCurrentMember] = useState(() => {
+    const token = localStorage.getItem('token');
+    const member = getStoredMember();
+    return token && member ? member : null;
+  });
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [detail, setDetail] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const navigate = useNavigate();
+  const isLoggedIn = Boolean(currentMember?.id);
+
+  useEffect(() => {
+    const syncMember = () => {
+      const token = localStorage.getItem('token');
+      const member = getStoredMember();
+      setCurrentMember(token && member ? member : null);
+    };
+
+    window.addEventListener('storage', syncMember);
+    return () => window.removeEventListener('storage', syncMember);
+  }, []);
 
   useEffect(() => {
     const fetchRecruitDetail = async () => {
@@ -221,6 +238,35 @@ export default function RecruitDetailPage() {
     } else {
       setShowLoginModal(true);
     }
+  };
+
+  const handleChatClick = () => {
+    if (!isLoggedIn) {
+      setShowLoginModal(true);
+      return;
+    }
+
+    const targetMemberId = detail?.businessMemberId;
+    if (!targetMemberId) {
+      window.alert('채팅을 시작할 회원 정보를 찾지 못했습니다.');
+      return;
+    }
+
+    if (currentMember?.id === targetMemberId) {
+      window.alert('본인 공고에는 채팅을 시작할 수 없습니다.');
+      return;
+    }
+
+    window.dispatchEvent(
+      new CustomEvent('open-direct-chat', {
+        detail: {
+          targetUserId: targetMemberId,
+          recruitId: detail?.id ?? null,
+          recruitTitle: detail?.title ?? '',
+          companyName: detail?.companyName ?? '',
+        },
+      }),
+    );
   };
 
   return (
@@ -402,6 +448,15 @@ export default function RecruitDetailPage() {
           </div>
           <div className="h-10 w-px bg-outline/30 mx-2 hidden md:block"></div>
           <div className="flex-1 flex gap-3">
+            <CommonButton
+              variant="subtle"
+              size="full"
+              onClick={handleChatClick}
+              className={`flex-1 rounded-xl ${currentMember?.id === detail?.businessMemberId ? 'bg-gray-200 text-gray-500 cursor-not-allowed hover:bg-gray-200' : 'bg-surface-container hover:bg-surface-variant'}`}
+              disabled={currentMember?.id === detail?.businessMemberId}
+            >
+              채팅하기
+            </CommonButton>
             <CommonButton
               variant="subtle"
               size="full"
