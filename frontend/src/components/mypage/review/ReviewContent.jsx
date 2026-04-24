@@ -540,6 +540,7 @@ export default function ReviewContent({ account }) {
                 loading={loadingAction || loadingReviewableApplies}
                 onClose={() => setModalOpen(false)}
                 reviewableApplies={reviewableApplies}
+                accountMemberType={account?.memberType}
                 onSubmit={(form, selectedApply) => {
                     if (modalMode === 'create') {
                         handleCreateReview(form, selectedApply);

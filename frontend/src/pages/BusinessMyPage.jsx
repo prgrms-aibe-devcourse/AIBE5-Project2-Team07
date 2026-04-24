@@ -11,7 +11,7 @@ import BusinessApplicantsTab from '../components/business-mypage/tabs/BusinessAp
 import BusinessReviewsTab from '../components/business-mypage/tabs/BusinessReviewsTab';
 import BusinessWorkTab from '../components/business-mypage/tabs/BusinessWorkTab';
 import BusinessScrapTab from '../components/business-mypage/tabs/BusinessScrapTab';
-import { getMyBusinessAccountSummary } from '../services/accountApi';
+import { getMyBusinessAccountMe, getMyBusinessAccountSummary } from '../services/accountApi';
 
 const validTabs = new Set(businessSidebarItems.map((item) => item.id));
 
@@ -30,11 +30,32 @@ export default function BusinessMyPage() {
   useEffect(() => {
     let mounted = true;
 
+    const resolveBrandLogoUrl = async (brandId) => {
+      if (brandId == null) return '';
+      try {
+        const response = await fetch(`/api/brand/${encodeURIComponent(brandId)}/summary`);
+        if (!response.ok) return '';
+        const result = await response.json();
+        return result?.logoImg || '';
+      } catch {
+        return '';
+      }
+    };
+
     const fetchCompanySummary = async () => {
       try {
-        const data = await getMyBusinessAccountSummary();
+        const [summary, me] = await Promise.all([
+          getMyBusinessAccountSummary(),
+          getMyBusinessAccountMe(),
+        ]);
+        const brandLogoUrl = await resolveBrandLogoUrl(me?.brandId);
         if (mounted) {
-          setCompanySummary(data);
+          setCompanySummary({
+            ...summary,
+            brandId: me?.brandId ?? null,
+            brandLogoUrl,
+            companyImageUrl: me?.companyImageUrl || summary?.companyImageUrl || '',
+          });
         }
       } catch {
         if (mounted) {
