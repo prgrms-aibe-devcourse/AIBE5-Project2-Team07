@@ -3,42 +3,37 @@ import { useNavigate } from 'react-router-dom';
 import TopNavBarLoggedIn from '../components/TopNavBarLoggedIn';
 import AppFooter from '../components/AppFooter';
 import CommonButton from '../components/CommonButton';
+import AddressSearchField from '../components/AddressSearchField';
+import BrandModal from '../components/BrandModal';
 import {
   getMyBusinessAccountMe,
   updateMyBusinessCompanyAccount,
   updateMyBusinessMemberAccount,
   updateMyBusinessPasswordAccount,
 } from '../services/accountApi';
+import { uploadCompanyLogo } from '../services/fileApi';
 import BusinessSidebar from '../components/business-mypage/BusinessSidebar';
-
-const sidoOptions = [
-  '서울특별시', '부산광역시', '대구광역시', '인천광역시', '광주광역시', '대전광역시', '울산광역시',
-  '세종특별자치시', '경기도', '강원특별자치도', '충청북도', '충청남도', '전북특별자치도', '전라남도',
-  '경상북도', '경상남도', '제주특별자치도',
-];
 
 function BusinessCompanyEditPage() {
   const navigate = useNavigate();
 
   const [form, setForm] = useState({
-    companyName: '하드코딩',
-    businessNumber: '하드코딩',
+    companyName: '',
+    businessNumber: '',
     foundedDate: '',
-    companyPhone: '하드코딩',
+    companyPhone: '',
     homepageUrl: '',
-    address: '하드코딩',
-    contactName: '하드코딩',
-    contactPhone: '하드코딩',
-    contactEmail: '하드코딩',
+    address: '',
+    contactName: '',
+    contactPhone: '',
+    contactEmail: '',
     sido: '',
     sigungu: '',
   });
-  const [sigunguOptions, setSigunguOptions] = useState([]);
   const [selectedRegionId, setSelectedRegionId] = useState(null);
-  const [memberDetailAddress, setMemberDetailAddress] = useState('하드코딩');
-  const [isSidoOpen, setIsSidoOpen] = useState(false);
-  const [isSigunguOpen, setIsSigunguOpen] = useState(false);
+  const [memberDetailAddress, setMemberDetailAddress] = useState('');
   const [isCompanySaving, setIsCompanySaving] = useState(false);
+  const [isLogoUploading, setIsLogoUploading] = useState(false);
   const [isMemberSaving, setIsMemberSaving] = useState(false);
   const [isPasswordSaving, setIsPasswordSaving] = useState(false);
   const [passwordForm, setPasswordForm] = useState({
@@ -47,9 +42,18 @@ function BusinessCompanyEditPage() {
     newPasswordConfirm: '',
   });
   const [sidebarCompanySummary, setSidebarCompanySummary] = useState({
-    companyName: '하드코딩',
-    businessNumber: '하드코딩',
+    companyName: '',
+    businessNumber: '',
+    companyImageUrl: '',
+    brandId: null,
+    brandLogoUrl: '',
   });
+  const [companyAddressBase, setCompanyAddressBase] = useState('');
+  const [companyAddressDetail, setCompanyAddressDetail] = useState('');
+  const [memberAddressBase, setMemberAddressBase] = useState('');
+  const [isBrandModalOpen, setIsBrandModalOpen] = useState(false);
+  const [selectedBrandId, setSelectedBrandId] = useState(null);
+  const [selectedBrandName, setSelectedBrandName] = useState('');
 
   const handleChange = (event) => {
     const { name, value } = event.target;
@@ -75,31 +79,97 @@ function BusinessCompanyEditPage() {
     return Array.from(map.values());
   };
 
-  const handleSelectSido = async (sido) => {
-    setForm((prev) => ({ ...prev, sido, sigungu: '' }));
-    setSelectedRegionId(null);
-    setIsSidoOpen(false);
-    setIsSigunguOpen(false);
-
+  const resolveBrandLogoUrl = async (brandId) => {
+    if (brandId == null) return '';
     try {
-      const options = await fetchSigunguOptionsBySido(sido);
-      setSigunguOptions(options);
+      const response = await fetch(`/api/brand/${encodeURIComponent(brandId)}/summary`);
+      if (!response.ok) return '';
+      const result = await response.json();
+      return result?.logoImg || '';
     } catch {
-      setSigunguOptions([]);
+      return '';
     }
   };
 
-  const handleSelectSigungu = (sigungu) => {
-    const selected = sigunguOptions.find((opt) => opt.sigungu === sigungu);
+  const resolveBrandName = async (brandId) => {
+    if (brandId == null) return '';
+    try {
+      const response = await fetch(`/api/brand/${encodeURIComponent(brandId)}/summary`);
+      if (!response.ok) return '';
+      const result = await response.json();
+      return result?.brandName || '';
+    } catch {
+      return '';
+    }
+  };
 
-    setForm((prev) => ({ ...prev, sigungu }));
-    setSelectedRegionId(selected?.id || null);
-    setIsSigunguOpen(false);
+  const handleCompanyAddressSelect = ({ address }) => {
+    setCompanyAddressBase(address || '');
+  };
+
+  const handleMemberAddressSelect = async ({ address }) => {
+    const nextAddress = String(address || '').trim();
+    setMemberAddressBase(nextAddress);
+
+    const tokens = nextAddress.split(/\s+/);
+    const parsedSido = tokens[0] || '';
+    const parsedSigungu = tokens[1] || '';
+
+    if (!parsedSido) {
+      setForm((prev) => ({ ...prev, sido: '', sigungu: '' }));
+      setSelectedRegionId(null);
+      return;
+    }
+
+    try {
+      const options = await fetchSigunguOptionsBySido(parsedSido);
+      const selected = options.find((opt) => parsedSigungu && opt.sigungu.startsWith(parsedSigungu));
+
+      setForm((prev) => ({
+        ...prev,
+        sido: parsedSido,
+        sigungu: selected?.sigungu || parsedSigungu,
+      }));
+      setSelectedRegionId(selected?.id || null);
+    } catch {
+      setSelectedRegionId(null);
+      setForm((prev) => ({ ...prev, sido: parsedSido, sigungu: parsedSigungu }));
+    }
+  };
+
+  const handleLogoUpload = async (event) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    try {
+      setIsLogoUploading(true);
+      const oldUrl = sidebarCompanySummary?.companyImageUrl || '';
+      const uploaded = await uploadCompanyLogo(file, oldUrl || undefined);
+      const nextLogoUrl = uploaded?.url || '';
+
+      if (!nextLogoUrl) {
+        throw new Error('로고 업로드 결과 URL이 없습니다.');
+      }
+
+      setSidebarCompanySummary((prev) => ({ ...prev, companyImageUrl: nextLogoUrl }));
+      localStorage.setItem('businessCompanyLogoUrl', nextLogoUrl);
+      window.alert('로고 이미지가 업로드되었습니다.');
+    } catch (error) {
+      window.alert(error?.message || '로고 업로드에 실패했습니다.');
+    } finally {
+      setIsLogoUploading(false);
+      event.target.value = '';
+    }
   };
 
   const handleSaveMemberInfo = async () => {
+    if (!memberAddressBase.trim()) {
+      window.alert('담당자 주소를 검색해주세요.');
+      return;
+    }
+
     if (!selectedRegionId) {
-      window.alert('시/도와 시/군/구를 선택해주세요.');
+      window.alert('담당자 주소에서 지역을 확인할 수 없습니다. 주소를 다시 선택해주세요.');
       return;
     }
 
@@ -133,7 +203,7 @@ function BusinessCompanyEditPage() {
     }
 
     if (!form.businessNumber || !form.businessNumber.trim()) {
-      window.alert('사업자번호를 입력해주세요.');
+      window.alert('사업자 번호를 입력해주세요.');
       return;
     }
 
@@ -147,7 +217,12 @@ function BusinessCompanyEditPage() {
       return;
     }
 
-    if (!form.address || !form.address.trim()) {
+    const mergedCompanyAddress = [companyAddressBase, companyAddressDetail]
+      .map((value) => String(value || '').trim())
+      .filter(Boolean)
+      .join(' ');
+
+    if (!mergedCompanyAddress) {
       window.alert('사업장 주소를 입력해주세요.');
       return;
     }
@@ -161,12 +236,17 @@ function BusinessCompanyEditPage() {
         businessNumber: form.businessNumber.trim(),
         companyPhone: form.companyPhone.trim(),
         homepageUrl: form.homepageUrl ? form.homepageUrl.trim() : '',
-        companyAddress: form.address.trim(),
+        companyAddress: mergedCompanyAddress,
+        // 백엔드 DTO에 brandId 필드가 추가되면 함께 저장됩니다.
+        brandId: selectedBrandId,
       });
 
       setSidebarCompanySummary({
         companyName: form.companyName.trim(),
         businessNumber: form.businessNumber.trim(),
+        companyImageUrl: sidebarCompanySummary?.companyImageUrl || '',
+            brandId: selectedBrandId,
+            brandLogoUrl: sidebarCompanySummary?.brandLogoUrl || '',
       });
 
       window.alert('기본 정보가 저장되었습니다.');
@@ -226,6 +306,8 @@ function BusinessCompanyEditPage() {
     const fetchMyBusinessAccount = async () => {
       try {
         const data = await getMyBusinessAccountMe();
+        const brandLogoUrl = await resolveBrandLogoUrl(data?.brandId);
+        const brandName = await resolveBrandName(data?.brandId);
         const regionName = typeof data?.regionName === 'string' ? data.regionName.trim() : '';
         const [sido = '', ...sigunguParts] = regionName.split(' ');
         const sigungu = sigunguParts.join(' ').trim();
@@ -252,16 +334,23 @@ function BusinessCompanyEditPage() {
             sido: sido || prev.sido,
             sigungu: sigungu || prev.sigungu,
           }));
-          setMemberDetailAddress(data?.detailAddress || '하드코딩');
-          setSigunguOptions(options);
+          setMemberAddressBase(regionName || '');
+          setMemberDetailAddress(data?.detailAddress || '');
+          setCompanyAddressBase(data?.companyAddress || '');
+          setCompanyAddressDetail('');
           setSelectedRegionId(selected?.id || null);
           setSidebarCompanySummary({
-            companyName: data?.companyName || '하드코딩',
-            businessNumber: data?.businessNumber || '하드코딩',
+            companyName: data?.companyName || '',
+            businessNumber: data?.businessNumber || '',
+            companyImageUrl: data?.companyImageUrl || localStorage.getItem('businessCompanyLogoUrl') || '',
+            brandId: data?.brandId ?? null,
+            brandLogoUrl,
           });
+          setSelectedBrandId(data?.brandId ?? null);
+          setSelectedBrandName(brandName || '');
         }
       } catch {
-        // API 실패 시 폼 기본값('하드코딩')을 유지합니다.
+        // API 실패 시 빈 값 상태를 유지합니다.
       }
     };
 
@@ -309,7 +398,58 @@ function BusinessCompanyEditPage() {
                   <Field label="설립일" name="foundedDate" value={form.foundedDate} onChange={handleChange} type="date" />
                   <Field label="회사 번호" name="companyPhone" value={form.companyPhone} onChange={handleChange} />
                   <Field label="회사 홈페이지 URL" name="homepageUrl" value={form.homepageUrl} onChange={handleChange} />
-                  <Field label="사업장 주소" name="address" value={form.address} onChange={handleChange} />
+                  <div>
+                    <span className="text-xs font-bold text-on-surface-variant mb-2 block">브랜드</span>
+                    <button
+                      type="button"
+                      onClick={() => setIsBrandModalOpen(true)}
+                      className="w-full rounded-xl border border-outline bg-white px-4 py-2.5 text-sm text-left flex items-center justify-between hover:bg-gray-50"
+                    >
+                      <span className={selectedBrandId ? 'text-on-surface' : 'text-on-surface-variant'}>
+                        {selectedBrandId ? `${selectedBrandName || '선택된 브랜드'} (ID: ${selectedBrandId})` : '브랜드 선택(선택사항)'}
+                      </span>
+                      <span className="material-symbols-outlined text-[18px]">storefront</span>
+                    </button>
+                  </div>
+                  <div className="md:col-span-2">
+                    <AddressSearchField
+                      label="사업장 주소"
+                      addressName="companyAddressBase"
+                      detailName="companyAddressDetail"
+                      addressValue={companyAddressBase}
+                      detailValue={companyAddressDetail}
+                      onChange={(event) => {
+                        if (event.target.name === 'companyAddressDetail') {
+                          setCompanyAddressDetail(event.target.value);
+                        }
+                      }}
+                      onAddressSelect={handleCompanyAddressSelect}
+                      required
+                      addressPlaceholder="주소 검색 버튼을 눌러 사업장 주소를 선택하세요"
+                      detailPlaceholder="상세 주소를 입력하세요"
+                    />
+                  </div>
+                  <div className="md:col-span-2">
+                    <label className="block">
+                      <span className="text-xs font-bold text-on-surface-variant mb-2 block">기업 로고</span>
+                      <div className="flex items-center gap-3">
+                        <div className="w-14 h-14 rounded-xl border border-outline bg-surface-container-low overflow-hidden flex items-center justify-center">
+                          {sidebarCompanySummary?.companyImageUrl ? (
+                            <img src={sidebarCompanySummary.companyImageUrl} alt="기업 로고" className="w-full h-full object-cover" />
+                          ) : (
+                            <span className="material-symbols-outlined text-on-surface-variant">apartment</span>
+                          )}
+                        </div>
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleLogoUpload}
+                          disabled={isLogoUploading}
+                          className="block w-full rounded-xl border border-outline bg-white px-3 py-2 text-sm"
+                        />
+                      </div>
+                    </label>
+                  </div>
                 </div>
                 <div className="mt-4 flex justify-end">
                   <CommonButton
@@ -325,46 +465,30 @@ function BusinessCompanyEditPage() {
 
               <section className="bg-white border border-outline rounded-2xl p-6">
                 <h2 className="text-lg font-bold mb-4">담당자 정보</h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <Field label="담당자명" name="contactName" value={form.contactName} onChange={handleChange} />
                   <Field label="연락처" name="contactPhone" value={form.contactPhone} onChange={handleChange} />
                   <Field label="이메일" name="contactEmail" value={form.contactEmail} onChange={handleChange} disabled />
-                  <DropdownField
-                    label="시/도"
-                    value={form.sido}
-                    placeholder="시/도를 선택하세요"
-                    options={sidoOptions}
-                    isOpen={isSidoOpen}
-                    onToggle={() => {
-                      setIsSidoOpen((prev) => !prev);
-                      setIsSigunguOpen(false);
-                    }}
-                    onSelect={handleSelectSido}
-                  />
-                  <DropdownField
-                    label="시/군/구"
-                    value={form.sigungu}
-                    placeholder="지역 정보가 없습니다"
-                    options={sigunguOptions.length > 0 ? sigunguOptions.map((opt) => opt.sigungu) : ['지역 정보가 없습니다']}
-                    isOpen={isSigunguOpen}
-                    onToggle={() => {
-                      if (sigunguOptions.length === 0) return;
-                      setIsSigunguOpen((prev) => !prev);
-                      setIsSidoOpen(false);
-                    }}
-                    onSelect={(value) => {
-                      if (value === '지역 정보가 없습니다') return;
-                      handleSelectSigungu(value);
-                    }}
-                    disabled={sigunguOptions.length === 0}
-                  />
-                  <div className="md:col-span-3">
-                    <Field
-                      label="상세주소"
-                      name="memberDetailAddress"
-                      value={memberDetailAddress}
-                      onChange={(event) => setMemberDetailAddress(event.target.value)}
+                  <div className="md:col-span-2">
+                    <AddressSearchField
+                      label="담당자 주소"
+                      addressName="memberAddressBase"
+                      detailName="memberDetailAddress"
+                      addressValue={memberAddressBase}
+                      detailValue={memberDetailAddress}
+                      onChange={(event) => {
+                        if (event.target.name === 'memberDetailAddress') {
+                          setMemberDetailAddress(event.target.value);
+                        }
+                      }}
+                      onAddressSelect={handleMemberAddressSelect}
+                      required
+                      addressPlaceholder="주소 검색 버튼을 눌러 담당자 주소를 선택하세요"
+                      detailPlaceholder="상세 주소를 입력하세요"
                     />
+                    <p className="mt-2 text-xs text-on-surface-variant">
+                      자동 인식 지역: {form.sido || '-'} {form.sigungu || '-'}
+                    </p>
                   </div>
                 </div>
                 <div className="mt-4 flex justify-end">
@@ -421,6 +545,17 @@ function BusinessCompanyEditPage() {
         </div>
       </div>
       <AppFooter />
+
+      <BrandModal
+        isOpen={isBrandModalOpen}
+        onClose={() => setIsBrandModalOpen(false)}
+        onSelectBrand={async ({ brandId, brandName }) => {
+          const brandLogoUrl = await resolveBrandLogoUrl(brandId);
+          setSelectedBrandId(brandId);
+          setSelectedBrandName(brandName || '');
+          setSidebarCompanySummary((prev) => ({ ...prev, brandId, brandLogoUrl }));
+        }}
+      />
     </div>
   );
 }
@@ -441,46 +576,6 @@ function Field({ label, name, value, onChange, disabled = false, type = 'text' }
   );
 }
 
-function DropdownField({
-  label,
-  value,
-  placeholder,
-  options,
-  isOpen,
-  onToggle,
-  onSelect,
-  disabled = false,
-}) {
-  return (
-    <div className="relative">
-      <span className="text-xs font-bold text-on-surface-variant mb-2 block">{label}</span>
-      <button
-        type="button"
-        onClick={onToggle}
-        disabled={disabled}
-        className="w-full rounded-xl border border-outline bg-white px-4 py-2.5 text-sm text-left flex items-center justify-between disabled:bg-gray-100 disabled:text-on-surface-variant disabled:cursor-not-allowed"
-      >
-        <span className={value ? 'text-on-surface' : 'text-on-surface-variant'}>{value || placeholder}</span>
-        <span className="material-symbols-outlined text-[18px]">expand_more</span>
-      </button>
-
-      {isOpen && !disabled && (
-        <div className="absolute z-20 mt-1 w-full rounded-xl border border-outline bg-white shadow-lg max-h-44 overflow-y-auto">
-          {options.map((option) => (
-            <button
-              key={option}
-              type="button"
-              onClick={() => onSelect(option)}
-              className="w-full text-left px-4 py-2.5 text-sm hover:bg-gray-50"
-            >
-              {option}
-            </button>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 export default BusinessCompanyEditPage;
 

@@ -1,124 +1,176 @@
-import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import React, { useEffect, useMemo, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import TopNavBarLoggedIn from '../components/TopNavBarLoggedIn';
 import AppFooter from '../components/AppFooter';
 import CommonButton from '../components/CommonButton';
 import AddressSearchField from '../components/AddressSearchField';
+import BusinessSidebar from '../components/business-mypage/BusinessSidebar';
+import {
+  createMyBusinessRecruit,
+  getMyBusinessAccountSummary,
+} from '../services/accountApi';
 
-/* ────────────────────────────────── 상수 ────────────────────────────────── */
 const WORK_PERIOD_OPTIONS = [
-  { value: '1', label: '하루' },
-  { value: '2', label: '일주일 이하' },
-  { value: '4', label: '일주일~1개월' },
-  { value: '8', label: '1개월~3개월' },
-  { value: '16', label: '3개월~6개월' },
-  { value: '32', label: '1년 이상' },
+  { value: 'OneDay', label: '하루' },
+  { value: 'OneWeek', label: '1주 이하' },
+  { value: 'OneMonth', label: '1개월 이하' },
+  { value: 'ThreeMonths', label: '3개월 이하' },
+  { value: 'SixMonths', label: '6개월 이하' },
+  { value: 'OneYear', label: '1년 이하' },
+  { value: 'MoreThanOneYear', label: '1년 이상' },
 ];
 
 const WORK_TIME_OPTIONS = [
-  { value: '1', label: '오전 파트' },
-  { value: '2', label: '오후 파트' },
-  { value: '4', label: '저녁 파트' },
-  { value: '8', label: '새벽 파트' },
-  { value: '16', label: '오전~오후 파트' },
-  { value: '32', label: '오후~저녁 파트' },
-  { value: '64', label: '저녁~새벽 파트' },
-  { value: '128', label: '새벽~오전 파트' },
-  { value: '256', label: '8시간 이상 풀타임' },
+  { value: 'MORNING', label: '오전' },
+  { value: 'AFTERNOON', label: '오후' },
+  { value: 'EVENING', label: '저녁' },
+  { value: 'NIGHT', label: '새벽' },
+  { value: 'MORNING_AFTERNOON', label: '오전~오후' },
+  { value: 'AFTERNOON_EVENING', label: '오후~저녁' },
+  { value: 'EVENING_NIGHT', label: '저녁~새벽' },
+  { value: 'NIGHT_MORNING', label: '새벽~오전' },
+  { value: 'FULLTIME', label: '풀타임' },
 ];
 
 const BUSINESS_TYPE_OPTIONS = [
-  { value: '1', label: '외식음료' },
-  { value: '2', label: '매장관리판매' },
-  { value: '4', label: '서비스' },
-  { value: '8', label: '운전배달' },
-  { value: '16', label: '현장단순노무' },
+  { value: 'FOOD_RESTAURANT', label: '외식(음식점)' },
+  { value: 'CAFE', label: '카페' },
+  { value: 'RETAIL_STORE', label: '매장관리/판매' },
+  { value: 'SERVICE', label: '서비스' },
+  { value: 'DELIVERY_DRIVER', label: '운전/배달' },
+  { value: 'MANUAL_LABOR', label: '현장단순노무' },
 ];
 
 const SALARY_TYPE_OPTIONS = [
-  { value: 'H', label: '시급' },
-  { value: 'M', label: '월급' },
-];
-
-const EMPLOYMENT_TYPE_OPTIONS = [
-  { value: 'part', label: '알바/파트타임' },
-  { value: 'full', label: '정규직' },
-  { value: 'contract', label: '계약직' },
-  { value: 'freelance', label: '프리랜서' },
-  { value: 'daily', label: '일용직' },
-];
-
-const APPLICATION_METHOD_OPTIONS = [
-  { value: 'online', label: '온라인 지원' },
-  { value: 'email', label: '이메일 지원' },
-  { value: 'visit', label: '방문 접수' },
-  { value: 'phone', label: '전화 지원' },
+  { value: 'HOURLY', label: '시급' },
+  { value: 'MONTHLY', label: '월급' },
 ];
 
 const WORK_DAYS = [
-  { bit: 1, label: '월' },
-  { bit: 2, label: '화' },
-  { bit: 4, label: '수' },
-  { bit: 8, label: '목' },
-  { bit: 16, label: '금' },
-  { bit: 32, label: '토' },
-  { bit: 64, label: '일' },
+  { value: 'MON', label: '월' },
+  { value: 'TUE', label: '화' },
+  { value: 'WED', label: '수' },
+  { value: 'THU', label: '목' },
+  { value: 'FRI', label: '금' },
+  { value: 'SAT', label: '토' },
+  { value: 'SUN', label: '일' },
 ];
 
-/* ─────────────────────────────── 메인 컴포넌트 ────────────────────────────── */
+const APPLICATION_METHOD_OPTIONS = [
+  { value: 'ONLINE', label: '온라인 지원' },
+  { value: 'EMAIL', label: '이메일 지원' },
+];
+
+const DEFAULT_RECRUIT_TEMPLATE = [
+  '근무기간: ',
+  '근무시간: ',
+  '근무요일: ',
+  '복리후생: ',
+].join('\n');
+
+function toDateOnly(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return null;
+  date.setHours(0, 0, 0, 0);
+  return date;
+}
+
+function isUrgentDeadline(deadline) {
+  const target = toDateOnly(deadline);
+  if (!target) return false;
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const diff = Math.floor((target.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+  return diff >= 0 && diff <= 3;
+}
+
 function BusinessRecruitCreatePage() {
   const navigate = useNavigate();
 
+  const [companySummary, setCompanySummary] = useState(null);
+  const [loadingSubmit, setLoadingSubmit] = useState(false);
+  const [error, setError] = useState('');
+
   const [form, setForm] = useState({
     urgent: false,
-    // 기업정보
-    businessMain: '',
-    branchCode: '',
-    // 모집내용
     title: '',
-    businessType: '1',
-    requiredSkills: '',
-    employmentType: 'part',
+    businessType: 'FOOD_RESTAURANT',
     recruitCount: '1',
-    genderAgeEdu: '',
-    recruitField: '',
-    preferredConditions: '',
-    // 근무조건
-    workPeriod: '1',
-    workDays: 0,
-    workTime: '1',
-    payType: 'H',
+    workPeriod: 'OneDay',
+    workDays: [],
+    workTime: 'MORNING',
+    payType: 'HOURLY',
     payAmount: '',
-    benefits: '',
-    // 근무지정보
     workplacePostalCode: '',
     workplaceAddress: '',
     workplaceAddressDetail: '',
-    exposureRegion: '',
-    companyName: '',
-    logoFile: null,
-    mediaFiles: null,
-    // 접수기간·방법
     deadline: '',
-    applicationMethod: 'online',
-    preQuestions: '',
-    // 담당자정보
-    managerName: '',
-    managerPhone: '',
-    managerEmail: '',
-    managerFax: '',
+    applicationMethods: ['ONLINE'],
+    applyContact: '',
+    description: DEFAULT_RECRUIT_TEMPLATE,
   });
 
-  const handleChange = (e) => {
-    const { name, value, type, checked, files } = e.target;
+  useEffect(() => {
+    let mounted = true;
+    const loadSummary = async () => {
+      try {
+        const data = await getMyBusinessAccountSummary();
+        if (mounted) setCompanySummary(data);
+      } catch {
+        if (mounted) setCompanySummary(null);
+      }
+    };
+    loadSummary();
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  const urgentDeadlineValid = useMemo(() => isUrgentDeadline(form.deadline), [form.deadline]);
+
+  useEffect(() => {
+    if (form.urgent && form.deadline && !urgentDeadlineValid) {
+      setForm((prev) => ({ ...prev, urgent: false }));
+      window.alert('긴급 공고는 오늘 기준 3일 이내 마감일일 때만 설정할 수 있습니다.');
+    }
+  }, [form.urgent, form.deadline, urgentDeadlineValid]);
+
+  const handleChange = (event) => {
+    const { name, value } = event.target;
+    setForm((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const toggleUrgent = () => {
+    if (!form.urgent && !urgentDeadlineValid) {
+      window.alert('긴급 공고는 마감일을 오늘 기준 3일 이내로 선택한 경우에만 체크할 수 있습니다.');
+      return;
+    }
+    setForm((prev) => ({ ...prev, urgent: !prev.urgent }));
+  };
+
+  const toggleWorkDay = (day) => {
     setForm((prev) => ({
       ...prev,
-      [name]: type === 'checkbox' ? checked : type === 'file' ? files : value,
+      workDays: prev.workDays.includes(day)
+        ? prev.workDays.filter((item) => item !== day)
+        : [...prev.workDays, day],
     }));
   };
 
-  const toggleWorkDay = (bit) => {
-    setForm((prev) => ({ ...prev, workDays: prev.workDays ^ bit }));
+  const toggleApplicationMethod = (value) => {
+    if (value === 'ONLINE') return;
+    setForm((prev) => {
+      const has = prev.applicationMethods.includes(value);
+      const next = has
+        ? prev.applicationMethods.filter((item) => item !== value)
+        : [...prev.applicationMethods, value];
+      return {
+        ...prev,
+        applicationMethods: ['ONLINE', ...next.filter((item) => item !== 'ONLINE')],
+        applyContact: has ? '' : prev.applyContact,
+      };
+    });
   };
 
   const handleWorkplaceAddressSelect = ({ zonecode, address }) => {
@@ -130,40 +182,71 @@ function BusinessRecruitCreatePage() {
     }));
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setError('');
+
+    if (!form.title.trim()) {
+      setError('공고 제목을 입력해주세요.');
+      return;
+    }
+    if (!form.deadline) {
+      setError('마감일을 선택해주세요.');
+      return;
+    }
+    if (form.urgent && !urgentDeadlineValid) {
+      setError('긴급 공고는 마감일이 3일 이내여야 합니다.');
+      return;
+    }
+    if (!form.payAmount || Number(form.payAmount) <= 0) {
+      setError('급여 금액을 올바르게 입력해주세요.');
+      return;
+    }
+    if (!form.workDays.length) {
+      setError('근무요일을 1개 이상 선택해주세요.');
+      return;
+    }
+
+    const methodText = form.applicationMethods
+      .map((item) => (item === 'ONLINE' ? '온라인 지원' : '이메일 지원'))
+      .join(', ');
+
+    const descriptionParts = [
+      form.description?.trim(),
+      `[접수방법] ${methodText}`,
+      form.applyContact?.trim() ? `[지원 연락처/링크] ${form.applyContact.trim()}` : '',
+    ].filter(Boolean);
+
     const payload = {
-      is_urgent: form.urgent ? 'Y' : 'N',
-      business_main: form.businessMain,
-      branch_code: form.branchCode,
-      title: form.title,
-      business_type: Number(form.businessType),
-      required_skills: form.requiredSkills,
-      employment_type: form.employmentType,
-      headcount: Number(form.recruitCount) || null,
-      gender_age_edu: form.genderAgeEdu,
-      recruit_field: form.recruitField,
-      preferred_conditions: form.preferredConditions,
-      work_period: Number(form.workPeriod),
-      work_days: form.workDays,
-      work_time: Number(form.workTime),
-      salary_type: form.payType,
-      salary: Number(form.payAmount),
-      benefits: form.benefits,
-      detail_address: [form.workplaceAddress, form.workplaceAddressDetail].filter(Boolean).join(' '),
-      exposure_region: form.exposureRegion,
-      company_name: form.companyName,
+      title: form.title.trim(),
+      isUrgent: Boolean(form.urgent),
       deadline: form.deadline,
-      application_method: form.applicationMethod,
-      pre_questions: form.preQuestions,
-      manager_name: form.managerName,
-      manager_phone: form.managerPhone,
-      manager_email: form.managerEmail,
-      manager_fax: form.managerFax,
+      salary: Number(form.payAmount),
+      salaryType: form.payType,
+      headCount: Number(form.recruitCount) || 1,
+      regionId: null,
+      detailAddress: [form.workplaceAddress, form.workplaceAddressDetail].filter(Boolean).join(' ').trim() || null,
+      workPeriod: [form.workPeriod],
+      workDays: form.workDays,
+      workTime: [form.workTime],
+      businessType: [form.businessType],
+      description: descriptionParts.join('\n'),
+      resumeFormUrl: form.applyContact?.trim() || null,
     };
-    console.log('recruit-create payload', payload);
-    window.alert('공고가 등록되었습니다.');
-    navigate('/dashboard?tab=recruits');
+
+    const ok = window.confirm('입력한 내용으로 공고를 등록할까요?');
+    if (!ok) return;
+
+    try {
+      setLoadingSubmit(true);
+      await createMyBusinessRecruit(payload);
+      window.alert('공고가 등록되었습니다.');
+      navigate('/dashboard?tab=recruits');
+    } catch (submitError) {
+      setError(submitError?.message || '공고 등록에 실패했습니다.');
+    } finally {
+      setLoadingSubmit(false);
+    }
   };
 
   return (
@@ -172,153 +255,90 @@ function BusinessRecruitCreatePage() {
 
       <div className="pt-20 min-h-screen">
         <div className="custom-container py-8 flex flex-col lg:flex-row gap-8">
-          {/* ── 사이드바 ── */}
-          <aside className="w-full lg:w-64 flex-shrink-0">
-            <div className="bg-white rounded-2xl border border-outline p-6 sticky top-28">
-              <div className="flex flex-col items-center text-center mb-8">
-                <div className="w-20 h-20 bg-primary-soft rounded-2xl flex items-center justify-center mb-4 border border-primary/10">
-                  <span className="material-symbols-outlined text-4xl text-primary">apartment</span>
-                </div>
-                <div className="flex items-center gap-1 mb-1">
-                  <h2 className="font-bold text-lg">서울 에디토리얼</h2>
-                  <span className="material-symbols-outlined text-primary text-sm" style={{ fontVariationSettings: "'FILL' 1" }}>verified</span>
-                </div>
-                <p className="text-xs text-on-surface-variant">사업자번호 123-45-67890</p>
-                <span className="mt-4 w-full bg-primary text-white py-3 rounded-xl text-sm font-bold flex items-center justify-center gap-2">
-                  <span className="material-symbols-outlined text-sm">add</span>공고 등록하기
-                </span>
-                <button type="button" onClick={() => navigate('/dashboard/company-edit')}
-                  className="mt-2 w-full py-2 bg-gray-50 text-xs font-bold rounded-lg border border-outline hover:bg-gray-100 transition-colors">
-                  기업 정보 수정
-                </button>
-              </div>
-              <nav className="space-y-1">
-                <Link to="/dashboard?tab=dashboard" className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-on-surface-variant hover:bg-gray-50 transition-colors">
-                  <span className="material-symbols-outlined text-[20px]">dashboard</span>대시보드
-                </Link>
-                <Link to="/dashboard?tab=recruits" className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-primary bg-primary-soft font-bold">
-                  <span className="material-symbols-outlined text-[20px]">assignment</span>공고 관리
-                </Link>
-                <Link to="/dashboard?tab=applicants" className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-on-surface-variant hover:bg-gray-50 transition-colors">
-                  <span className="material-symbols-outlined text-[20px]">group</span>지원자 현황
-                </Link>
-                <Link to="/dashboard?tab=reviews" className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-on-surface-variant hover:bg-gray-50 transition-colors">
-                  <span className="material-symbols-outlined text-[20px]">rate_review</span>리뷰 관리
-                </Link>
-                <Link to="/dashboard?tab=work" className="w-full text-left flex items-center gap-3 px-4 py-3 rounded-xl text-sm text-on-surface-variant hover:bg-gray-50 transition-colors">
-                  <span className="material-symbols-outlined text-[20px]">calendar_today</span>근무 관리
-                </Link>
-              </nav>
-            </div>
-          </aside>
+          <BusinessSidebar
+            activeTab="recruits"
+            onChangeTab={(tabId) => navigate(`/dashboard?tab=${tabId}`)}
+            navigate={navigate}
+            companySummary={companySummary}
+          />
 
-          {/* ── 본문 ── */}
           <main className="flex-1 min-w-0">
             <header className="mb-6 flex flex-col md:flex-row md:items-end md:justify-between gap-3">
               <div>
                 <h1 className="text-3xl font-black tracking-tight">공고 등록</h1>
-                <p className="text-sm text-on-surface-variant mt-1">아래 양식을 작성해 구인 공고를 등록하세요. <span className="text-red-500 font-bold">*</span> 표시 항목은 필수입니다.</p>
+                <p className="text-sm text-on-surface-variant mt-1">필수 항목을 입력한 뒤 등록을 눌러주세요.</p>
               </div>
-              <button type="button" onClick={() => navigate('/dashboard?tab=recruits')}
-                className="self-start md:self-auto px-4 py-2 rounded-lg border border-outline bg-white text-sm font-bold hover:bg-gray-50 transition-colors">
+              <button
+                type="button"
+                onClick={() => navigate('/dashboard?tab=recruits')}
+                className="self-start md:self-auto px-4 py-2 rounded-lg border border-outline bg-white text-sm font-bold hover:bg-gray-50 transition-colors"
+              >
                 공고 관리로 돌아가기
               </button>
             </header>
 
-            {/* ── 긴급공고 토글 배너 ── */}
-            <div className={`mb-6 rounded-2xl border p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4 transition-colors ${form.urgent ? 'bg-red-50 border-red-200' : 'bg-white border-outline'}`}>
-              <div className="flex items-center gap-3 flex-1">
-                <span className={`material-symbols-outlined text-2xl ${form.urgent ? 'text-red-500' : 'text-on-surface-variant'}`} style={{ fontVariationSettings: "'FILL' 1" }}>
-                  {form.urgent ? 'notifications_active' : 'notifications'}
-                </span>
-                <div>
-                  <p className="font-bold text-sm">긴급 공고 등록</p>
-                  <p className="text-xs text-on-surface-variant mt-0.5">
-                    긴급 공고 체크 시 적용되며, <span className="font-bold text-red-500">3일 이내 마감</span> 긴급 공고로 등록됩니다. 긴급 공고는 근무일을 직접 입력합니다.
-                  </p>
-                </div>
+            <div className={`mb-6 rounded-2xl border p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4 ${form.urgent ? 'bg-red-50 border-red-200' : 'bg-white border-outline'}`}>
+              <div className="flex-1">
+                <p className="font-bold text-sm">긴급 공고</p>
+                <p className="text-xs text-on-surface-variant mt-0.5">
+                  긴급 공고는 마감일이 오늘 기준 3일 이내일 때만 체크할 수 있습니다.
+                </p>
               </div>
-              <label className="inline-flex items-center gap-2 cursor-pointer flex-shrink-0">
-                <div
-                  onClick={() => setForm((prev) => ({ ...prev, urgent: !prev.urgent }))}
-                  className={`relative w-11 h-6 rounded-full cursor-pointer transition-colors ${form.urgent ? 'bg-red-500' : 'bg-gray-200'}`}
-                >
-                  <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${form.urgent ? 'translate-x-5' : ''}`} />
-                </div>
-                <span className={`text-sm font-bold ${form.urgent ? 'text-red-500' : 'text-on-surface-variant'}`}>
-                  {form.urgent ? '긴급 공고' : '일반 공고'}
-                </span>
-              </label>
+              <button
+                type="button"
+                onClick={toggleUrgent}
+                className={`px-4 py-2 rounded-lg text-xs font-bold border ${form.urgent ? 'bg-red-500 text-white border-red-500' : 'bg-white text-on-surface-variant border-outline'}`}
+              >
+                {form.urgent ? '긴급 공고 사용 중' : '긴급 공고 사용'}
+              </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
-              {/* ── 1. 기업 정보 ── */}
-              <FormSection title="기업 정보">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="md:col-span-2">
-                    <label className="block">
-                      <span className="text-xs font-bold text-on-surface-variant mb-2 flex items-center gap-1">
-                        주요사업 내용 <Required /> <span className="font-normal text-on-surface-variant/60">(최대 50자)</span>
-                      </span>
-                      <input name="businessMain" value={form.businessMain} onChange={handleChange}
-                        maxLength={50} placeholder="예: 카페 음료 제조 및 홀 서빙 전반"
-                        className="w-full rounded-xl border border-outline bg-white px-4 py-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none" />
-                      <p className="text-right text-[10px] text-on-surface-variant mt-1">{form.businessMain.length}/50</p>
-                    </label>
-                  </div>
-                  <Field label="지점코드" name="branchCode" value={form.branchCode} onChange={handleChange} placeholder="없으면 비워두세요" />
-                </div>
-              </FormSection>
+            {error && (
+              <div className="mb-4 bg-red-50 border border-red-200 rounded-2xl p-4 text-sm font-medium text-red-600">
+                {error}
+              </div>
+            )}
 
-              {/* ── 2. 모집 내용 ── */}
+            <form onSubmit={handleSubmit} className="space-y-6">
               <FormSection title="모집 내용">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="md:col-span-2">
-                    <Field label="공고 제목" name="title" value={form.title} onChange={handleChange}
-                      placeholder="예: 강남역 카페 주말 오픈 파트타임" required />
+                    <Field label="공고 제목" name="title" value={form.title} onChange={handleChange} required />
                   </div>
-                  <SelectField label="업직종" name="businessType" value={form.businessType} onChange={handleChange}
-                    options={BUSINESS_TYPE_OPTIONS} required />
-                  <Field label="필요 업무 스킬" name="requiredSkills" value={form.requiredSkills} onChange={handleChange}
-                    placeholder="예: 바리스타 자격증, 라떼아트" />
-                  <SelectField label="고용형태" name="employmentType" value={form.employmentType} onChange={handleChange}
-                    options={EMPLOYMENT_TYPE_OPTIONS} required />
-                  <Field label="모집인원" name="recruitCount" value={form.recruitCount} onChange={handleChange}
-                    type="number" placeholder="명 (미정이면 0)" required />
-                  <Field label="성별·연령·학력" name="genderAgeEdu" value={form.genderAgeEdu} onChange={handleChange}
-                    placeholder="예: 무관 / 20~30대 / 학력무관" />
-                  <Field label="모집분야" name="recruitField" value={form.recruitField} onChange={handleChange}
-                    placeholder="예: 홀서빙, 주방보조" />
+                  <SelectField label="업직종" name="businessType" value={form.businessType} onChange={handleChange} options={BUSINESS_TYPE_OPTIONS} required />
+                  <Field label="모집인원" name="recruitCount" value={form.recruitCount} onChange={handleChange} type="number" required />
                   <div className="md:col-span-2">
                     <label className="block">
-                      <span className="text-xs font-bold text-on-surface-variant mb-2 block">우대조건</span>
-                      <input name="preferredConditions" value={form.preferredConditions} onChange={handleChange}
-                        placeholder="예: 경력자 우대, 즉시 출근 가능자 우대"
-                        className="w-full rounded-xl border border-outline bg-white px-4 py-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none" />
+                      <span className="text-xs font-bold text-on-surface-variant mb-2 block">모집 요강</span>
+                      <textarea
+                        name="description"
+                        value={form.description}
+                        onChange={handleChange}
+                        rows={4}
+                        className="w-full rounded-xl border border-outline bg-white px-4 py-3 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none resize-none"
+                      />
                     </label>
                   </div>
                 </div>
               </FormSection>
 
-              {/* ── 3. 근무 조건 ── */}
               <FormSection title="근무 조건">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <SelectField label="근무기간" name="workPeriod" value={form.workPeriod} onChange={handleChange}
-                    options={WORK_PERIOD_OPTIONS} required />
-                  <SelectField label="근무시간" name="workTime" value={form.workTime} onChange={handleChange}
-                    options={WORK_TIME_OPTIONS} required />
+                  <SelectField label="근무기간" name="workPeriod" value={form.workPeriod} onChange={handleChange} options={WORK_PERIOD_OPTIONS} required />
+                  <SelectField label="근무시간" name="workTime" value={form.workTime} onChange={handleChange} options={WORK_TIME_OPTIONS} required />
+                  <SelectField label="급여 기준" name="payType" value={form.payType} onChange={handleChange} options={SALARY_TYPE_OPTIONS} required />
+                  <Field label="급여 금액(원)" name="payAmount" value={form.payAmount} onChange={handleChange} type="number" required />
                   <div className="md:col-span-2">
-                    <span className="text-xs font-bold text-on-surface-variant mb-2 flex items-center gap-1">
-                      근무요일 <Required />
-                    </span>
-                    <div className="flex flex-wrap gap-2 mt-1">
-                      {WORK_DAYS.map(({ bit, label }) => {
-                        const active = (form.workDays & bit) !== 0;
+                    <span className="text-xs font-bold text-on-surface-variant mb-2 flex items-center gap-1">근무요일 <Required /></span>
+                    <div className="rounded-xl border border-outline p-3">
+                      <div className="flex flex-wrap gap-2">
+                      {WORK_DAYS.map(({ value, label }) => {
+                        const active = form.workDays.includes(value);
                         return (
                           <CommonButton
-                            key={bit}
+                            key={value}
                             type="button"
-                            onClick={() => toggleWorkDay(bit)}
+                            onClick={() => toggleWorkDay(value)}
                             variant="toggle"
                             size="square"
                             active={active}
@@ -330,27 +350,27 @@ function BusinessRecruitCreatePage() {
                           </CommonButton>
                         );
                       })}
+                      </div>
                     </div>
-                    <p className="text-[10px] text-on-surface-variant mt-1.5">비트값: {form.workDays}</p>
-                  </div>
-                  <SelectField label="급여 기준" name="payType" value={form.payType} onChange={handleChange}
-                    options={SALARY_TYPE_OPTIONS} required />
-                  <Field label="급여 금액 (원)" name="payAmount" value={form.payAmount} onChange={handleChange}
-                    type="number" placeholder="예: 12500" required />
-                  <div className="md:col-span-2">
-                    <label className="block">
-                      <span className="text-xs font-bold text-on-surface-variant mb-2 block">복리후생</span>
-                      <input name="benefits" value={form.benefits} onChange={handleChange}
-                        placeholder="예: 식사제공, 교통비지원, 4대보험"
-                        className="w-full rounded-xl border border-outline bg-white px-4 py-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none" />
-                    </label>
                   </div>
                 </div>
               </FormSection>
 
-              {/* ── 4. 근무지 정보 ── */}
-              <FormSection title="근무지 정보">
+              <FormSection title="근무지/접수 정보">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block">
+                      <span className="text-xs font-bold text-on-surface-variant mb-2 flex items-center gap-1">마감일 <Required /></span>
+                      <input
+                        name="deadline"
+                        type="date"
+                        value={form.deadline}
+                        onChange={handleChange}
+                        className="w-full rounded-xl border border-outline bg-white px-4 py-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+                      />
+                    </label>
+                  </div>
+
                   <div className="md:col-span-2">
                     <AddressSearchField
                       label="근무지 주소"
@@ -358,100 +378,64 @@ function BusinessRecruitCreatePage() {
                       detailName="workplaceAddressDetail"
                       addressValue={form.workplaceAddress}
                       detailValue={form.workplaceAddressDetail}
-                      onChange={handleChange}
+                      onChange={(event) => {
+                        const { name, value } = event.target;
+                        setForm((prev) => ({ ...prev, [name]: value }));
+                      }}
                       onAddressSelect={handleWorkplaceAddressSelect}
                       required
-                      addressPlaceholder="주소 검색 버튼을 눌러 근무지 주소를 선택하세요"
-                      detailPlaceholder="상세 주소를 입력하세요"
                     />
                   </div>
-                  <Field label="공고노출지역" name="exposureRegion" value={form.exposureRegion}
-                    onChange={handleChange} placeholder="예: 서울 강남구" />
-                  <Field label="근무회사명" name="companyName" value={form.companyName}
-                    onChange={handleChange} placeholder="예: 서울 에디토리얼" />
+
                   <div>
-                    <label className="block">
-                      <span className="text-xs font-bold text-on-surface-variant mb-2 block">로고</span>
-                      <input name="logoFile" type="file" accept="image/*" onChange={handleChange}
-                        className="w-full rounded-xl border border-outline bg-white px-4 py-2 text-sm focus:ring-1 focus:ring-primary outline-none file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:bg-primary-soft file:text-primary file:text-xs file:font-bold cursor-pointer" />
-                    </label>
+                    <span className="text-xs font-bold text-on-surface-variant mb-2 block">접수 방법</span>
+                    <div className="flex flex-wrap gap-2">
+                      <button
+                        type="button"
+                        className="px-4 py-2 rounded-xl border text-xs font-bold bg-primary-soft text-primary border-primary/30 cursor-default"
+                      >
+                        온라인 지원 (기본)
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => toggleApplicationMethod('EMAIL')}
+                        className={`px-4 py-2 rounded-xl border text-xs font-bold ${form.applicationMethods.includes('EMAIL') ? 'bg-primary-soft text-primary border-primary/30' : 'bg-white border-outline text-on-surface-variant'}`}
+                      >
+                        이메일 지원
+                      </button>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block">
-                      <span className="text-xs font-bold text-on-surface-variant mb-2 block">사진·동영상</span>
-                      <input name="mediaFiles" type="file" accept="image/*,video/*" multiple onChange={handleChange}
-                        className="w-full rounded-xl border border-outline bg-white px-4 py-2 text-sm focus:ring-1 focus:ring-primary outline-none file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:bg-primary-soft file:text-primary file:text-xs file:font-bold cursor-pointer" />
-                    </label>
-                  </div>
+
+                  {form.applicationMethods.includes('EMAIL') && (
+                    <Field
+                      label="이메일 지원 연락처/링크"
+                      name="applyContact"
+                      value={form.applyContact}
+                      onChange={handleChange}
+                      placeholder="이메일/연락처 입력"
+                    />
+                  )}
                 </div>
               </FormSection>
 
-              {/* ── 5. 접수기간·방법 ── */}
-              <FormSection title="접수기간·방법">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
-                    <label className="block">
-                      <span className="text-xs font-bold text-on-surface-variant mb-2 flex items-center gap-1">
-                        {form.urgent ? '근무일' : '모집종료일'} <Required />
-                        {form.urgent && (
-                          <span className="ml-1 px-1.5 py-0.5 bg-red-100 text-red-500 text-[9px] font-bold rounded">긴급</span>
-                        )}
-                      </span>
-                      <input name="deadline" type="date" value={form.deadline} onChange={handleChange}
-                        className="w-full rounded-xl border border-outline bg-white px-4 py-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none" />
-                    </label>
-                  </div>
-                  <SelectField label="접수방법" name="applicationMethod" value={form.applicationMethod}
-                    onChange={handleChange} options={APPLICATION_METHOD_OPTIONS} required />
-                  <div className="md:col-span-2">
-                    <label className="block">
-                      <span className="text-xs font-bold text-on-surface-variant mb-2 block">사전질문·확인요청사항</span>
-                      <textarea name="preQuestions" value={form.preQuestions} onChange={handleChange} rows={3}
-                        placeholder="지원자에게 사전 확인할 내용을 입력하세요"
-                        className="w-full rounded-xl border border-outline bg-white px-4 py-3 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none resize-none" />
-                    </label>
-                  </div>
-                </div>
-              </FormSection>
-
-              {/* ── 6. 담당자 정보 ── */}
-              <FormSection title="담당자 정보">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <Field label="담당자명" name="managerName" value={form.managerName}
-                    onChange={handleChange} placeholder="예: 김대타" required />
-                  <Field label="연락처" name="managerPhone" value={form.managerPhone}
-                    onChange={handleChange} placeholder="예: 010-1234-5678" required />
-                  <Field label="이메일" name="managerEmail" value={form.managerEmail}
-                    onChange={handleChange} type="email" placeholder="예: manager@daeta.co.kr" />
-                  <Field label="팩스번호" name="managerFax" value={form.managerFax}
-                    onChange={handleChange} placeholder="예: 02-1234-5678" />
-                </div>
-              </FormSection>
-
-              {/* ── 액션 버튼 ── */}
               <div className="flex flex-col sm:flex-row gap-3 justify-end pb-6">
-                <CommonButton
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate('/dashboard?tab=recruits')}
-                >
+                <CommonButton type="button" variant="outline" size="sm" onClick={() => navigate('/dashboard?tab=recruits')}>
                   취소
                 </CommonButton>
-                <CommonButton type="submit" size="sm">
-                  등록하기
+                <CommonButton type="submit" size="sm" disabled={loadingSubmit}>
+                  {loadingSubmit ? '등록 중...' : '등록하기'}
                 </CommonButton>
               </div>
             </form>
           </main>
         </div>
       </div>
+
       <AppFooter />
     </div>
   );
 }
 
-/* ────────────────────────── 재사용 UI 컴포넌트 ─────────────────────────────── */
 function Required() {
   return <span className="text-red-500">*</span>;
 }
@@ -471,8 +455,14 @@ function Field({ label, name, value, onChange, type = 'text', placeholder = '', 
       <span className="text-xs font-bold text-on-surface-variant mb-2 flex items-center gap-1">
         {label} {required && <Required />}
       </span>
-      <input name={name} type={type} value={value} onChange={onChange} placeholder={placeholder}
-        className="w-full rounded-xl border border-outline bg-white px-4 py-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none" />
+      <input
+        name={name}
+        type={type}
+        value={value}
+        onChange={onChange}
+        placeholder={placeholder}
+        className="w-full rounded-xl border border-outline bg-white px-4 py-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+      />
     </label>
   );
 }
@@ -483,10 +473,14 @@ function SelectField({ label, name, value, onChange, options, required = false }
       <span className="text-xs font-bold text-on-surface-variant mb-2 flex items-center gap-1">
         {label} {required && <Required />}
       </span>
-      <select name={name} value={value} onChange={onChange}
-        className="w-full rounded-xl border border-outline bg-white px-4 py-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none">
-        {options.map((opt) => (
-          <option key={opt.value} value={opt.value}>{opt.label}</option>
+      <select
+        name={name}
+        value={value}
+        onChange={onChange}
+        className="w-full rounded-xl border border-outline bg-white px-4 py-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+      >
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>{option.label}</option>
         ))}
       </select>
     </label>

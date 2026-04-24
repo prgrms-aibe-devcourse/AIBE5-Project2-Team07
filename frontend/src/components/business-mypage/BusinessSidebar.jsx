@@ -6,6 +6,11 @@ import { businessSidebarItems } from './businessSidebarItems';
 export default function BusinessSidebar({ activeTab, onChangeTab, navigate, companySummary }) {
     const companyName = companySummary?.companyName || '기업명 정보 없음';
     const businessNumber = companySummary?.businessNumber || '-';
+    const defaultCompanyImage = 'https://placehold.co/160x160?text=COMPANY';
+    const companyImageUrl =
+        companySummary?.brandId != null
+            ? (companySummary?.brandLogoUrl || defaultCompanyImage)
+            : (companySummary?.companyImageUrl || localStorage.getItem('businessCompanyLogoUrl') || defaultCompanyImage);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deletePassword, setDeletePassword] = useState('');
     const [isDeleting, setIsDeleting] = useState(false);
@@ -54,7 +59,11 @@ export default function BusinessSidebar({ activeTab, onChangeTab, navigate, comp
             <div className="bg-white rounded-2xl border border-outline p-6 sticky top-28">
                 <div className="flex flex-col items-center text-center mb-8">
                     <div className="w-20 h-20 bg-primary-soft rounded-2xl flex items-center justify-center mb-4 border border-primary/10">
-                        <span className="material-symbols-outlined text-4xl text-primary">apartment</span>
+                        <img
+                            src={companyImageUrl}
+                            alt={companyName}
+                            className="w-full h-full rounded-2xl object-cover"
+                        />
                     </div>
 
                     <div className="flex items-center gap-1 mb-1">
