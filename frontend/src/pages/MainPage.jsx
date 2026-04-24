@@ -82,6 +82,8 @@ function formatWorkDateLabel(deadline) {
 }
 
 export default function MainPage() {
+  // ── 모든 Hook은 함수 정의보다 먼저 ──────────────────────────────
+  // 근거리/추천 필터 상태
   const [selectedDistance, setSelectedDistance] = useState('5km');
   const [isDistanceDropdownOpen, setIsDistanceDropdownOpen] = useState(false);
   const [isNearbyMode, setIsNearbyMode] = useState(false);
@@ -93,7 +95,32 @@ export default function MainPage() {
   const [recommendError, setRecommendError] = useState('');
   const dropdownRef = useRef(null);
 
+  // 실제 API 데이터 / 스크랩 상태
+  const [urgentJobs, setUrgentJobs] = useState([]);
+  const [latestJobs, setLatestJobs] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState('');
+  const [scrappedRecruitIds, setScrappedRecruitIds] = useState([]);
+  const [scrapLoadingIds, setScrapLoadingIds] = useState([]);
+  const [scrapError, setScrapError] = useState('');
+  const [showScrapLoginModal, setShowScrapLoginModal] = useState(false);
+  const [showScrapBusinessModal, setShowScrapBusinessModal] = useState(false);
+
+  const navigate = useNavigate();
   const { jobs: nearbyJobs, loading: nearbyLoading, error: nearbyError, fetchJobs } = useNearbyJobs();
+
+  const urgentRecruitLink = '/recruit-information?tab=ALL&sort=LATEST&isUrgent=true';
+  const latestRecruitLink = '/recruit-information?tab=ALL&sort=LATEST';
+
+  const urgentCards = useMemo(() => urgentJobs.map((job) => ({
+    id: job.id,
+    companyName: job.companyName || '-',
+    title: job.title || '-',
+    regionName: job.regionName || '-',
+    workDateLabel: formatWorkDateLabel(job.deadline),
+    ddayLabel: getDday(job.deadline),
+    salary: formatSalaryAmount(job.salary),
+  })), [urgentJobs]);
 
   useEffect(() => {
     function handleClickOutside(event) {
@@ -104,60 +131,6 @@ export default function MainPage() {
     document.addEventListener('mousedown', handleClickOutside);
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
-
-  function handleDistanceSelect(distance) {
-    const radiusKm = Number.parseFloat(distance.replace('km', ''));
-    setSelectedDistance(distance);
-    setIsDistanceDropdownOpen(false);
-    setIsNearbyMode(true);
-    setIsRecommendMode(false);
-    fetchJobs(radiusKm);
-  }
-
-  async function handleApplyRecommendFilters(nextFilters) {
-    const requestPayload = {
-      regionId: nextFilters.regionId ?? null,
-      workPeriod: nextFilters.workPeriod ?? [],
-      workDays: nextFilters.workDays ?? [],
-      workTime: nextFilters.workTime ?? [],
-      businessType: nextFilters.businessType ?? [],
-      salaryType: nextFilters.salaryType ?? null,
-      urgent: Boolean(nextFilters.urgent),
-      resultCount: nextFilters.resultCount ?? 20,
-    };
-    setRecommendFilters(nextFilters);
-    setIsRecommendModalOpen(false);
-    setIsNearbyMode(false);
-    setIsRecommendMode(true);
-    setRecommendLoading(true);
-    setRecommendError('');
-    setRecommendJobs([]);
-    try {
-      const data = await fetchRecommendJobs(requestPayload);
-      setRecommendJobs(Array.isArray(data) ? data : []);
-    } catch (error) {
-      setRecommendError(error.message || '맞춤형 추천 공고를 불러오는 중 오류가 발생했습니다.');
-    } finally {
-      setRecommendLoading(false);
-    }
-  }
-
-  function resetToAllJobs() {
-    setIsNearbyMode(false);
-    setIsRecommendMode(false);
-    setIsDistanceDropdownOpen(false);
-  }
-
-  const [urgentJobs, setUrgentJobs] = useState([]);
-  const [latestJobs, setLatestJobs] = useState([]);
-  const [loading, setLoading] = useState(true);
-  const [loadError, setLoadError] = useState('');
-  const [scrappedRecruitIds, setScrappedRecruitIds] = useState([]);
-  const [scrapLoadingIds, setScrapLoadingIds] = useState([]);
-  const [scrapError, setScrapError] = useState('');
-  const [showScrapLoginModal, setShowScrapLoginModal] = useState(false);
-  const [showScrapBusinessModal, setShowScrapBusinessModal] = useState(false);
-  const navigate = useNavigate();
 
   useEffect(() => {
     const loadMainRecruitData = async () => {
@@ -212,34 +185,61 @@ export default function MainPage() {
     loadScrapIds();
   }, []);
 
-  const urgentRecruitLink = '/recruit-information?tab=ALL&sort=LATEST&isUrgent=true';
-  const latestRecruitLink = '/recruit-information?tab=ALL&sort=LATEST';
+  // ── 이벤트 핸들러 (Hook 아님) ──────────────────────────────────
+  function handleDistanceSelect(distance) {
+    const radiusKm = Number.parseFloat(distance.replace('km', ''));
+    setSelectedDistance(distance);
+    setIsDistanceDropdownOpen(false);
+    setIsNearbyMode(true);
+    setIsRecommendMode(false);
+    fetchJobs(radiusKm);
+  }
 
-  const urgentCards = useMemo(() => urgentJobs.map((job) => ({
-    id: job.id,
-    companyName: job.companyName || '-',
-    title: job.title || '-',
-    regionName: job.regionName || '-',
-    workDateLabel: formatWorkDateLabel(job.deadline),
-    ddayLabel: getDday(job.deadline),
-    salary: formatSalaryAmount(job.salary),
-  })), [urgentJobs]);
+  async function handleApplyRecommendFilters(nextFilters) {
+    const requestPayload = {
+      regionId: nextFilters.regionId ?? null,
+      workPeriod: nextFilters.workPeriod ?? [],
+      workDays: nextFilters.workDays ?? [],
+      workTime: nextFilters.workTime ?? [],
+      businessType: nextFilters.businessType ?? [],
+      salaryType: nextFilters.salaryType ?? null,
+      urgent: Boolean(nextFilters.urgent),
+      resultCount: nextFilters.resultCount ?? 20,
+    };
+    setRecommendFilters(nextFilters);
+    setIsRecommendModalOpen(false);
+    setIsNearbyMode(false);
+    setIsRecommendMode(true);
+    setRecommendLoading(true);
+    setRecommendError('');
+    setRecommendJobs([]);
+    try {
+      const data = await fetchRecommendJobs(requestPayload);
+      setRecommendJobs(Array.isArray(data) ? data : []);
+    } catch (error) {
+      setRecommendError(error.message || '맞춤형 추천 공고를 불러오는 중 오류가 발생했습니다.');
+    } finally {
+      setRecommendLoading(false);
+    }
+  }
+
+  function resetToAllJobs() {
+    setIsNearbyMode(false);
+    setIsRecommendMode(false);
+    setIsDistanceDropdownOpen(false);
+  }
 
   const moveToRecruitDetail = (recruitId) => {
     navigate(`/recruit-detail?recruitId=${recruitId}`);
   };
 
   const handleRecruitCardKeyDown = (event, recruitId) => {
-    if (event.key !== 'Enter' && event.key !== ' ') {
-      return;
-    }
-
+    if (event.key !== 'Enter' && event.key !== ' ') return;
     event.preventDefault();
     moveToRecruitDetail(recruitId);
   };
 
   const isRecruitScrapped = (recruitId) => scrappedRecruitIds.includes(Number(recruitId));
-
   const isRecruitScrapLoading = (recruitId) => scrapLoadingIds.includes(Number(recruitId));
 
   const handleScrapClick = async (event, recruitId) => {
@@ -278,6 +278,8 @@ export default function MainPage() {
       setScrapLoadingIds((prev) => prev.filter((id) => id !== numericRecruitId));
     }
   };
+
+
 
   return (
     <>
@@ -569,123 +571,61 @@ export default function MainPage() {
                   <div className="col-span-1 text-right">등록</div>
                 </div>
 
-                <div className="grid grid-cols-1 gap-4 border-b border-[#e8e8e8] px-6 py-6 transition-colors hover:bg-[#f9f9f9] lg:grid-cols-12 lg:items-center">
-                  <div className="col-span-1 lg:col-span-5">
-                    <p className="mb-0.5 text-[11px] font-bold text-primary">대치동 입시학원</p>
-                    <h4 className="flex items-center gap-1.5 text-base font-bold">
-                      <span className="mr-1 flex items-center gap-1 text-[10px] font-bold text-primary">
-                        <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: '"FILL" 1' }}>
-                          notifications_active
-                        </span>
-                      </span>
-                      보조 강사 급구 (금일 17시)
-                    </h4>
-                  </div>
-                  <div className="col-span-1 flex items-center text-sm text-on-surface-variant lg:col-span-2">
-                    <span className="material-symbols-outlined mr-1 text-sm lg:hidden">location_on</span>
-                    서울 강남구
-                  </div>
-                  <div className="col-span-1 flex items-center text-sm text-on-surface-variant lg:col-span-2">
-                    <span className="material-symbols-outlined mr-1 text-sm lg:hidden">category</span>
-                    교육/학원
-                  </div>
-                  <div className="col-span-1 text-left lg:col-span-2 lg:text-right">
-                    <div className="flex items-center gap-2 lg:flex-col lg:items-end lg:gap-0">
-                      <span className="text-lg font-black text-primary">18,000원</span>
-                      <span className="text-[11px] font-bold text-primary">D-0</span>
+                {loading && <p className="py-8 text-on-surface-variant">전체 공고를 불러오는 중입니다...</p>}
+                {!loading && loadError && <p className="py-8 text-red-600">{loadError}</p>}
+                {!loading && !loadError && latestJobs.map((job) => (
+                  <div
+                    key={job.id}
+                    className="grid grid-cols-1 lg:grid-cols-12 gap-4 px-6 py-6 border-b border-[#e8e8e8] hover:bg-[#f9f9f9] transition-colors items-center relative cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    role="link"
+                    tabIndex={0}
+                    onClick={() => moveToRecruitDetail(job.id)}
+                    onKeyDown={(event) => handleRecruitCardKeyDown(event, job.id)}
+                  >
+                    <div className="col-span-1 lg:col-span-5">
+                      <p className={`text-[11px] font-bold mb-0.5 ${(job.isUrgent ?? job.urgent) ? 'text-primary' : ''}`}>{job.companyName || '-'}</p>
+                      <h4 className="text-base font-bold flex items-center gap-1.5">
+                        {(job.isUrgent ?? job.urgent) && (
+                          <span className="flex items-center gap-1 text-[10px] font-bold text-primary mr-1"><span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: '"FILL" 1' }}>emergency</span></span>
+                        )}
+                        {job.title || '-'}
+                      </h4>
+                    </div>
+                    <div className="col-span-1 lg:col-span-2 flex items-center text-sm text-on-surface-variant">
+                      <span className="material-symbols-outlined text-sm mr-1 lg:hidden">location_on</span> {job.regionName || '-'}
+                    </div>
+                    <div className="col-span-1 lg:col-span-2 flex items-center text-sm text-on-surface-variant">
+                      <span className="material-symbols-outlined text-sm mr-1 lg:hidden">category</span> {formatBusinessType(job.businessType)}
+                    </div>
+                    <div className="col-span-1 lg:col-span-2 text-left lg:text-right">
+                      <div className="flex lg:flex-col items-center lg:items-end gap-2 lg:gap-0">
+                        <span className={`text-lg font-black ${(job.isUrgent ?? job.urgent) ? 'text-primary' : 'text-on-surface'}`}>{formatSalaryAmount(job.salary)}</span>
+                        <span className={`text-[11px] ${(job.isUrgent ?? job.urgent) ? 'font-bold text-primary' : 'text-stone-400'}`}>{getDday(job.deadline)}</span>
+                      </div>
+                    </div>
+                    <div className="col-span-1 lg:col-span-1 flex justify-between lg:justify-end items-center">
+                      <span className="text-[11px] font-medium text-on-surface-variant">{formatRelativeTime(job.createdAt)}</span>
+                      <button
+                        type="button"
+                        onClick={(event) => handleScrapClick(event, job.id)}
+                        disabled={isRecruitScrapLoading(job.id)}
+                        className={`material-symbols-outlined transition-colors lg:hidden ${isRecruitScrapped(job.id) ? 'text-primary' : 'text-on-surface-variant/40 hover:text-primary'} ${isRecruitScrapLoading(job.id) ? 'opacity-50' : ''}`}
+                        style={{ fontVariationSettings: isRecruitScrapped(job.id) ? '"FILL" 1' : '"FILL" 0' }}
+                        aria-label="공고 스크랩"
+                      >
+                        bookmark
+                      </button>
                     </div>
                   </div>
-                  <div className="col-span-1 flex items-center justify-between lg:col-span-1 lg:justify-end">
-                    <span className="text-[11px] font-medium text-on-surface-variant">15분 전</span>
-                    <button className="material-symbols-outlined text-on-surface-variant/40 transition-colors hover:text-primary lg:hidden">bookmark</button>
-                  </div>
-                </div>
+                ))}
 
-                <div className="grid grid-cols-1 gap-4 border-b border-[#e8e8e8] px-6 py-6 transition-colors hover:bg-[#f9f9f9] lg:grid-cols-12 lg:items-center">
-                  <div className="col-span-1 lg:col-span-5">
-                    <p className="mb-0.5 text-[11px] font-bold">성수 팝업</p>
-                    <h4 className="text-base font-bold">팝업스토어 안내 데스크 스태프</h4>
-                  </div>
-                  <div className="col-span-1 flex items-center text-sm text-on-surface-variant lg:col-span-2">
-                    <span className="material-symbols-outlined mr-1 text-sm lg:hidden">location_on</span>
-                    서울 성동구
-                  </div>
-                  <div className="col-span-1 flex items-center text-sm text-on-surface-variant lg:col-span-2">
-                    <span className="material-symbols-outlined mr-1 text-sm lg:hidden">category</span>
-                    전시/행사
-                  </div>
-                  <div className="col-span-1 text-left lg:col-span-2 lg:text-right">
-                    <div className="flex items-center gap-2 lg:flex-col lg:items-end lg:gap-0">
-                      <span className="text-lg font-black text-on-surface">11,000원</span>
-                      <span className="text-[11px] text-stone-400">D-2</span>
-                    </div>
-                  </div>
-                  <div className="col-span-1 flex items-center justify-between lg:col-span-1 lg:justify-end">
-                    <span className="text-[11px] font-medium text-on-surface-variant">1시간 전</span>
-                    <button className="material-symbols-outlined text-on-surface-variant/40 transition-colors hover:text-primary lg:hidden">bookmark</button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 border-b border-[#e8e8e8] px-6 py-6 transition-colors hover:bg-[#f9f9f9] lg:grid-cols-12 lg:items-center">
-                  <div className="col-span-1 lg:col-span-5">
-                    <p className="mb-0.5 text-[11px] font-bold text-primary">압구정 테라스</p>
-                    <h4 className="flex items-center gap-1.5 text-base font-bold">
-                      <span className="mr-1 flex items-center gap-1 text-[10px] font-bold text-primary">
-                        <span className="material-symbols-outlined text-[16px]" style={{ fontVariationSettings: '"FILL" 1' }}>
-                          notifications_active
-                        </span>
-                      </span>
-                      레스토랑 주방 보조 (내일 고정)
-                    </h4>
-                  </div>
-                  <div className="col-span-1 flex items-center text-sm text-on-surface-variant lg:col-span-2">
-                    <span className="material-symbols-outlined mr-1 text-sm lg:hidden">location_on</span>
-                    서울 강남구
-                  </div>
-                  <div className="col-span-1 flex items-center text-sm text-on-surface-variant lg:col-span-2">
-                    <span className="material-symbols-outlined mr-1 text-sm lg:hidden">category</span>
-                    외식/식음료
-                  </div>
-                  <div className="col-span-1 text-left lg:col-span-2 lg:text-right">
-                    <div className="flex items-center gap-2 lg:flex-col lg:items-end lg:gap-0">
-                      <span className="text-lg font-black text-primary">14,500원</span>
-                      <span className="text-[11px] font-bold text-primary">D-1</span>
-                    </div>
-                  </div>
-                  <div className="col-span-1 flex items-center justify-between lg:col-span-1 lg:justify-end">
-                    <span className="text-[11px] font-medium text-on-surface-variant">3시간 전</span>
-                    <button className="material-symbols-outlined text-on-surface-variant/40 transition-colors hover:text-primary lg:hidden">bookmark</button>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-1 gap-4 border-b border-[#e8e8e8] px-6 py-6 transition-colors hover:bg-[#f9f9f9] lg:grid-cols-12 lg:items-center">
-                  <div className="col-span-1 lg:col-span-5">
-                    <p className="mb-0.5 text-[11px] font-bold">베베 키즈카페</p>
-                    <h4 className="text-base font-bold">키즈카페 주말 놀이 보조 선생님</h4>
-                  </div>
-                  <div className="col-span-1 flex items-center text-sm text-on-surface-variant lg:col-span-2">
-                    <span className="material-symbols-outlined mr-1 text-sm lg:hidden">location_on</span>
-                    서울 서초구
-                  </div>
-                  <div className="col-span-1 flex items-center text-sm text-on-surface-variant lg:col-span-2">
-                    <span className="material-symbols-outlined mr-1 text-sm lg:hidden">category</span>
-                    서비스/기타
-                  </div>
-                  <div className="col-span-1 text-left lg:col-span-2 lg:text-right">
-                    <div className="flex items-center gap-2 lg:flex-col lg:items-end lg:gap-0">
-                      <span className="text-lg font-black text-on-surface">12,000원</span>
-                      <span className="text-[11px] text-stone-400">D-3</span>
-                    </div>
-                  </div>
-                  <div className="col-span-1 flex items-center justify-between lg:col-span-1 lg:justify-end">
-                    <span className="text-[11px] font-medium text-on-surface-variant">4시간 전</span>
-                    <button className="material-symbols-outlined text-on-surface-variant/40 transition-colors hover:text-primary lg:hidden">bookmark</button>
-                  </div>
-                </div>
+                {!loading && !loadError && latestJobs.length === 0 && (
+                  <div className="px-8 py-16 text-center text-on-surface-variant border-b border-[#e8e8e8]">표시할 최신 공고가 없습니다.</div>
+                )}
 
                 <div className="mt-16 flex justify-center">
                   <CommonButton
-                    to="/recruit-information"
+                    to={latestRecruitLink}
                     variant="outline"
                     size="xl"
                     icon={<span className="material-symbols-outlined text-lg">add</span>}
@@ -695,6 +635,7 @@ export default function MainPage() {
                 </div>
               </>
             )}
+
           </div>
         </section>
       </main>
@@ -707,6 +648,7 @@ export default function MainPage() {
         onClose={() => setIsRecommendModalOpen(false)}
         onApply={handleApplyRecommendFilters}
       />
+
       <div className={`${showScrapLoginModal ? '' : 'hidden'} fixed inset-0 z-[100] flex items-center justify-center p-6`}>
         <div className="absolute inset-0 bg-on-surface/40 backdrop-blur-sm" onClick={() => setShowScrapLoginModal(false)}></div>
         <div className="relative bg-white w-full max-w-md p-10 rounded-2xl flex flex-col items-center text-center shadow-2xl">
