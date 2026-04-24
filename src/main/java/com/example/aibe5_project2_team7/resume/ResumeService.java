@@ -11,9 +11,11 @@ import com.example.aibe5_project2_team7.member.Member;
 import com.example.aibe5_project2_team7.member.repository.MemberRepository;
 import com.example.aibe5_project2_team7.member_address.MemberAddress;
 import com.example.aibe5_project2_team7.member_address.MemberAddressRepository;
+import com.example.aibe5_project2_team7.member_preferred_region.MemberPreferredRegion;
 import com.example.aibe5_project2_team7.member_preferred_region.MemberPreferredRegionRepository;
 import com.example.aibe5_project2_team7.recruit.constant.BusinessTypeName;
 import com.example.aibe5_project2_team7.region.Region;
+import com.example.aibe5_project2_team7.region.RegionRepository;
 import com.example.aibe5_project2_team7.region.RegionResponseDto;
 import com.example.aibe5_project2_team7.resume.dto.ResumeDetailDto;
 import com.example.aibe5_project2_team7.resume.dto.ResumeSummaryDto;
@@ -47,6 +49,7 @@ public class ResumeService {
     private final MemberPreferredRegionRepository memberPreferredRegionRepository;
     private final ReviewRepository reviewRepository;
     private final MemberAddressRepository memberAddressRepository;
+    private final RegionRepository regionRepository; // 추가: Region 조회용
 
     public Page<ResumeSummaryDto> getPublicResumes(int page) {
         Pageable pageable = PageRequest.of(page, 20, org.springframework.data.domain.Sort.by("updatedAt").descending());
@@ -164,6 +167,39 @@ public class ResumeService {
                 desiredBusinessTypeRepository.save(dbt);
             } catch (IllegalArgumentException ex) {
 
+            }
+        }
+
+        // preferred region 저장: payload key는 preferredRegionIds 로 기대 (List<Integer> 혹은 List<Number>)
+        if (payload.containsKey("preferredRegionIds")) {
+            Object raw = payload.get("preferredRegionIds");
+            if (raw instanceof List) {
+                List<?> rawList = (List<?>) raw;
+                // 기존에 같은 member의 매핑이 있을 경우 대비하여 삭제
+                List<MemberPreferredRegion> existing = memberPreferredRegionRepository.findByMemberId(id);
+                if (!existing.isEmpty()) {
+                    memberPreferredRegionRepository.deleteAll(existing);
+                }
+
+                List<MemberPreferredRegion> toSave = new ArrayList<>();
+                for (Object o : rawList) {
+                    if (o == null) continue;
+                    try {
+                        Integer regionId = o instanceof Number ? ((Number) o).intValue() : Integer.valueOf(o.toString());
+                        Optional<Region> regionOpt = regionRepository.findById(regionId);
+                        if (regionOpt.isPresent()) {
+                            MemberPreferredRegion mpr = new MemberPreferredRegion();
+                            // set member reference - load managed member entity
+                            mpr.setMember(m);
+                            mpr.setRegion(regionOpt.get());
+                            toSave.add(mpr);
+                        }
+                    } catch (NumberFormatException ignored) {
+                    }
+                }
+                if (!toSave.isEmpty()) {
+                    memberPreferredRegionRepository.saveAll(toSave);
+                }
             }
         }
 
@@ -428,6 +464,36 @@ public class ResumeService {
                 dbt.setMemberId(memberId);
                 dbt.setType(BusinessTypeName.valueOf(t));
                 desiredBusinessTypeRepository.save(dbt);
+            }
+        }
+
+        // preferredRegionIds 처리: 기존 매핑 삭제 후 재저장
+        if (payload.containsKey("preferredRegionIds")) {
+            Object raw = payload.get("preferredRegionIds");
+            // 먼저 기존 매핑 삭제
+            List<MemberPreferredRegion> existing = memberPreferredRegionRepository.findByMemberId(memberId);
+            if (!existing.isEmpty()) {
+                memberPreferredRegionRepository.deleteAll(existing);
+            }
+            if (raw instanceof List) {
+                List<?> rawList = (List<?>) raw;
+                List<MemberPreferredRegion> toSave = new ArrayList<>();
+                Member member = memberRepository.findById(memberId).orElse(null);
+                for (Object o : rawList) {
+                    if (o == null) continue;
+                    try {
+                        Integer regionId = o instanceof Number ? ((Number) o).intValue() : Integer.valueOf(o.toString());
+                        Optional<Region> regionOpt = regionRepository.findById(regionId);
+                        if (regionOpt.isPresent() && member != null) {
+                            MemberPreferredRegion mpr = new MemberPreferredRegion();
+                            mpr.setMember(member);
+                            mpr.setRegion(regionOpt.get());
+                            toSave.add(mpr);
+                        }
+                    } catch (NumberFormatException ignored) {
+                    }
+                }
+                if (!toSave.isEmpty()) memberPreferredRegionRepository.saveAll(toSave);
             }
         }
 
