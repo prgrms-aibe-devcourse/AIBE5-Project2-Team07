@@ -222,7 +222,7 @@ function mapResumeToTalent(resume) {
     activeResponse: false,
     tags: mapDesiredTypesToTags(resume.desiredBusinessTypes ?? resume.desiredTypes ?? []),
     image:
-        'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80',
+        'https://cdn-icons-png.flaticon.com/512/2815/2815428.png',
   };
 }
 
@@ -239,194 +239,9 @@ async function fetchJsonWithFallback(url, fallbackData) {
   }
 }
 
-function BrandFilterModal({
-                            open,
-                            onClose,
-                            selectedBrandIds,
-                            onApply,
-                          }) {
-  const [localSelectedIds, setLocalSelectedIds] = useState(selectedBrandIds || []);
-  const [selectedBusinessType, setSelectedBusinessType] = useState('');
-  const [keyword, setKeyword] = useState('');
-
-  useEffect(() => {
-    if (open) {
-      setLocalSelectedIds(selectedBrandIds || []);
-    }
-  }, [open, selectedBrandIds]);
-
-  if (!open) return null;
-
-  const filteredBrands = BRAND_OPTIONS.filter((brand) => {
-    const typeMatched = selectedBusinessType ? brand.businessType === selectedBusinessType : true;
-    const keywordMatched = keyword.trim()
-        ? brand.name.toLowerCase().includes(keyword.trim().toLowerCase())
-        : true;
-    return typeMatched && keywordMatched;
-  });
-
-  const toggleBrand = (brandId) => {
-    setLocalSelectedIds((prev) =>
-        prev.includes(brandId)
-            ? prev.filter((id) => id !== brandId)
-            : [...prev, brandId]
-    );
-  };
-
-  const handleReset = () => {
-    setLocalSelectedIds([]);
-    setSelectedBusinessType('');
-    setKeyword('');
-  };
-
-  const selectedBrandNames = BRAND_OPTIONS.filter((brand) =>
-      localSelectedIds.includes(brand.id)
-  ).map((brand) => brand.name);
-
-  return (
-      <div className="fixed inset-0 z-[120] flex items-center justify-center p-4">
-        <div className="absolute inset-0 bg-black/40" onClick={onClose}></div>
-
-        <div className="relative w-full max-w-3xl bg-white rounded-2xl border border-outline shadow-2xl overflow-hidden">
-          <div className="px-6 py-5 border-b border-outline flex items-center justify-between">
-            <div>
-              <h3 className="text-xl font-extrabold text-on-surface">브랜드 경력 필터</h3>
-              <p className="text-xs text-on-surface-variant mt-1">
-                여러 브랜드를 선택해 해당 경력 인재만 조회할 수 있습니다.
-              </p>
-            </div>
-            <button
-                onClick={onClose}
-                className="w-9 h-9 rounded-lg bg-surface-container-low hover:bg-surface-variant transition-colors"
-            >
-              <span className="material-symbols-outlined text-on-surface-variant">close</span>
-            </button>
-          </div>
-
-          <div className="p-6 space-y-5">
-            <div className="space-y-3">
-              <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wider block">
-                업종별 보기
-              </label>
-              <div className="flex flex-wrap gap-2">
-                <button
-                    type="button"
-                    onClick={() => setSelectedBusinessType('')}
-                    className={`px-3 py-2 rounded-lg text-xs font-bold border ${
-                        selectedBusinessType === ''
-                            ? 'bg-primary-soft border-primary text-primary'
-                            : 'bg-white border-outline text-on-surface-variant'
-                    }`}
-                >
-                  전체
-                </button>
-                {Object.entries(BUSINESS_TYPE_LABELS).map(([value, label]) => (
-                    <button
-                        key={value}
-                        type="button"
-                        onClick={() => setSelectedBusinessType(value)}
-                        className={`px-3 py-2 rounded-lg text-xs font-bold border ${
-                            selectedBusinessType === value
-                                ? 'bg-primary-soft border-primary text-primary'
-                                : 'bg-white border-outline text-on-surface-variant'
-                        }`}
-                    >
-                      {label}
-                    </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <input
-                  type="text"
-                  value={keyword}
-                  onChange={(e) => setKeyword(e.target.value)}
-                  placeholder="브랜드명 검색"
-                  className="w-full bg-white border border-outline rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-primary"
-              />
-            </div>
-
-            {selectedBrandNames.length > 0 && (
-                <div className="flex flex-wrap gap-2">
-                  {selectedBrandNames.map((name) => (
-                      <span
-                          key={name}
-                          className="bg-primary-soft text-primary text-xs font-bold px-3 py-1.5 rounded-full"
-                      >
-                  {name}
-                </span>
-                  ))}
-                </div>
-            )}
-
-            <div className="max-h-[420px] overflow-y-auto border border-outline rounded-2xl">
-              {filteredBrands.length > 0 ? (
-                  <div className="divide-y divide-outline">
-                    {filteredBrands.map((brand) => {
-                      const checked = localSelectedIds.includes(brand.id);
-
-                      return (
-                          <button
-                              key={brand.id}
-                              type="button"
-                              onClick={() => toggleBrand(brand.id)}
-                              className={`w-full text-left px-5 py-4 transition-colors flex items-center justify-between ${
-                                  checked ? 'bg-primary-soft/40' : 'hover:bg-surface-container-low'
-                              }`}
-                          >
-                            <div>
-                              <div className="font-bold text-sm text-on-surface">{brand.name}</div>
-                              <div className="text-xs text-on-surface-variant mt-1">
-                                {translateBusinessType(brand.businessType)}
-                              </div>
-                            </div>
-
-                            <div className="flex items-center gap-2">
-                              {checked && (
-                                  <span className="text-xs font-bold text-primary">선택됨</span>
-                              )}
-                              <span className="material-symbols-outlined text-primary">
-                          {checked ? 'check_circle' : 'add_circle'}
-                        </span>
-                            </div>
-                          </button>
-                      );
-                    })}
-                  </div>
-              ) : (
-                  <div className="px-6 py-12 text-center text-sm text-on-surface-variant">
-                    조건에 맞는 브랜드가 없습니다.
-                  </div>
-              )}
-            </div>
-          </div>
-
-          <div className="px-6 py-4 border-t border-outline bg-white flex justify-between items-center">
-            <button
-                onClick={handleReset}
-                className="text-sm font-bold text-on-surface-variant hover:text-primary transition-colors"
-            >
-              초기화
-            </button>
-
-            <div className="flex gap-3">
-              <CommonButton variant="subtle" onClick={onClose}>
-                닫기
-              </CommonButton>
-              <CommonButton
-                  onClick={() => {
-                    onApply(localSelectedIds);
-                    onClose();
-                  }}
-              >
-                적용하기
-              </CommonButton>
-            </div>
-          </div>
-        </div>
-      </div>
-  );
+async function fetchResumeItems(url, fallbackData = { content: DUMMY_TALENT_LIST }) {
+  const data = await fetchJsonWithFallback(url, fallbackData);
+  return Array.isArray(data) ? data : data.content ?? [];
 }
 
 export default function HumanInformationPage() {
@@ -434,7 +249,6 @@ export default function HumanInformationPage() {
 
   const [showLoginModal, setShowLoginModal] = useState(false);
   const [showSearchPage, setShowSearchPage] = useState(false);
-  const [showBrandFilterModal, setShowBrandFilterModal] = useState(false);
 
   const [premiumTalents, setPremiumTalents] = useState([]);
   const [talentList, setTalentList] = useState([]);
@@ -444,7 +258,17 @@ export default function HumanInformationPage() {
 
   const [searchKeyword, setSearchKeyword] = useState('');
   const [selectedTab, setSelectedTab] = useState('all');
+
+  const [regionOptions, setRegionOptions] = useState([]);
+  const [selectedRegionIds, setSelectedRegionIds] = useState([]);
+  const [selectedBusinessTypes, setSelectedBusinessTypes] = useState([]);
   const [selectedBrandIds, setSelectedBrandIds] = useState([]);
+  const [brandKeyword, setBrandKeyword] = useState('');
+  const [brandFilterBusinessType, setBrandFilterBusinessType] = useState('');
+  const [selectedSido, setSelectedSido] = useState('');
+  const [modalRightBrands, setModalRightBrands] = useState([]);
+  const [modalRightLoading, setModalRightLoading] = useState(false);
+  const [openFilterPanel, setOpenFilterPanel] = useState('');
 
   const filteredTalentList = useMemo(() => {
     if (!searchKeyword.trim()) return talentList;
@@ -461,13 +285,77 @@ export default function HumanInformationPage() {
   }, [talentList, searchKeyword]);
 
   const selectedBrandNames = useMemo(() => {
-    return BRAND_OPTIONS.filter((brand) => selectedBrandIds.includes(brand.id)).map((brand) => brand.name);
-  }, [selectedBrandIds]);
+    const allBrands = [...modalRightBrands, ...BRAND_OPTIONS];
+    const map = new Map(allBrands.map((b) => [b.id, b.name]));
+    return selectedBrandIds.map((id) => ({ id, name: map.get(id) || `브랜드 ${id}` }));
+  }, [selectedBrandIds, modalRightBrands]);
 
+  // selected regions as objects { id, label }
+  const selectedRegionNames = useMemo(() => {
+    return regionOptions
+        .filter((region) => selectedRegionIds.includes(Number(region.id)))
+        .map((region) => ({ id: Number(region.id), label: `${region.sido ?? ''} ${region.sigungu ?? ''}`.trim() }))
+        .filter((r) => r.label);
+  }, [regionOptions, selectedRegionIds]);
+
+  // selected business types as objects { type, label }
+  const selectedBusinessLabels = useMemo(() => {
+    return selectedBusinessTypes.map((type) => ({ type, label: BUSINESS_TYPE_LABELS[type] || type }));
+  }, [selectedBusinessTypes]);
+
+  const filteredBrandOptions = useMemo(() => {
+    const keyword = brandKeyword.trim().toLowerCase();
+    const biz = brandFilterBusinessType;
+    // prefer server-provided modalRightBrands when biz selected
+    let list = biz && modalRightBrands.length > 0 ? modalRightBrands : BRAND_OPTIONS;
+    if (biz && modalRightBrands.length === 0 && modalRightLoading) {
+      list = [];
+    }
+    if (!keyword) return list;
+    return list.filter((brand) => (brand.name || '').toLowerCase().includes(keyword));
+  }, [brandKeyword, brandFilterBusinessType, modalRightBrands, modalRightLoading]);
+
+  async function loadModalRightBrands(biz) {
+    if (!biz) {
+      setModalRightBrands([]);
+      return;
+    }
+    setModalRightLoading(true);
+    try {
+      const url = `${API_BASE}/api/brand/modal/right?businessType=${biz}`;
+      const data = await fetchJsonWithFallback(url, []);
+      const list = Array.isArray(data) ? data : [];
+      const mapped = list.map((b) => ({ id: Number(b.brandId), name: b.brandName, businessType: biz }));
+      setModalRightBrands(mapped);
+    } catch {
+      setModalRightBrands([]);
+    } finally {
+      setModalRightLoading(false);
+    }
+  }
+
+  // Initial page bootstrapping only once on mount.
   useEffect(() => {
     loadPremiumTalents();
     loadTalentList('all');
+    loadRegions();
   }, []);
+
+  // when brand filter business type changes, load brands from backend
+  useEffect(() => {
+    if (openFilterPanel === 'brand') {
+      loadModalRightBrands(brandFilterBusinessType);
+    }
+  }, [brandFilterBusinessType, openFilterPanel]);
+
+  async function loadRegions() {
+    try {
+      const regions = await fetchJsonWithFallback(`${API_BASE}/api/regions`, []);
+      setRegionOptions(Array.isArray(regions) ? regions : []);
+    } catch {
+      setRegionOptions([]);
+    }
+  }
 
   async function loadPremiumTalents() {
     setLoadingPremium(true);
@@ -483,51 +371,89 @@ export default function HumanInformationPage() {
           item.resumeId || item.memberId || item.id ? mapResumeToTalent(item) : item
       );
       setPremiumTalents(mapped);
-    } catch (e) {
+    } catch {
       setError('프리미엄 인재 목록을 불러오지 못했습니다.');
     } finally {
       setLoadingPremium(false);
     }
   }
 
-  async function loadTalentList(type = 'all', brandIdsParam = selectedBrandIds) {
+  async function loadTalentList(type = selectedTab, filters = {}) {
     setLoadingList(true);
     setError('');
     setSelectedTab(type);
 
+    const regionIds = filters.regionIds ?? selectedRegionIds;
+    const businessTypes = filters.businessTypes ?? selectedBusinessTypes;
+    const brandIds = filters.brandIds ?? selectedBrandIds;
+
     try {
-      let url = `${API_BASE}/human-resource?page=0`;
+      const requestUrls = [];
 
-      if (type === 'active') {
-        url = `${API_BASE}/human-resource/active?page=0`;
+      if (type === 'all') {
+        requestUrls.push(`${API_BASE}/human-resource?page=0`);
+      } else if (type === 'active') {
+        requestUrls.push(`${API_BASE}/human-resource/active?page=0`);
       } else if (type === 'special') {
-        url = `${API_BASE}/human-resource/special?page=0`;
-      } else if (type === 'brands') {
-        if (!brandIdsParam || brandIdsParam.length === 0) {
-          setTalentList([]);
-          setLoadingList(false);
-          return;
-        }
-
-        const ids = brandIdsParam.join(',');
-        url = `${API_BASE}/human-resource/brands?brandIds=${ids}&page=0`;
+        requestUrls.push(`${API_BASE}/human-resource/special?page=0`);
+      } else if (type === 'brands' && brandIds.length > 0) {
+        requestUrls.push(`${API_BASE}/human-resource/brands?brandIds=${brandIds.join(',')}&page=0`);
+      } else if (type === 'brands' && brandIds.length === 0) {
+        // No specific brands selected: show general human-resource list (fallback)
+        requestUrls.push(`${API_BASE}/human-resource?page=0`);
       }
 
-      const data = await fetchJsonWithFallback(url, { content: DUMMY_TALENT_LIST });
+      if (regionIds.length > 0) {
+        requestUrls.push(`${API_BASE}/human-resource/regions?regionIds=${regionIds.join(',')}&page=0`);
+      }
 
-      const items = Array.isArray(data) ? data : data.content ?? [];
-      const mapped = items.map((item) =>
+      // NOTE:
+      // backend /human-resource/business-types currently can return empty unexpectedly
+      // (enum-string matching issue), so business type filtering is applied client-side
+      // on the fetched candidate list.
+
+      if (brandIds.length > 0 && type !== 'brands') {
+        requestUrls.push(`${API_BASE}/human-resource/brands?brandIds=${brandIds.join(',')}&page=0`);
+      }
+
+      if (requestUrls.length === 0) {
+        setTalentList([]);
+        return;
+      }
+
+      const datasets = await Promise.all(
+          requestUrls.map((url) => fetchResumeItems(url, { content: DUMMY_TALENT_LIST }))
+      );
+
+      let intersected = datasets[0] ?? [];
+      for (let i = 1; i < datasets.length; i += 1) {
+        const idSet = new Set((datasets[i] ?? []).map((item) => item.resumeId ?? item.id));
+        intersected = intersected.filter((item) => idSet.has(item.resumeId ?? item.id));
+      }
+
+      const mapped = intersected.map((item) =>
           item.resumeId || item.memberId || item.id ? mapResumeToTalent(item) : item
       );
 
-      setTalentList(mapped);
-    } catch (e) {
+      const businessFiltered = businessTypes.length > 0
+          ? mapped.filter((talent) => {
+            const jobText = String(talent.job ?? '').toLowerCase();
+            return businessTypes.some((type) => {
+              const label = String(BUSINESS_TYPE_LABELS[type] || type).toLowerCase();
+              return jobText.includes(label);
+            });
+          })
+          : mapped;
+
+      setTalentList(businessFiltered);
+    } catch {
       setError('인재 목록을 불러오지 못했습니다.');
     } finally {
       setLoadingList(false);
     }
   }
-  function handleSearchMove(tab = 'all') {
+
+  function handleSearchMove(tab = selectedTab) {
     setShowSearchPage(true);
     loadTalentList(tab);
   }
@@ -543,10 +469,70 @@ export default function HumanInformationPage() {
     navigate(`/talent-profile/${resumeId}`);
   }
 
-  function handleApplyBrands(ids) {
-    setSelectedBrandIds(ids);
-    setShowSearchPage(true);
-    loadTalentList('brands', ids);
+  function updateAndReloadFilters(next = {}) {
+    const nextRegions = next.regionIds ?? selectedRegionIds;
+    const nextTypes = next.businessTypes ?? selectedBusinessTypes;
+    const nextBrands = next.brandIds ?? selectedBrandIds;
+    loadTalentList(selectedTab, {
+      regionIds: nextRegions,
+      businessTypes: nextTypes,
+      brandIds: nextBrands,
+    });
+  }
+
+  function toggleRegion(regionId) {
+    const next = selectedRegionIds.includes(regionId)
+        ? selectedRegionIds.filter((id) => id !== regionId)
+        : [...selectedRegionIds, regionId];
+    setSelectedRegionIds(next);
+    updateAndReloadFilters({ regionIds: next });
+  }
+
+  function toggleBusinessType(type) {
+    const next = selectedBusinessTypes.includes(type)
+        ? selectedBusinessTypes.filter((v) => v !== type)
+        : [...selectedBusinessTypes, type];
+    setSelectedBusinessTypes(next);
+    updateAndReloadFilters({ businessTypes: next });
+  }
+
+  function toggleBrand(brandId) {
+    const next = selectedBrandIds.includes(brandId)
+        ? selectedBrandIds.filter((id) => id !== brandId)
+        : [...selectedBrandIds, brandId];
+    setSelectedBrandIds(next);
+    updateAndReloadFilters({ brandIds: next });
+  }
+
+  function handleResetFilters() {
+    setSearchKeyword('');
+    setSelectedRegionIds([]);
+    setSelectedBusinessTypes([]);
+    setSelectedBrandIds([]);
+    setOpenFilterPanel('');
+    loadTalentList(selectedTab, { regionIds: [], businessTypes: [], brandIds: [] });
+  }
+
+  function toggleFilterPanel(panel) {
+    setOpenFilterPanel((prev) => (prev === panel ? '' : panel));
+  }
+
+  function removeRegionId(id) {
+    const next = selectedRegionIds.filter((rid) => rid !== id);
+    setSelectedRegionIds(next);
+    updateAndReloadFilters({ regionIds: next });
+  }
+
+  function removeBusinessType(type) {
+    const next = selectedBusinessTypes.filter((t) => t !== type);
+    setSelectedBusinessTypes(next);
+    updateAndReloadFilters({ businessTypes: next });
+  }
+
+  function removeBrandId(id) {
+    const next = selectedBrandIds.filter((b) => b !== id);
+    setSelectedBrandIds(next);
+    updateAndReloadFilters({ brandIds: next });
   }
 
   return (
@@ -568,6 +554,9 @@ export default function HumanInformationPage() {
                         type="text"
                         value={searchKeyword}
                         onChange={(e) => setSearchKeyword(e.target.value)}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') handleSearchMove('all');
+                        }}
                     />
                     <span className="material-symbols-outlined absolute left-5 top-1/2 -translate-y-1/2 text-on-surface-variant text-2xl">
                   search
@@ -597,13 +586,13 @@ export default function HumanInformationPage() {
                         onClick={() => handleSearchMove('special')}
                         className="px-6 py-2.5 rounded-full bg-white border border-outline text-on-surface-variant font-bold text-xs hover:border-primary transition-colors"
                     >
-                      베테랑 인재
+                      스페셜 인재
                     </button>
                     <button
                         onClick={() => {
                           setShowSearchPage(true);
                           setSelectedTab('brands');
-                          loadTalentList('brands', selectedBrandIds);
+                          loadTalentList('brands', { brandIds: selectedBrandIds });
                         }}
                         className="px-6 py-2.5 rounded-full bg-white border border-outline text-on-surface-variant font-bold text-xs hover:border-primary transition-colors"
                     >
@@ -815,10 +804,10 @@ export default function HumanInformationPage() {
                                   : 'border-transparent text-on-surface-variant hover:text-primary'
                           }`}
                       >
-                        베테랑 인재
+                        스페셜 인재
                       </button>
                       <button
-                          onClick={() => loadTalentList('brands', selectedBrandIds)}
+                          onClick={() => loadTalentList('brands', { brandIds: selectedBrandIds })}
                           className={`pb-4 text-lg font-bold border-b-4 whitespace-nowrap ${
                               selectedTab === 'brands'
                                   ? 'border-primary text-on-surface'
@@ -838,28 +827,44 @@ export default function HumanInformationPage() {
                             type="text"
                             value={searchKeyword}
                             onChange={(e) => setSearchKeyword(e.target.value)}
+                            onKeyDown={(e) => {
+                              if (e.key === 'Enter') loadTalentList(selectedTab);
+                            }}
                         />
                       </div>
 
                       <div className="flex flex-wrap items-center gap-3">
-                        <button className="flex items-center gap-2 px-4 py-2 bg-[#f2efee] rounded-full text-xs font-bold hover:bg-gray-200 transition-colors">
+                        <button
+                            onClick={() => toggleFilterPanel('region')}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-colors ${
+                                selectedRegionIds.length > 0
+                                    ? 'bg-primary-soft text-primary border border-primary/20'
+                                    : 'bg-[#f2efee] hover:bg-gray-200'
+                            }`}
+                        >
                           지역별 <span className="material-symbols-outlined text-sm">keyboard_arrow_down</span>
                         </button>
 
-                        <button className="flex items-center gap-2 px-4 py-2 bg-[#f2efee] rounded-full text-xs font-bold hover:bg-gray-200 transition-colors">
+                        <button
+                            onClick={() => toggleFilterPanel('business')}
+                            className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-colors ${
+                                selectedBusinessTypes.length > 0
+                                    ? 'bg-primary-soft text-primary border border-primary/20'
+                                    : 'bg-[#f2efee] hover:bg-gray-200'
+                            }`}
+                        >
                           업종별 <span className="material-symbols-outlined text-sm">keyboard_arrow_down</span>
                         </button>
 
                         <button
-                            onClick={() => setShowBrandFilterModal(true)}
+                            onClick={() => toggleFilterPanel('brand')}
                             className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs font-bold transition-colors ${
                                 selectedBrandIds.length > 0
                                     ? 'bg-primary-soft text-primary border border-primary/20'
                                     : 'bg-[#f2efee] hover:bg-gray-200'
                             }`}
                         >
-                          브랜드별
-                          <span className="material-symbols-outlined text-sm">keyboard_arrow_down</span>
+                          브랜드별 <span className="material-symbols-outlined text-sm">keyboard_arrow_down</span>
                         </button>
 
                         <button className="flex items-center gap-2 px-4 py-2 bg-[#f2efee] rounded-full text-xs font-bold hover:bg-gray-200 transition-colors">
@@ -867,13 +872,7 @@ export default function HumanInformationPage() {
                         </button>
 
                         <button
-                            onClick={() => {
-                              setSearchKeyword('');
-                              setSelectedBrandIds([]);
-                              if (selectedTab === 'brands') {
-                                loadTalentList('brands', []);
-                              }
-                            }}
+                            onClick={handleResetFilters}
                             className="flex items-center gap-1 px-4 py-2 text-primary text-xs font-bold ml-2"
                         >
                           <span className="material-symbols-outlined text-sm">restart_alt</span> 필터 초기화
@@ -881,15 +880,159 @@ export default function HumanInformationPage() {
                       </div>
                     </div>
 
-                    {selectedBrandIds.length > 0 && (
+                    {openFilterPanel === 'region' && (
+                        <div className="p-4 bg-white border border-outline rounded-xl">
+                          <div className="flex gap-4">
+                            <div className="w-1/3 border-r border-outline pr-3">
+                              <div className="text-xs font-semibold text-on-surface-variant mb-2">시/도</div>
+                              <div className="flex flex-col gap-2 max-h-60 overflow-y-auto">
+                                {Array.from(new Set(regionOptions.map((r) => r.sido).filter(Boolean))).map((sido) => (
+                                    <button
+                                        key={sido}
+                                        type="button"
+                                        onClick={() => setSelectedSido(sido)}
+                                        className={`text-left px-3 py-2 rounded-lg text-sm font-medium ${
+                                            selectedSido === sido ? 'bg-primary-soft text-primary' : 'bg-white text-on-surface-variant'
+                                        }`}
+                                    >
+                                      {sido}
+                                    </button>
+                                ))}
+                              </div>
+                            </div>
+
+                            <div className="flex-1">
+                              <div className="text-xs font-semibold text-on-surface-variant mb-2">시/군/구</div>
+                              <div className="max-h-60 overflow-y-auto grid grid-cols-2 md:grid-cols-3 gap-2">
+                                {selectedSido ? (
+                                    regionOptions
+                                        .filter((r) => r.sido === selectedSido)
+                                        .map((region) => {
+                                          const regionId = Number(region.id);
+                                          const checked = selectedRegionIds.includes(regionId);
+                                          const label = `${region.sigungu ?? ''}`.trim();
+
+                                          return (
+                                              <button
+                                                  key={regionId}
+                                                  type="button"
+                                                  onClick={() => toggleRegion(regionId)}
+                                                  className={`px-3 py-2 rounded-lg text-xs font-medium border text-left ${
+                                                      checked
+                                                          ? 'bg-primary-soft text-primary border-primary/30'
+                                                          : 'bg-white border-outline text-on-surface-variant'
+                                                  }`}
+                                              >
+                                                {label || `지역 ${regionId}`}
+                                              </button>
+                                          );
+                                        })
+                                ) : (
+                                    <div className="text-on-surface-variant text-sm">왼쪽에서 시/도를 먼저 선택하세요.</div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                    )}
+
+                    {openFilterPanel === 'business' && (
+                        <div className="p-4 bg-white border border-outline rounded-xl">
+                          <div className="flex flex-wrap gap-2">
+                            {Object.entries(BUSINESS_TYPE_LABELS).map(([value, label]) => {
+                              const checked = selectedBusinessTypes.includes(value);
+                              return (
+                                  <button
+                                      key={value}
+                                      type="button"
+                                      onClick={() => toggleBusinessType(value)}
+                                      className={`px-3 py-2 rounded-lg text-xs font-bold border ${
+                                          checked
+                                              ? 'bg-primary-soft border-primary text-primary'
+                                              : 'bg-white border-outline text-on-surface-variant'
+                                      }`}
+                                  >
+                                    {label}
+                                  </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                    )}
+
+                    {openFilterPanel === 'brand' && (
+                        <div className="p-4 bg-white border border-outline rounded-xl space-y-3">
+                          <div className="flex flex-wrap gap-2">
+                            <button
+                                type="button"
+                                onClick={() => setBrandFilterBusinessType('')}
+                                className={`px-3 py-2 rounded-lg text-xs font-bold border ${
+                                    brandFilterBusinessType === '' ? 'bg-primary-soft border-primary text-primary' : 'bg-white border-outline text-on-surface-variant'
+                                }`}
+                            >
+                              전체
+                            </button>
+                            {Object.entries(BUSINESS_TYPE_LABELS).map(([value, label]) => (
+                                <button
+                                    key={value}
+                                    type="button"
+                                    onClick={() => setBrandFilterBusinessType(value)}
+                                    className={`px-3 py-2 rounded-lg text-xs font-bold border ${
+                                        brandFilterBusinessType === value ? 'bg-primary-soft border-primary text-primary' : 'bg-white border-outline text-on-surface-variant'
+                                    }`}
+                                >
+                                  {label}
+                                </button>
+                            ))}
+                          </div>
+                          <input
+                              type="text"
+                              value={brandKeyword}
+                              onChange={(e) => setBrandKeyword(e.target.value)}
+                              placeholder="브랜드명 검색"
+                              className="w-full bg-white border border-outline rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-primary"
+                          />
+                          <div className="max-h-60 overflow-y-auto grid grid-cols-2 md:grid-cols-3 gap-2">
+                            {filteredBrandOptions.map((brand) => {
+                              const checked = selectedBrandIds.includes(brand.id);
+                              return (
+                                  <button
+                                      key={brand.id}
+                                      type="button"
+                                      onClick={() => toggleBrand(brand.id)}
+                                      className={`px-3 py-2 rounded-lg text-xs font-bold border text-left ${
+                                          checked
+                                              ? 'bg-primary-soft border-primary text-primary'
+                                              : 'bg-white border-outline text-on-surface-variant'
+                                      }`}
+                                  >
+                                    {brand.name}
+                                  </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                    )}
+
+                    {(selectedRegionNames.length > 0 || selectedBusinessLabels.length > 0 || selectedBrandNames.length > 0) && (
                         <div className="flex flex-wrap gap-2">
-                          {selectedBrandNames.map((name) => (
-                              <span
-                                  key={name}
-                                  className="bg-primary-soft text-primary text-xs font-bold px-3 py-1.5 rounded-full"
-                              >
-                        {name}
-                      </span>
+                          {selectedRegionNames.map((r) => (
+                              <span key={`region-${r.id}`} className="bg-gray-100 text-on-surface-variant text-xs font-bold px-2 py-1 rounded-full flex items-center gap-2">
+                                <span>{r.label}</span>
+                                <button onClick={() => removeRegionId(r.id)} className="text-[11px] px-1 rounded-full hover:bg-gray-200">×</button>
+                              </span>
+                          ))}
+                          {selectedBusinessLabels.map((b) => (
+                              <span key={`type-${b.type}`} className="bg-gray-100 text-on-surface-variant text-xs font-bold px-2 py-1 rounded-full flex items-center gap-2">
+                                <span>{b.label}</span>
+                                <button onClick={() => removeBusinessType(b.type)} className="text-[11px] px-1 rounded-full hover:bg-gray-200">×</button>
+                              </span>
+                          ))}
+                          {selectedBrandNames.map((br) => (
+                              <span key={`brand-${br.id}`} className="bg-primary-soft text-primary text-xs font-bold px-2 py-1 rounded-full flex items-center gap-2">
+                                <span>{br.name}</span>
+                                <button onClick={() => removeBrandId(br.id)} className="text-[11px] px-1 rounded-full hover:bg-primary/20">×</button>
+                              </span>
                           ))}
                         </div>
                     )}
@@ -966,13 +1109,6 @@ export default function HumanInformationPage() {
 
         <AppFooter />
 
-        <BrandFilterModal
-            open={showBrandFilterModal}
-            onClose={() => setShowBrandFilterModal(false)}
-            selectedBrandIds={selectedBrandIds}
-            onApply={handleApplyBrands}
-        />
-
         <div className={`${showLoginModal ? '' : 'hidden'} fixed inset-0 z-[100] flex items-center justify-center p-6`}>
           <div
               className="absolute inset-0 bg-on-surface/40 backdrop-blur-sm"
@@ -1016,3 +1152,4 @@ export default function HumanInformationPage() {
       </>
   );
 }
+
