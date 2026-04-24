@@ -13,6 +13,7 @@ import { addRecruitScrap, getMyScrapRecruitIds, removeRecruitScrap } from '../se
 import { getReviewLabelNames, normalizeReview } from '../utils/mypageUtils';
 import ReviewListModal from '../components/review/ReviewListModal';
 
+
 const DEFAULT_API_PREFIXES = ['/api', ''];
 
 const PERIOD_LABELS = {
