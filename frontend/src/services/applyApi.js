@@ -1,9 +1,9 @@
-import { getToken, requestWithAuth, getStoredMember } from './authApi';
+import { requestWithAuth, getStoredMember } from './authApi';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 export async function submitApply(payload, memberId) {
-  const token = getToken();
+  const token = localStorage.getItem('token');
   const headers = { 'Content-Type': 'application/json' };
   if (token) headers.Authorization = `Bearer ${token}`;
   if (memberId != null) headers['X-Member-Id'] = String(memberId);
@@ -23,7 +23,7 @@ export async function submitApply(payload, memberId) {
 export async function getMyApplications(memberId, page = 0, size = 20) {
   if (memberId == null) throw new Error('memberId가 필요합니다.');
 
-  const token = getToken();
+  const token = localStorage.getItem('token');
   const headers = { 'X-Member-Id': String(memberId) };
   if (token) headers.Authorization = `Bearer ${token}`;
 

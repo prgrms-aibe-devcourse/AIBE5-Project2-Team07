@@ -4,7 +4,8 @@ import MobileBottomNav from '../components/MobileBottomNav';
 import { Link, useNavigate } from 'react-router-dom';
 import AppFooter from '../components/AppFooter';
 import CommonButton from '../components/CommonButton';
-import { getStoredMember, getToken } from '../services/authApi';
+import { getStoredMember } from '../services/authApi';
+const getToken = () => localStorage.getItem('token');
 import { addRecruitScrap, getMyScrapRecruitIds, removeRecruitScrap } from '../services/scrapRecruitApi';
 
 const API_PREFIXES = ['/api', ''];

@@ -1,9 +1,7 @@
-import { getToken } from './authApi';
-
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 function buildHeaders(memberId, includeJson = false) {
-  const token = getToken();
+  const token = localStorage.getItem('token');
   const headers = {};
 
   if (includeJson) {
