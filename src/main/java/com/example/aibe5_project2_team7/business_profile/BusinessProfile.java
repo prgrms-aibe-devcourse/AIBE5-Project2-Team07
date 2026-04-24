@@ -1,5 +1,6 @@
 package com.example.aibe5_project2_team7.business_profile;
 
+import com.example.aibe5_project2_team7.brand.entity.Brand;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -20,8 +21,9 @@ public class BusinessProfile {
     private LocalDate foundedDate;
     @Column(name = "company_image_url")
     private String companyImageUrl;
-    @Column(name = "brand_id")
-    private Long brandId; // null 가능
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "brand_id")
+    private Brand brandId; // null 가능
     @Column(name = "business_number", nullable = false)
     private String businessNumber; //사업자등록번호
     @Column(name = "company_phone", nullable = false)
