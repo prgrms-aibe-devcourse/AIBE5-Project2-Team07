@@ -12,12 +12,25 @@ function renderStars(rating) {
   return (
     <div className="flex items-center gap-0.5 text-primary">
       {Array.from({ length: 5 }).map((_, index) => (
-        <span key={`star-${index}`} className="material-symbols-outlined text-base">
+        <span
+          key={`star-${index}`}
+          className="material-symbols-outlined text-base"
+          style={index < safeRating ? { fontVariationSettings: "'FILL' 1" } : {}}
+        >
           {index < safeRating ? 'star' : 'star_outline'}
         </span>
       ))}
     </div>
   );
+}
+
+function maskName(name) {
+  if (!name || typeof name !== 'string') return null;
+  const s = name.trim();
+  if (s.length === 0) return null;
+  if (s.length === 1) return s;
+  if (s.length === 2) return s[0] + '*';
+  return s[0] + '*' + s[s.length - 1];
 }
 
 export default function ReviewListModal({ open, onClose, reviews, title = '근무 후기 전체 보기' }) {
@@ -67,7 +80,7 @@ export default function ReviewListModal({ open, onClose, reviews, title = '근�
                     {label}
                   </span>
                 ))}
-                <span className="text-[11px] text-on-surface-variant">작성자 #{review?.writerId ?? '-'}</span>
+                <span className="text-[11px] text-on-surface-variant">{maskName(review?.writerName) || (review?.writerId ? `작성자 #${review.writerId}` : '작성자')}</span>
               </div>
             </article>
           ))}

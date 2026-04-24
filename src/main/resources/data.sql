@@ -1457,6 +1457,30 @@ INSERT IGNORE INTO highest_education (id, member_id, school_name, school_type, m
 (120, 20,  '인하대학교',       '4년제 대학교',    '경영학과',             20);
 
 -- 1) 희망 업종 (desired_business_type) 추가
-INSERT IGNORE INTO desired_business_type (member_id, type) VALUES (1, 'CAFE'), (2, 'RETAIL_STORE'), (3, 'FOOD_RESTAURANT'), (4, 'MANUAL_LABOR'), (5, 'DELIVERY_DRIVER'), (6, 'FOOD_RESTAURANT'), (7, 'CAFE'), (8, 'CAFE'), (9, 'FOOD_RESTAURANT'), (10, 'RETAIL_STORE'), (11, 'CAFE'), (12, 'MANUAL_LABOR'), (13, 'FOOD_RESTAURANT'), (14, 'FOOD_RESTAURANT'), (15, 'SERVICE'), (16, 'FOOD_RESTAURANT'), (17, 'RETAIL_STORE'), (18, 'RETAIL_STORE'), (19, 'CAFE'), (20, 'RETAIL_STORE');
+INSERT IGNORE INTO desired_business_type (id, member_id, type) VALUES
+       (1, 1, 'CAFE'), (2, 2, 'RETAIL_STORE'), (3, 3, 'FOOD_RESTAURANT'), (4, 4, 'MANUAL_LABOR'),
+       (5, 5, 'DELIVERY_DRIVER'), (6, 6, 'FOOD_RESTAURANT'), (7, 7, 'CAFE'), (8, 8, 'CAFE'), (9, 9, 'FOOD_RESTAURANT'),
+       (10, 10, 'RETAIL_STORE'), (11, 11, 'CAFE'), (12, 12, 'MANUAL_LABOR'), (13, 13, 'FOOD_RESTAURANT'), (14, 14, 'FOOD_RESTAURANT'),
+       (15, 15, 'SERVICE'), (16, 16, 'FOOD_RESTAURANT'), (17, 17, 'RETAIL_STORE'), (18, 18, 'RETAIL_STORE'), (19, 19, 'CAFE'), (20, 20, 'RETAIL_STORE');
 -- 2) 희망 근무지 (member_preferred_region) 추가 -- region 테이블에서 sido/sigungu로 id를 찾아서 넣습니다.
-INSERT IGNORE INTO member_preferred_region (member_id, region_id) VALUES (1, (SELECT id FROM region WHERE sido = '서울특별시' AND sigungu = '중구')), (2, (SELECT id FROM region WHERE sido = '경기도' AND sigungu = '시흥시')), (3, (SELECT id FROM region WHERE sido = '서울특별시' AND sigungu = '종로구')), (4, (SELECT id FROM region WHERE sido = '경기도' AND sigungu = '성남시 분당구')), (5, (SELECT id FROM region WHERE sido = '인천광역시' AND sigungu = '남동구')), (6, (SELECT id FROM region WHERE sido = '경기도' AND sigungu = '오산시')), (7, (SELECT id FROM region WHERE sido = '서울특별시' AND sigungu = '강남구')), (8, (SELECT id FROM region WHERE sido = '서울특별시' AND sigungu = '중구')), (9, (SELECT id FROM region WHERE sido = '경기도' AND sigungu = '성남시 분당구')), (10, (SELECT id FROM region WHERE sido = '서울특별시' AND sigungu = '성동구')), (11, (SELECT id FROM region WHERE sido = '서울특별시' AND sigungu = '강남구')), (12, (SELECT id FROM region WHERE sido = '경기도' AND sigungu = '화성시')), (13, (SELECT id FROM region WHERE sido = '서울특별시' AND sigungu = '마포구')), (14, (SELECT id FROM region WHERE sido = '서울특별시' AND sigungu = '서초구')), (15, (SELECT id FROM region WHERE sido = '경기도' AND sigungu = '성남시 분당구')), (16, (SELECT id FROM region WHERE sido = '서울특별시' AND sigungu = '종로구')), (17, (SELECT id FROM region WHERE sido = '부산광역시' AND sigungu = '해운대구')), (18, (SELECT id FROM region WHERE sido = '광주광역시' AND sigungu = '광산구')), (19, (SELECT id FROM region WHERE sido = '제주특별자치도' AND sigungu = '제주시')), (20, (SELECT id FROM region WHERE sido = '인천광역시' AND sigungu = '부평구'));
+INSERT IGNORE INTO member_preferred_region (id, member_id, region_id) VALUES
+       (1, 1, (SELECT id FROM region WHERE sido = '서울특별시' AND sigungu = '중구')),
+       (2, 2, (SELECT id FROM region WHERE sido = '경기도' AND sigungu = '시흥시')),
+       (3, 3, (SELECT id FROM region WHERE sido = '서울특별시' AND sigungu = '종로구')),
+       (4, 4, (SELECT id FROM region WHERE sido = '경기도' AND sigungu = '성남시 분당구')),
+       (5, 5, (SELECT id FROM region WHERE sido = '인천광역시' AND sigungu = '남동구')),
+       (6, 6, (SELECT id FROM region WHERE sido = '경기도' AND sigungu = '오산시')),
+       (7, 7, (SELECT id FROM region WHERE sido = '서울특별시' AND sigungu = '강남구')),
+       (8, 8, (SELECT id FROM region WHERE sido = '서울특별시' AND sigungu = '중구')),
+       (9, 9, (SELECT id FROM region WHERE sido = '경기도' AND sigungu = '성남시 분당구')),
+       (10, 10, (SELECT id FROM region WHERE sido = '서울특별시' AND sigungu = '성동구')),
+       (11, 11, (SELECT id FROM region WHERE sido = '서울특별시' AND sigungu = '강남구')),
+       (12, 12, (SELECT id FROM region WHERE sido = '경기도' AND sigungu = '화성시')),
+       (13, 13, (SELECT id FROM region WHERE sido = '서울특별시' AND sigungu = '마포구')),
+       (14, 14, (SELECT id FROM region WHERE sido = '서울특별시' AND sigungu = '서초구')),
+       (15, 15, (SELECT id FROM region WHERE sido = '경기도' AND sigungu = '성남시 분당구')),
+       (16, 16, (SELECT id FROM region WHERE sido = '서울특별시' AND sigungu = '종로구')),
+       (17, 17, (SELECT id FROM region WHERE sido = '부산광역시' AND sigungu = '해운대구')),
+       (18, 18, (SELECT id FROM region WHERE sido = '광주광역시' AND sigungu = '광산구')),
+       (19, 19, (SELECT id FROM region WHERE sido = '제주특별자치도' AND sigungu = '제주시')),
+       (20, 20, (SELECT id FROM region WHERE sido = '인천광역시' AND sigungu = '부평구'));
