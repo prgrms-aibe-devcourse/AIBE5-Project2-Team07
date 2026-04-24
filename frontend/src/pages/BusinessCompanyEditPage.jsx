@@ -25,6 +25,7 @@ function BusinessCompanyEditPage() {
     businessNumber: '하드코딩',
     foundedDate: '',
     companyPhone: '하드코딩',
+    homepageUrl: '',
     address: '하드코딩',
     contactName: '하드코딩',
     contactPhone: '하드코딩',
@@ -159,6 +160,7 @@ function BusinessCompanyEditPage() {
         companyName: form.companyName.trim(),
         businessNumber: form.businessNumber.trim(),
         companyPhone: form.companyPhone.trim(),
+        homepageUrl: form.homepageUrl ? form.homepageUrl.trim() : '',
         companyAddress: form.address.trim(),
       });
 
@@ -242,6 +244,7 @@ function BusinessCompanyEditPage() {
             businessNumber: data?.businessNumber || prev.businessNumber,
             foundedDate: data?.foundedDate || prev.foundedDate,
             companyPhone: data?.companyPhone || prev.companyPhone,
+            homepageUrl: data?.homepageUrl || prev.homepageUrl,
             address: data?.companyAddress || prev.address,
             contactName: data?.name || prev.contactName,
             contactPhone: data?.phone || prev.contactPhone,
@@ -305,6 +308,7 @@ function BusinessCompanyEditPage() {
                   <Field label="사업자번호" name="businessNumber" value={form.businessNumber} onChange={handleChange} />
                   <Field label="설립일" name="foundedDate" value={form.foundedDate} onChange={handleChange} type="date" />
                   <Field label="회사 번호" name="companyPhone" value={form.companyPhone} onChange={handleChange} />
+                  <Field label="회사 홈페이지 URL" name="homepageUrl" value={form.homepageUrl} onChange={handleChange} />
                   <Field label="사업장 주소" name="address" value={form.address} onChange={handleChange} />
                 </div>
                 <div className="mt-4 flex justify-end">

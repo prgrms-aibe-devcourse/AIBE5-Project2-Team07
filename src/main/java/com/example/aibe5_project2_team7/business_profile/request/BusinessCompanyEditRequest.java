@@ -12,5 +12,6 @@ public class BusinessCompanyEditRequest {
     private String companyName;
     private String businessNumber;
     private String companyPhone;
+    private String homepageUrl;
     private String companyAddress;
 }

@@ -291,6 +291,7 @@ public class BusinessProfileService {
 		String companyName = request.getCompanyName();
 		String businessNumber = request.getBusinessNumber();
 		String companyPhone = request.getCompanyPhone();
+		String homepageUrl = request.getHomepageUrl();
 		String companyAddress = request.getCompanyAddress();
 
 		if (foundedDate == null || companyName == null || companyName.isBlank() || businessNumber == null || businessNumber.isBlank() || companyPhone == null || companyPhone.isBlank() || companyAddress == null || companyAddress.isBlank()) {
@@ -311,6 +312,7 @@ public class BusinessProfileService {
 		profile.setCompanyName(companyName);
 		profile.setBusinessNumber(businessNumber);
 		profile.setCompanyPhone(companyPhone);
+		profile.setHomepageUrl(homepageUrl == null || homepageUrl.isBlank() ? null : homepageUrl.trim());
 		profile.setCompanyAddress(companyAddress);
 
 		businessProfileRepository.save(profile);

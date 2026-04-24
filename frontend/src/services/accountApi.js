@@ -1,4 +1,4 @@
-import { requestWithAuth } from './authApi';
+import { getStoredMember, requestWithAuth } from './authApi';
 
 export async function getMyAccount() {
     return requestWithAuth('/personal/account', {
@@ -56,6 +56,43 @@ export async function deleteMyBusinessAccount(payload) {
     return requestWithAuth('/business/account/delete', {
         method: 'DELETE',
         body: JSON.stringify(payload),
+    });
+}
+
+export async function getMyBusinessRecruits() {
+    const storedMember = getStoredMember();
+    const memberId = storedMember?.id || storedMember?.memberId;
+
+    return requestWithAuth('/business/myrecruit', {
+        method: 'GET',
+        headers: {
+            ...(memberId ? { 'X-Member-Id': String(memberId) } : {}),
+        },
+    });
+}
+
+export async function updateMyBusinessRecruitStatus(recruitId, status) {
+    const storedMember = getStoredMember();
+    const memberId = storedMember?.id || storedMember?.memberId;
+
+    return requestWithAuth(`/business/myrecruit/edit?recruitId=${encodeURIComponent(recruitId)}`, {
+        method: 'PATCH',
+        headers: {
+            ...(memberId ? { 'X-Member-Id': String(memberId) } : {}),
+        },
+        body: JSON.stringify({ status }),
+    });
+}
+
+export async function deleteMyBusinessRecruit(recruitId) {
+    const storedMember = getStoredMember();
+    const memberId = storedMember?.id || storedMember?.memberId;
+
+    return requestWithAuth(`/business/myrecruit/delete?recruitId=${encodeURIComponent(recruitId)}`, {
+        method: 'DELETE',
+        headers: {
+            ...(memberId ? { 'X-Member-Id': String(memberId) } : {}),
+        },
     });
 }
 
