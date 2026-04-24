@@ -2,9 +2,12 @@ package com.example.aibe5_project2_team7.chat.controller;
 
 import com.example.aibe5_project2_team7.chat.dto.DirectRoomRequestDto;
 import com.example.aibe5_project2_team7.chat.dto.DirectRoomResponseDto;
+import com.example.aibe5_project2_team7.chat.dto.MyChatRoomResponseDto;
 import com.example.aibe5_project2_team7.chat.service.ChatMessageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.List;
 
 @RestController
 @RequiredArgsConstructor
@@ -20,5 +23,10 @@ public class ChatRoomController {
                 request.getUser2Id()
         );
         return new DirectRoomResponseDto(roomId);
+    }
+
+    @GetMapping("/my")
+    public List<MyChatRoomResponseDto> getMyChatRooms(@RequestParam Long userId) {
+        return chatMessageService.getMyChatRooms(userId);
     }
 }

@@ -34,4 +34,13 @@ public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> 
             @Param("cursorId") Long cursorId,
             @Param("limit") int limit
     );
+
+    @Query(value = """
+            select id
+            from chat_message
+            where room_id = :roomId
+            order by id desc
+            limit 1
+            """, nativeQuery = true)
+    Long findLatestMessageId(@Param("roomId") String roomId);
 }

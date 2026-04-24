@@ -1,5 +1,4 @@
 package com.example.aibe5_project2_team7.chat.controller;
-
 import com.example.aibe5_project2_team7.chat.dto.ChatMessageDto;
 import com.example.aibe5_project2_team7.chat.enumeration.MessageType;
 import com.example.aibe5_project2_team7.chat.service.ChatMessageService;
@@ -30,7 +29,6 @@ public class ChatController {
             message.setType(MessageType.TALK);
         }
 
-        // 1:1 채팅이면 백엔드에서 roomId 강제 정규화
         if (message.getReceiverId() != null) {
             String normalizedRoomId = chatMessageService.getOrCreateDirectRoomId(
                     message.getSenderId(),
@@ -41,7 +39,7 @@ public class ChatController {
 
         switch (message.getType()) {
             case ENTER -> {
-                chatMessageService.createRoomIfNotExists(message.getRoomId());
+                chatMessageService.markAsRead(message.getRoomId(), message.getSenderId());
                 message.setContent(resolveDisplayName(message) + "님이 입장하셨습니다.");
             }
             case LEAVE -> {
