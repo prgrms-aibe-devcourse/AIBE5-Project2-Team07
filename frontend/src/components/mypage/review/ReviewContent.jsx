@@ -297,10 +297,10 @@ export default function ReviewContent({ account }) {
 
     return (
         <section className="flex-grow space-y-8">
-            <header className="flex items-end justify-between mb-6">
+            <header className="flex flex-col sm:flex-row sm:items-end justify-between mb-6 gap-4">
                 <div>
-                    <h1 className="font-bold text-2xl tracking-tight text-[#1F1D1D] mb-1">리뷰 관리</h1>
-                    <p className="text-[#6B6766] text-sm font-medium">
+                    <h1 className="text-3xl font-black tracking-tight text-[#1F1D1D]">리뷰 관리</h1>
+                    <p className="text-[#6B6766] mt-1 text-sm">
                         {reviewTab === 'received' ? (
                             <>
                                 총 <span className="text-primary font-bold">{receivedReviews.length}건</span>의 리뷰를 받았습니다.
@@ -323,37 +323,44 @@ export default function ReviewContent({ account }) {
                 )}
             </header>
 
-            <div className="flex gap-2 border-b border-[#EAE5E3]">
-                <CommonButton
-                    onClick={() => setReviewTab('received')}
-                    variant="toggle"
-                    size="tab"
-                    active={reviewTab === 'received'}
-                    activeClassName="text-primary"
-                    inactiveClassName="text-[#6B6766] hover:text-[#1F1D1D]"
-                    className="relative rounded-none px-6"
-                >
-                    내가 받은 리뷰
-                    {reviewTab === 'received' && (
-                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-                    )}
-                </CommonButton>
+      {/* 서브 탭 + 최신순 */}
+      <div className="flex items-center justify-between border-b border-[#EAE5E3]">
+        <div className="flex gap-2">
+          <CommonButton
+            onClick={() => setReviewTab('received')}
+            variant="toggle"
+            size="tab"
+            active={reviewTab === 'received'}
+            activeClassName="text-primary"
+            inactiveClassName="text-[#6B6766] hover:text-[#1F1D1D]"
+            className="relative rounded-none px-6"
+          >
+            내가 받은 리뷰
+            {reviewTab === 'received' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+            )}
+          </CommonButton>
 
-                <CommonButton
-                    onClick={() => setReviewTab('written')}
-                    variant="toggle"
-                    size="tab"
-                    active={reviewTab === 'written'}
-                    activeClassName="text-primary"
-                    inactiveClassName="text-[#6B6766] hover:text-[#1F1D1D]"
-                    className="relative rounded-none px-6"
-                >
-                    내가 쓴 리뷰
-                    {reviewTab === 'written' && (
-                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-                    )}
-                </CommonButton>
-            </div>
+          <CommonButton
+            onClick={() => setReviewTab('written')}
+            variant="toggle"
+            size="tab"
+            active={reviewTab === 'written'}
+            activeClassName="text-primary"
+            inactiveClassName="text-[#6B6766] hover:text-[#1F1D1D]"
+            className="relative rounded-none px-6"
+          >
+            내가 쓴 리뷰
+            {reviewTab === 'written' && (
+              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+            )}
+          </CommonButton>
+        </div>
+
+        <button className="bg-white border border-[#EAE5E3] px-4 py-2 text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors mb-1">
+          최신순
+        </button>
+      </div>
 
             {error && (
                 <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-sm font-medium text-red-600">
@@ -369,14 +376,6 @@ export default function ReviewContent({ account }) {
 
             {reviewTab === 'received' && (
                 <>
-                    <div className="flex items-end justify-between mb-2">
-                        <div />
-                        <div className="flex gap-2">
-                            <button className="bg-white border border-[#EAE5E3] px-4 py-2 text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors">
-                                최신순
-                            </button>
-                        </div>
-                    </div>
 
                     {loadingReceived ? (
                         <div className="bg-white border border-[#EAE5E3] rounded-2xl p-8 text-sm text-[#6B6766] shadow-sm">
@@ -449,14 +448,6 @@ export default function ReviewContent({ account }) {
 
             {reviewTab === 'written' && (
                 <>
-                    <div className="flex items-end justify-between mb-2">
-                        <div />
-                        <div className="flex gap-2">
-                            <button className="bg-white border border-[#EAE5E3] px-4 py-2 text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors">
-                                최신순
-                            </button>
-                        </div>
-                    </div>
 
                     {loadingWritten ? (
                         <div className="bg-white border border-[#EAE5E3] rounded-2xl p-8 text-sm text-[#6B6766] shadow-sm">
