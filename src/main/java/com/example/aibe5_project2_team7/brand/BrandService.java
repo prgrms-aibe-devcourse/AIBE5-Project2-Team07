@@ -68,7 +68,8 @@ public class BrandService {
             Long id = p.getBrand_id();
             String name = p.getBrand_name();
             Long urgentCount = p.getUrgent_count() != null ? p.getUrgent_count() : 0L;
-            results.add(new BrandUrgentDto(id, name, urgentCount));
+            String bannerImg = p.getBanner_img();
+            results.add(new BrandUrgentDto(id, name, urgentCount, bannerImg));
         }
         return results;
     }

@@ -4,6 +4,7 @@ public interface BrandUrgentProjection {
 	Long getBrand_id();
 	String getBrand_name();
 	Long getUrgent_count();
+	String getBanner_img();
 }
 
 

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import BrandModal from '../components/BrandModal';
 import TopNavBar from '../components/TopNavBar';
 import AppFooter from '../components/AppFooter';
@@ -130,6 +131,7 @@ const urgentJobs = [
 ];
 
 export default function BrandRecruitExplorePage() {
+  const navigate = useNavigate();
   const defaultBrandSummary = {
     name: 'CU',
     description: '전국 16,000여 개의 일상을 함께하는 1등 편의점',
@@ -512,6 +514,7 @@ export default function BrandRecruitExplorePage() {
            // ].filter(Boolean).join('\n');
 
            return {
+             recruitId: r?.id ?? r?.recruitId ?? r?.recruit_id ?? null,
              brand: r?.companyName || '기업',
              title: r?.title || '공고 제목',
              location: r?.regionName || '지역 정보 없음',
@@ -1249,8 +1252,21 @@ export default function BrandRecruitExplorePage() {
 
               {!isRecruitLoading && !recruitError && recruitJobs.map((job) => (
                 <div
-                  key={`${job.brand}-${job.title}`}
-                  className={`${job.urgent ? 'bg-primary-soft' : 'bg-white'} border-[0.5px] border-outline px-6 py-5 relative group transition-colors`}
+                  key={job.recruitId ? `recruit-${job.recruitId}` : `${job.brand}-${job.title}`}
+                  role={job.recruitId ? 'button' : undefined}
+                  tabIndex={job.recruitId ? 0 : -1}
+                  onClick={() => {
+                    if (!job.recruitId) return;
+                    navigate(`/recruit-detail?recruitId=${encodeURIComponent(job.recruitId)}`);
+                  }}
+                  onKeyDown={(e) => {
+                    if (!job.recruitId) return;
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      navigate(`/recruit-detail?recruitId=${encodeURIComponent(job.recruitId)}`);
+                    }
+                  }}
+                  className={`${job.urgent ? 'bg-primary-soft' : 'bg-white'} border-[0.5px] border-outline px-6 py-5 relative group transition-colors ${job.recruitId ? 'cursor-pointer hover:bg-primary-soft/70 focus:outline-none focus:ring-2 focus:ring-primary/40' : ''}`}
                 >
                   <div className="md:hidden flex gap-6">
                     <div className={`w-16 h-16 ${job.urgent ? 'bg-white' : 'bg-[#f9f9f9]'} rounded-xl flex-shrink-0 overflow-hidden border-[0.5px] border-outline p-2`}>
