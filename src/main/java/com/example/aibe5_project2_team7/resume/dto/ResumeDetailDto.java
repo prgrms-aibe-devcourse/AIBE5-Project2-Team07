@@ -34,6 +34,7 @@ public class ResumeDetailDto {
     private List<Object> educations;
     private List<RegionResponseDto> preferredRegions;
     private List<ReviewResponse> reviews;
+    private Boolean isActive;
 
     public ResumeDetailDto(
             Long resumeId,
@@ -54,7 +55,8 @@ public class ResumeDetailDto {
             List<Object> licenses,
             List<Object> educations,
             List<RegionResponseDto> preferredRegions,
-            List<ReviewResponse> reviews
+            List<ReviewResponse> reviews,
+            Boolean isActive
     ) {
         this.resumeId = resumeId;
         this.memberId = memberId;
@@ -75,6 +77,7 @@ public class ResumeDetailDto {
         this.licenses = licenses;
         this.educations = educations;
         this.preferredRegions = preferredRegions;
+        this.isActive = isActive;
 
     }
 }
