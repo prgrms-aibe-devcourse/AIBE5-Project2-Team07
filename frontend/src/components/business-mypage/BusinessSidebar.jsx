@@ -1,16 +1,54 @@
-import React from 'react';
+import React, { useState } from 'react';
 import CommonButton from '../../components/CommonButton';
+import { deleteMyBusinessAccount } from '../../services/accountApi';
+import { businessSidebarItems } from './businessSidebarItems';
 
-export const businessSidebarItems = [
-    { id: 'dashboard', label: '대시보드', icon: 'dashboard' },
-    { id: 'recruits', label: '공고 관리', icon: 'assignment' },
-    { id: 'applicants', label: '지원자 현황', icon: 'group' },
-    { id: 'reviews', label: '리뷰 관리', icon: 'rate_review' },
-    { id: 'work', label: '근무 관리', icon: 'calendar_today' },
-    { id: 'scrap', label: '스크랩 회원', icon: 'bookmark' },
-];
+export default function BusinessSidebar({ activeTab, onChangeTab, navigate, companySummary }) {
+    const companyName = companySummary?.companyName || '기업명 정보 없음';
+    const businessNumber = companySummary?.businessNumber || '-';
+    const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+    const [deletePassword, setDeletePassword] = useState('');
+    const [isDeleting, setIsDeleting] = useState(false);
+    const [deleteError, setDeleteError] = useState('');
 
-export default function BusinessSidebar({ activeTab, onChangeTab, navigate }) {
+    const handleLogout = () => {
+        localStorage.removeItem('token');
+        localStorage.removeItem('member');
+        navigate('/');
+    };
+
+    const handleOpenDeleteModal = () => {
+        setDeletePassword('');
+        setDeleteError('');
+        setIsDeleteModalOpen(true);
+    };
+
+    const handleCloseDeleteModal = () => {
+        if (isDeleting) return;
+        setIsDeleteModalOpen(false);
+        setDeletePassword('');
+        setDeleteError('');
+    };
+
+    const handleDeleteAccount = async () => {
+        if (!deletePassword.trim()) {
+            setDeleteError('비밀번호를 입력해주세요.');
+            return;
+        }
+
+        try {
+            setIsDeleting(true);
+            setDeleteError('');
+            await deleteMyBusinessAccount({ password: deletePassword });
+            window.alert('회원 탈퇴가 완료되었습니다.');
+            handleLogout();
+        } catch (error) {
+            setDeleteError(error?.message || '회원 탈퇴에 실패했습니다.');
+        } finally {
+            setIsDeleting(false);
+        }
+    };
+
     return (
         <aside className="w-full lg:w-64 flex-shrink-0">
             <div className="bg-white rounded-2xl border border-outline p-6 sticky top-28">
@@ -20,7 +58,7 @@ export default function BusinessSidebar({ activeTab, onChangeTab, navigate }) {
                     </div>
 
                     <div className="flex items-center gap-1 mb-1">
-                        <h2 className="font-bold text-lg">서울 에디토리얼</h2>
+                        <h2 className="font-bold text-lg">{companyName}</h2>
                         <span
                             className="material-symbols-outlined text-primary text-sm"
                             style={{ fontVariationSettings: "'FILL' 1" }}
@@ -29,7 +67,7 @@ export default function BusinessSidebar({ activeTab, onChangeTab, navigate }) {
             </span>
                     </div>
 
-                    <p className="text-xs text-on-surface-variant">사업자번호 123-45-67890</p>
+                    <p className="text-xs text-on-surface-variant">사업자번호 {businessNumber}</p>
 
                     <CommonButton
                         type="button"
@@ -81,6 +119,7 @@ export default function BusinessSidebar({ activeTab, onChangeTab, navigate }) {
 
                     <CommonButton
                         type="button"
+                        onClick={handleLogout}
                         variant="toggle"
                         size="tab"
                         fullWidth
@@ -94,11 +133,60 @@ export default function BusinessSidebar({ activeTab, onChangeTab, navigate }) {
                 </nav>
 
                 <div className="mt-8 pt-6 border-t border-outline">
-                    <button className="text-xs text-on-surface-variant hover:text-primary transition-colors">
+                    <button
+                        type="button"
+                        onClick={handleOpenDeleteModal}
+                        className="text-xs text-on-surface-variant hover:text-primary transition-colors"
+                    >
                         회원 탈퇴하기
                     </button>
                 </div>
             </div>
+
+            {isDeleteModalOpen && (
+                <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 px-4">
+                    <div className="w-full max-w-sm rounded-2xl bg-white border border-outline p-6">
+                        <h3 className="text-base font-bold text-on-surface">회원 탈퇴</h3>
+                        <p className="mt-2 text-sm text-on-surface-variant">
+                            비밀번호를 입력하면 계정이 삭제됩니다.
+                        </p>
+
+                        <label className="mt-4 block">
+                            <span className="text-xs font-bold text-on-surface-variant mb-2 block">비밀번호</span>
+                            <input
+                                type="password"
+                                value={deletePassword}
+                                onChange={(event) => setDeletePassword(event.target.value)}
+                                className="w-full rounded-xl border border-outline bg-white px-4 py-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+                            />
+                        </label>
+
+                        {deleteError && (
+                            <p className="mt-2 text-xs text-red-500">{deleteError}</p>
+                        )}
+
+                        <div className="mt-5 flex justify-end gap-2">
+                            <CommonButton
+                                type="button"
+                                variant="outline"
+                                size="sm"
+                                onClick={handleCloseDeleteModal}
+                                disabled={isDeleting}
+                            >
+                                취소
+                            </CommonButton>
+                            <CommonButton
+                                type="button"
+                                size="sm"
+                                onClick={handleDeleteAccount}
+                                disabled={isDeleting}
+                            >
+                                {isDeleting ? '탈퇴 중...' : '탈퇴'}
+                            </CommonButton>
+                        </div>
+                    </div>
+                </div>
+            )}
         </aside>
     );
 }

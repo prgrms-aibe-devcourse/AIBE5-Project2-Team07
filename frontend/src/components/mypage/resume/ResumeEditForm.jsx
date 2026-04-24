@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { BUSINESS_TYPE_OPTIONS } from '../../../constants/mypageConstants';
-import { getStoredMember } from '../../../services/authApi';
+import { getStoredMember, requestWithAuth } from '../../../services/authApi';
 import {
     getMyResume,
     createResume,
@@ -20,6 +20,7 @@ import {
 import CareerSection from './CareerSection';
 import EducationSection from './EducationSection';
 import LicenseSection from './LicenseSection';
+import RegionSection from './RegionSection';
 
 export default function ResumeEditForm({
                                            mode,
@@ -38,7 +39,11 @@ export default function ResumeEditForm({
         desiredBusinessTypes: Array.isArray(initialResume?.desiredBusinessTypes)
             ? initialResume.desiredBusinessTypes
             : [],
+        preferredRegionIds: Array.isArray(initialResume?.preferredRegions)
+            ? initialResume.preferredRegions.map((item) => Number(item.id))
+            : [],
         isPhonePublic: initialResume?.phone && initialResume.phone !== '비공개',
+        isActive: initialResume?.isActive ?? false, // 실시간 근무 가능 여부
     });
 
     const [careers, setCareers] = useState(
@@ -233,6 +238,7 @@ export default function ResumeEditForm({
                 educationIds,
                 licenseIds,
                 desiredBusinessTypes: form.desiredBusinessTypes,
+                preferredRegionIds: form.preferredRegionIds,
             };
 
             if (isCreateMode) {
@@ -244,10 +250,22 @@ export default function ResumeEditForm({
                 });
             }
 
+            // 실시간 근무 가능 여부 저장: 항상 PATCH로 isActive 전달
+            try {
+                await requestWithAuth(`/personal/${memberId}/activate`, {
+                    method: 'PATCH',
+                    body: { isActive: !!form.isActive },
+                });
+            } catch (profileErr) {
+                console.warn('실시간 근무 가능 여부 저장 실패 (무시):', profileErr.message);
+            }
+
             const refreshedResume = await getMyResume();
+
             setMessage(isCreateMode ? '이력서가 등록되었습니다.' : '이력서가 수정되었습니다.');
             onSaved(refreshedResume);
         } catch (err) {
+            console.error('handleSave error:', err);
             setError(err.message || '이력서 저장 중 오류가 발생했습니다.');
         } finally {
             setSaving(false);
@@ -271,6 +289,7 @@ export default function ResumeEditForm({
             await deleteResume();
             onSaved(null);
         } catch (err) {
+            console.error('handleDelete error:', err);
             setError(err.message || '이력서 삭제 중 오류가 발생했습니다.');
         } finally {
             setDeleting(false);
@@ -301,7 +320,9 @@ export default function ResumeEditForm({
             <div className="space-y-6">
                 <section className="bg-white p-8 rounded-2xl border border-[#EAE5E3] shadow-sm space-y-8">
                     <div className="flex flex-col gap-2">
-                        <label className="text-[11px] font-bold text-primary uppercase tracking-wider">이력서 제목</label>
+                        <label className="text-sm font-bold text-primary uppercase tracking-wider">
+                            이력서 제목
+                        </label>
                         <input
                             type="text"
                             name="title"
@@ -313,7 +334,7 @@ export default function ResumeEditForm({
                     </div>
 
                     <div className="pt-2">
-                        <label className="text-[11px] font-bold text-[#6B6766] uppercase tracking-wider block mb-4">
+                        <label className="text-sm font-bold text-[#6B6766] uppercase tracking-wider block mb-4">
                             인재정보 노출 설정
                         </label>
                         <div className="flex gap-8">
@@ -323,9 +344,9 @@ export default function ResumeEditForm({
                                     name="visibility"
                                     checked={form.visibility === true}
                                     onChange={() => setForm((prev) => ({ ...prev, visibility: true }))}
-                                    className="accent-primary"
+                                    className="accent-primary w-4 h-4"
                                 />
-                                <span className="text-sm font-bold text-[#1F1D1D]">노출함</span>
+                                <span className="text-base font-bold text-[#1F1D1D]">노출함</span>
                             </label>
 
                             <label className="flex items-center gap-3 cursor-pointer">
@@ -334,16 +355,16 @@ export default function ResumeEditForm({
                                     name="visibility"
                                     checked={form.visibility === false}
                                     onChange={() => setForm((prev) => ({ ...prev, visibility: false }))}
-                                    className="accent-primary"
+                                    className="accent-primary w-4 h-4"
                                 />
-                                <span className="text-sm font-bold text-[#1F1D1D]">노출하지 않음</span>
+                                <span className="text-base font-bold text-[#1F1D1D]">노출하지 않음</span>
                             </label>
                         </div>
                     </div>
 
                     {!isCreateMode && (
                         <div className="pt-2">
-                            <label className="text-[11px] font-bold text-[#6B6766] uppercase tracking-wider block mb-4">
+                            <label className="text-sm font-bold text-[#6B6766] uppercase tracking-wider block mb-4">
                                 휴대전화 공개 여부
                             </label>
                             <div className="flex gap-8">
@@ -353,9 +374,9 @@ export default function ResumeEditForm({
                                         name="isPhonePublic"
                                         checked={form.isPhonePublic === true}
                                         onChange={() => setForm((prev) => ({ ...prev, isPhonePublic: true }))}
-                                        className="accent-primary"
+                                        className="accent-primary w-4 h-4"
                                     />
-                                    <span className="text-sm font-bold text-[#1F1D1D]">공개</span>
+                                    <span className="text-base font-bold text-[#1F1D1D]">공개</span>
                                 </label>
 
                                 <label className="flex items-center gap-3 cursor-pointer">
@@ -364,16 +385,45 @@ export default function ResumeEditForm({
                                         name="isPhonePublic"
                                         checked={form.isPhonePublic === false}
                                         onChange={() => setForm((prev) => ({ ...prev, isPhonePublic: false }))}
-                                        className="accent-primary"
+                                        className="accent-primary w-4 h-4"
                                     />
-                                    <span className="text-sm font-bold text-[#1F1D1D]">비공개</span>
+                                    <span className="text-base font-bold text-[#1F1D1D]">비공개</span>
                                 </label>
                             </div>
                         </div>
                     )}
 
                     <div className="pt-2">
-                        <label className="text-[11px] font-bold text-[#6B6766] uppercase tracking-wider block mb-4">
+                        <label className="text-sm font-bold text-[#6B6766] uppercase tracking-wider block mb-4">
+                            실시간 근무 가능 여부
+                        </label>
+                        <div className="flex gap-8">
+                            <label className="flex items-center gap-3 cursor-pointer">
+                                <input
+                                    type="radio"
+                                    name="isActive"
+                                    checked={form.isActive === true}
+                                    onChange={() => setForm((prev) => ({ ...prev, isActive: true }))}
+                                    className="accent-primary w-4 h-4"
+                                />
+                                <span className="text-base font-bold text-[#1F1D1D]">가능</span>
+                            </label>
+
+                            <label className="flex items-center gap-3 cursor-pointer">
+                                <input
+                                    type="radio"
+                                    name="isActive"
+                                    checked={form.isActive === false}
+                                    onChange={() => setForm((prev) => ({ ...prev, isActive: false }))}
+                                    className="accent-primary w-4 h-4"
+                                />
+                                <span className="text-base font-bold text-[#1F1D1D]">불가능</span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div className="pt-2">
+                        <label className="text-sm font-bold text-[#6B6766] uppercase tracking-wider block mb-4">
                             희망 업직종
                         </label>
                         <div className="flex flex-wrap gap-2">
@@ -385,7 +435,7 @@ export default function ResumeEditForm({
                                         key={type.value}
                                         type="button"
                                         onClick={() => toggleBusinessType(type.value)}
-                                        className={`px-3 py-2 rounded-lg text-xs font-bold border transition-colors ${
+                                        className={`px-3 py-2 rounded-lg text-s font-bold border transition-colors ${
                                             active
                                                 ? 'bg-[#FFF0F3] border-primary text-primary'
                                                 : 'bg-white border-[#EAE5E3] text-[#6B6766]'
@@ -399,13 +449,25 @@ export default function ResumeEditForm({
                     </div>
                 </section>
 
+                <RegionSection
+                    value={form.preferredRegionIds}
+                    onChange={(nextIds) =>
+                        setForm((prev) => ({
+                            ...prev,
+                            preferredRegionIds: nextIds,
+                        }))
+                    }
+                />
+
                 <CareerSection careers={careers} setCareers={setCareers} />
                 <EducationSection educations={educations} setEducations={setEducations} />
                 <LicenseSection licenses={licenses} setLicenses={setLicenses} />
 
                 <section className="bg-white p-8 rounded-2xl border border-[#EAE5E3] shadow-sm space-y-8">
                     <div className="flex flex-col gap-3">
-                        <label className="text-[11px] font-bold text-[#6B6766] uppercase tracking-wider">자기소개</label>
+                        <label className="text-sm font-bold text-[#6B6766] uppercase tracking-wider">
+                            자기소개
+                        </label>
                         <textarea
                             name="content"
                             value={form.content}

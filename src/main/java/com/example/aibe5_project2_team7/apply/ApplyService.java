@@ -204,6 +204,10 @@ public class ApplyService {
         }
 
         apply.setStatus(accept ? ApplyStatus.ACCEPTED : ApplyStatus.REJECTED);
+
+        if (accept) {
+            closeRecruitWhenHeadCountReached(apply.getRecruitId());
+        }
     }
 
     // 근무 완료 처리 (ACCEPTED → COMPLETED) — 사업자만
@@ -304,5 +308,25 @@ public class ApplyService {
     private List<Long> getRecruitIdsForBusinessProfile(Long businessProfileId) {
         Long businessMemberId = getBusinessMemberIdByProfileId(businessProfileId);
         return recruitRepository.findIdsByBusinessMemberId(businessMemberId);
+    }
+
+    private void closeRecruitWhenHeadCountReached(Long recruitId) {
+        if (recruitId == null) return;
+
+        Recruit recruit = recruitRepository.findById(recruitId)
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "공고를 찾을 수 없습니다."));
+
+        Integer headCount = recruit.getHeadCount();
+        if (headCount == null || headCount <= 0) return;
+        if (recruit.getStatus() == RecruitStatus.CLOSED || recruit.getStatus() == RecruitStatus.EXPIRED) return;
+
+        long acceptedOrCompletedCount = applyRepository.countByRecruitIdAndStatusIn(
+                recruitId,
+                List.of(ApplyStatus.ACCEPTED, ApplyStatus.COMPLETED)
+        );
+
+        if (acceptedOrCompletedCount >= headCount) {
+            recruit.setStatus(RecruitStatus.CLOSED);
+        }
     }
 }

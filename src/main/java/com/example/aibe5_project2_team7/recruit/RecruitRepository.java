@@ -17,6 +17,7 @@ import java.util.List;
 
 public interface RecruitRepository extends JpaRepository<Recruit, Long> {
     List<Recruit> findByBusinessMemberId(Long businessMemberId);
+    List<Recruit> findTop3ByBusinessMemberIdAndStatusOrderByCreatedAtDesc(Long businessMemberId, RecruitStatus status);
 
     // 필터 조건 조회 (동적 쿼리)
     @Query(value = "SELECT DISTINCT r FROM Recruit r " +

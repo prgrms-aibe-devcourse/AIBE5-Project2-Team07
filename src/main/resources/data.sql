@@ -167,57 +167,61 @@ INSERT IGNORE INTO region (sido, sigungu) VALUES
 ('제주특별자치도','제주시'),('제주특별자치도','서귀포시');
 
 -- 브랜드
-INSERT IGNORE INTO Brand (id, name, business_type, logo_img, ceo_name, hq_address, founded_date) VALUES
+INSERT IGNORE INTO Brand (id, name, business_type, logo_img, ceo_name, hq_address, founded_date, banner_img, description) VALUES
 -- 1. MANUAL_LABOR (물류/상하차)
-(1, '쿠팡', 'MANUAL_LABOR', '/uploads/companyLogo/brandLogo/coupang.png', '로저스 해롤드 린', '서울특별시 송파구 송파대로 570', '2013-07-16'),
-(2, 'CJ대한통운', 'MANUAL_LABOR', '/uploads/companyLogo/brandLogo/cj_logistics.png', '신영수', '서울특별시 종로구 종로5길 7', '1930-11-25'),
-(3, '한진택배', 'MANUAL_LABOR', '/uploads/companyLogo/brandLogo/hanjin.png', '노삼석', '서울특별시 중구 남대문로 63', '1958-03-10'),
-(4, '롯데택배', 'MANUAL_LABOR', '/uploads/companyLogo/brandLogo/lotte_glogis.png', '강병구', '서울특별시 중구 통일로 10', '1988-06-13'),
-(5, '로젠택배', 'MANUAL_LABOR', '/uploads/companyLogo/brandLogo/logen.png', '김동주', '경기도 성남시 수정구 창업로57번길 7', '1999-04-15'),
--- 2. RETAIL_STORE (편의점)
-(6, 'CU', 'RETAIL_STORE', '/uploads/companyLogo/brandLogo/cu.png', '민승배', '서울특별시 강남구 테헤란로 405', '2017-11-01'),
-(7, 'GS25', 'RETAIL_STORE', '/uploads/companyLogo/brandLogo/gs25.png', '허서홍', '서울특별시 강남구 논현로 508', '1971-02-13'),
-(8, '세븐일레븐', 'RETAIL_STORE', '/uploads/companyLogo/brandLogo/seven_eleven.png', '김홍철', '서울특별시 강동구 천호대로 1077', '1988-05-21'),
-(9, '이마트24', 'RETAIL_STORE', '/uploads/companyLogo/brandLogo/emart24.png', '최진일', '서울특별시 성동구 성수이로 42', '2006-06-01'),
--- 3. CAFE (카페)
-(10, '스타벅스', 'CAFE', '/uploads/companyLogo/brandLogo/starbucks.png', '손정현', '서울특별시 중구 소공로 112', '1997-12-01'),
-(11, '메가커피', 'CAFE', '/uploads/companyLogo/brandLogo/megacoffee.png', '김대영', '서울특별시 강남구 강남대로 518', '2015-12-01'),
-(12, '투썸플레이스', 'CAFE', '/uploads/companyLogo/brandLogo/twosome.png', '문영주', '서울특별시 중구 을지로 170', '2002-12-05'),
-(13, '공차', 'CAFE', '/uploads/companyLogo/brandLogo/gongcha.png', '고희경', '서울특별시 종로구 종로 47', '2012-04-01'),
-(14, '매머드커피', 'CAFE', '/uploads/companyLogo/brandLogo/mammoth.png', '김의식', '서울특별시 중구 서소문로 89-20', '2012-12-01'),
-(15, '빽다방', 'CAFE', '/uploads/companyLogo/brandLogo/paikdabang.png', '백종원', '서울특별시 강남구 봉은사로 1길 39', '2006-09-01'),
-(16, '컴포즈커피', 'CAFE', '/uploads/companyLogo/brandLogo/compose.png', '김진성', '부산광역시 기장군 기장해안로 236', '2014-11-01'),
-(17, '이디야', 'CAFE', '/uploads/companyLogo/brandLogo/ediya.png', '문창기', '서울특별시 강남구 논현로 636', '2001-03-01'),
-(18, '커피빈', 'CAFE', '/uploads/companyLogo/brandLogo/coffeebean.png', '박상배', '서울특별시 강남구 테헤란로 409', '2000-06-16'),
--- 4. FOOD_RESTAURANT (음식점)
-(19, '롯데리아', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/lotteria.png', '차우철', '서울특별시 송파구 올림픽로 300', '1979-10-25'),
-(20, '맥도날드', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/mcdonalds.png', '김기원', '서울특별시 종로구 종로 1', '1986-09-01'),
-(21, '맘스터치', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/momstouch.png', '김동전', '서울특별시 강동구 천호대로 1077', '1997-12-01'),
-(22, '버거킹', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/burgerking.png', '이동형', '서울특별시 종로구 삼봉로 71', '1984-04-01'),
-(23, '써브웨이', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/subway.png', '조인수', '서울특별시 서초구 강남대로 535', '1991-05-01'),
-(24, 'KFC', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/kfc.png', '신호상', '서울특별시 중구 세종대로 39', '1984-04-01'),
-(25, '도미노피자', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/dominos.png', '오광현', '서울특별시 강남구 언주로 315', '1990-01-01'),
-(26, '피자헛', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/pizzahut.png', '김진영', '서울특별시 영등포구 의사당대로 83', '1985-02-01'),
-(27, '교촌치킨', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/kyochon.png', '송종화', '경기도 오산시 양산로 12', '1991-03-13'),
-(28, 'BBQ', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/bbq.png', '정승욱', '서울특별시 송파구 중대로 64', '1995-09-01'),
-(29, 'BHC', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/bhc.png', '송호섭', '서울특별시 송파구 올림픽로 300', '2004-09-01'),
-(30, '배스킨라빈스', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/baskinrobbins.png', '도세호', '서울특별시 서초구 남부순환로 2620', '1985-06-01'),
-(31, '역전할머니맥주', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/yukjeon.png', '송성호', '서울특별시 강남구 테헤란로 419', '2016-10-01'),
-(32, '한신포차', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/hanshin.png', '백종원', '서울특별시 강남구 봉은사로 1길 39', '1998-05-01'),
-(33, '투다리', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/tudari.png', '김영길', '인천광역시 미추홀구 경인로 452', '1987-07-13'),
-(34, '던킨', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/dunkin.png', '도세호', '서울특별시 서초구 남부순환로 2620', '1994-01-01'),
-(35, '뚜레쥬르', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/touslesjours.png', '허민회', '서울특별시 중구 마른내로 34', '1997-09-01'),
-(36, '파리바게뜨', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/parisbaguette.png', '허진수', '경기도 성남시 분당구 양현로 167', '1986-10-17'),
--- 5. RETAIL_STORE (PC방 등)
-(37, '3POP PC방', 'RETAIL_STORE', '/uploads/companyLogo/brandLogo/3pop.png', '김성식', '서울특별시 성동구 성수이로 147', '2014-03-10'),
-(38, '아이센스리그 PC방', 'RETAIL_STORE', '/uploads/companyLogo/brandLogo/isense.png', '윤석범', '서울특별시 구로구 디지털로 273', '1998-05-15'),
-(39, '레드포스 PC방', 'RETAIL_STORE', '/uploads/companyLogo/brandLogo/redforce.png', '오지환', '서울특별시 서초구 강남대로 311', '2020-12-01'),
--- 6. DELIVERY_DRIVER (배달 플랫폼)
-(40, '배달의민족', 'DELIVERY_DRIVER', '/uploads/companyLogo/brandLogo/baemin.png', '김범석', '서울특별시 송파구 위례성대로 2', '2011-03-10'),
-(41, '쿠팡이츠', 'DELIVERY_DRIVER', '/uploads/companyLogo/brandLogo/coupangeats.png', '김명규', '서울특별시 송파구 송파대로 570', '2021-05-15'),
-(42, '요기요', 'DELIVERY_DRIVER', '/uploads/companyLogo/brandLogo/yogiyo.png', '전준희', '서울특별시 서초구 서초대로 38길 12', '2011-11-01'),
-(43, '땡겨요', 'DELIVERY_DRIVER', '/uploads/companyLogo/brandLogo/ddangyo.png', '정상혁', '서울특별시 중구 세종대로 9', '2022-01-14');
+(1, '쿠팡', 'MANUAL_LABOR', '/uploads/companyLogo/brandLogo/coupang.png', '로저스 해롤드 린', '서울특별시 송파구 송파대로 570', '2013-07-16', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_manual_lavor.png?raw=true', '대한민국을 대표하는 이커머스 기업, 쿠팡 물류 센터입니다.'),
+(2, 'CJ대한통운', 'MANUAL_LABOR', '/uploads/companyLogo/brandLogo/cj_logistics.png', '신영수', '서울특별시 종로구 종로5길 7', '1930-11-25', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_manual_lavor.png?raw=true', '글로벌 물류 혁신을 선도하는 CJ대한통운 물류 현장입니다.'),
+(3, '한진택배', 'MANUAL_LABOR', '/uploads/companyLogo/brandLogo/hanjin.png', '노삼석', '서울특별시 중구 남대문로 63', '1958-03-10', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_manual_lavor.png?raw=true', '신속하고 정확한 배송 서비스를 제공하는 한진택배입니다.'),
+(4, '롯데택배', 'MANUAL_LABOR', '/uploads/companyLogo/brandLogo/lotte_glogis.png', '강병구', '서울특별시 중구 통일로 10', '1988-06-13', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_manual_lavor.png?raw=true', '롯데글로벌로지스와 함께하는 효율적인 물류 네트워크입니다.'),
+(5, '로젠택배', 'MANUAL_LABOR', '/uploads/companyLogo/brandLogo/logen.png', '김동주', '경기도 성남시 수정구 창업로57번길 7', '1999-04-15', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_manual_lavor.png?raw=true', '고객 중심의 택배 서비스를 추구하는 로젠택배 센터입니다.'),
 
+-- 2. RETAIL_STORE (편의점)
+(6, 'CU', 'RETAIL_STORE', '/uploads/companyLogo/brandLogo/cu.png', '민승배', '서울특별시 강남구 테헤란로 405', '2017-11-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_convenience.png?raw=true', '언제 어디서나 가까운 편의점, 당신을 위한 CU입니다.'),
+(7, 'GS25', 'RETAIL_STORE', '/uploads/companyLogo/brandLogo/gs25.png', '허서홍', '서울특별시 강남구 논현로 508', '1971-02-13', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_convenience.png?raw=true', '라이프스타일 플랫폼, 고객과 함께하는 GS25입니다.'),
+(8, '세븐일레븐', 'RETAIL_STORE', '/uploads/companyLogo/brandLogo/seven_eleven.png', '김홍철', '서울특별시 강동구 천호대로 1077', '1988-05-21', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_convenience.png?raw=true', '생활 속의 즐거움과 편리함을 제공하는 세븐일레븐입니다.'),
+(9, '이마트24', 'RETAIL_STORE', '/uploads/companyLogo/brandLogo/emart24.png', '최진일', '서울특별시 성동구 성수이로 42', '2006-06-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_convenience.png?raw=true', '프리미엄 편의점의 새로운 기준, 이마트24입니다.'),
+
+-- 3. CAFE (카페)
+(10, '스타벅스', 'CAFE', '/uploads/companyLogo/brandLogo/starbucks.png', '손정현', '서울특별시 중구 소공로 112', '1997-12-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_cafe.png?raw=true', '제3의 공간에서 최고의 커피 경험을 선사하는 스타벅스입니다.'),
+(11, '메가커피', 'CAFE', '/uploads/companyLogo/brandLogo/megacoffee.png', '김대영', '서울특별시 강남구 강남대로 518', '2015-12-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_cafe.png?raw=true', '즐거운 커피 문화를 선도하는 가성비 1등 메가커피입니다.'),
+(12, '투썸플레이스', 'CAFE', '/uploads/companyLogo/brandLogo/twosome.png', '문영주', '서울특별시 중구 을지로 170', '2002-12-05', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_cafe.png?raw=true', '디저트와 커피의 조화, 프리미엄 디저트 카페 투썸플레이스입니다.'),
+(13, '공차', 'CAFE', '/uploads/companyLogo/brandLogo/gongcha.png', '고희경', '서울특별시 종로구 종로 47', '2012-04-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_cafe.png?raw=true', '오리지널 티의 풍미를 담은 글로벌 티 전문 브랜드 공차입니다.'),
+(14, '매머드커피', 'CAFE', '/uploads/companyLogo/brandLogo/mammoth.png', '김의식', '서울특별시 중구 서소문로 89-20', '2012-12-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_cafe.png?raw=true', '대용량과 합리적 가격으로 사랑받는 매머드커피입니다.'),
+(15, '빽다방', 'CAFE', '/uploads/companyLogo/brandLogo/paikdabang.png', '백종원', '서울특별시 강남구 봉은사로 1길 39', '2006-09-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_cafe.png?raw=true', '푸짐하고 맛있는 백종원의 커피 전문점 빽다방입니다.'),
+(16, '컴포즈커피', 'CAFE', '/uploads/companyLogo/brandLogo/compose.png', '김진성', '부산광역시 기장군 기장해안로 236', '2014-11-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_cafe.png?raw=true', '본연의 맛에 집중한 신선한 원두를 사용하는 컴포즈커피입니다.'),
+(17, '이디야', 'CAFE', '/uploads/companyLogo/brandLogo/ediya.png', '문창기', '서울특별시 강남구 논현로 636', '2001-03-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_cafe.png?raw=true', '언제나 친근하고 편안한 대한민국 대표 토종 카페 이디야입니다.'),
+(18, '커피빈', 'CAFE', '/uploads/companyLogo/brandLogo/coffeebean.png', '박상배', '서울특별시 강남구 테헤란로 409', '2000-06-16', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_cafe.png?raw=true', '차별화된 원두와 최상의 티를 제공하는 커피빈코리아입니다.'),
+
+-- 4. FOOD_RESTAURANT (음식점)
+(19, '롯데리아', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/lotteria.png', '차우철', '서울특별시 송파구 올림픽로 300', '1979-10-25', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_food_restaurant.png?raw=true', '한국의 맛을 담은 원조 패스트푸드 브랜드 롯데리아입니다.'),
+(20, '맥도날드', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/mcdonalds.png', '김기원', '서울특별시 종로구 종로 1', '1986-09-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_food_restaurant.png?raw=true', '전 세계에서 사랑받는 최고의 버거 브랜드 맥도날드입니다.'),
+(21, '맘스터치', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/momstouch.png', '김동전', '서울특별시 강동구 천호대로 1077', '1997-12-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_food_restaurant.png?raw=true', '엄마의 마음으로 정성을 담아 조리하는 맘스터치입니다.'),
+(22, '버거킹', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/burgerking.png', '이동형', '서울특별시 종로구 삼봉로 71', '1984-04-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_food_restaurant.png?raw=true', '불맛 그대로, 프리미엄 햄버거의 대명사 버거킹입니다.'),
+(23, '써브웨이', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/subway.png', '조인수', '서울특별시 서초구 강남대로 535', '1991-05-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_food_restaurant.png?raw=true', '신선한 야채와 내 마음대로 조합하는 샌드위치 써브웨이입니다.'),
+(24, 'KFC', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/kfc.png', '신호상', '서울특별시 중구 세종대로 39', '1984-04-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_food_restaurant.png?raw=true', '오리지널 레시피로 튀겨낸 치킨의 정석, KFC입니다.'),
+(25, '도미노피자', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/dominos.png', '오광현', '서울특별시 강남구 언주로 315', '1990-01-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_food_restaurant.png?raw=true', '배달 피자 No.1 브랜드, 프리미엄 도미노피자입니다.'),
+(26, '피자헛', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/pizzahut.png', '김진영', '서울특별시 영등포구 의사당대로 83', '1985-02-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_food_restaurant.png?raw=true', '모두가 좋아하는 오리지널 피자 브랜드 피자헛입니다.'),
+(27, '교촌치킨', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/kyochon.png', '송종화', '경기도 오산시 양산로 12', '1991-03-13', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_food_restaurant.png?raw=true', '바삭한 튀김옷과 특별한 소스의 완벽한 조화, 교촌치킨입니다.'),
+(28, 'BBQ', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/bbq.png', '정승욱', '서울특별시 송파구 중대로 64', '1995-09-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_food_restaurant.png?raw=true', '좋은 재료로 만든 최고의 치킨 맛을 자랑하는 BBQ입니다.'),
+(29, 'BHC', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/bhc.png', '송호섭', '서울특별시 송파구 올림픽로 300', '2004-09-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_food_restaurant.png?raw=true', '세상에 없던 맛있는 치킨을 연구하는 BHC입니다.'),
+(30, '배스킨라빈스', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/baskinrobbins.png', '도세호', '서울특별시 서초구 남부순환로 2620', '1985-06-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_food_restaurant.png?raw=true', '골라 먹는 재미가 있는 아이스크림 전문점 배스킨라빈스입니다.'),
+(31, '역전할머니맥주', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/yukjeon.png', '송성호', '서울특별시 강남구 테헤란로 419', '2016-10-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_food_restaurant.png?raw=true', '얼음 맥주의 진수, 서민적인 정을 나누는 역전할머니맥주입니다.'),
+(32, '한신포차', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/hanshin.png', '백종원', '서울특별시 강남구 봉은사로 1길 39', '1998-05-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_food_restaurant.png?raw=true', '매콤한 닭발과 다양한 안주가 있는 감성 포장마차 한신포차입니다.'),
+(33, '투다리', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/tudari.png', '김영길', '인천광역시 미추홀구 경인로 452', '1987-07-13', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_food_restaurant.png?raw=true', '꼬치구이 전문점에서 나누는 따뜻한 이야기, 투다리입니다.'),
+(34, '던킨', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/dunkin.png', '도세호', '서울특별시 서초구 남부순환로 2620', '1994-01-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_food_restaurant.png?raw=true', '매일 아침 즐기는 도넛과 커피의 휴식, 던킨입니다.'),
+(35, '뚜레쥬르', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/touslesjours.png', '허민회', '서울특별시 중구 마른내로 34', '1997-09-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_food_restaurant.png?raw=true', '매일 매장에서 굽는 건강하고 신선한 베이커리 뚜레쥬르입니다.'),
+(36, '파리바게뜨', 'FOOD_RESTAURANT', '/uploads/companyLogo/brandLogo/parisbaguette.png', '허진수', '경기도 성남시 분당구 양현로 167', '1986-10-17', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_food_restaurant.png?raw=true', '행복을 굽는 베이커리, 국민 빵집 파리바게뜨입니다.'),
+
+-- 5. RETAIL_STORE (PC방)
+(37, '3POP PC방', 'RETAIL_STORE', '/uploads/companyLogo/brandLogo/3pop.png', '김성식', '서울특별시 성동구 성수이로 147', '2014-03-10', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_pc_room.png?raw=true', '최고의 사양과 쾌적한 환경을 제공하는 3POP PC방입니다.'),
+(38, '아이센스리그 PC방', 'RETAIL_STORE', '/uploads/companyLogo/brandLogo/isense.png', '윤석범', '서울특별시 구로구 디지털로 273', '1998-05-15', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_pc_room.png?raw=true', '국내 No.1 프리미엄 PC방, 아이센스리그 PC방입니다.'),
+(39, '레드포스 PC방', 'RETAIL_STORE', '/uploads/companyLogo/brandLogo/redforce.png', '오지환', '서울특별시 서초구 강남대로 311', '2020-12-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_pc_room.png?raw=true', '프로게이머들의 열정이 느껴지는 레드포스 PC방입니다.'),
+
+-- 6. DELIVERY_DRIVER (배달 플랫폼)
+(40, '배달의민족', 'DELIVERY_DRIVER', '/uploads/companyLogo/brandLogo/baemin.png', '김범석', '서울특별시 송파구 위례성대로 2', '2011-03-10', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_delivery_driver.png?raw=true', '배달의 문화를 혁신하는 대한민국 1등 배달 앱입니다.'),
+(41, '쿠팡이츠', 'DELIVERY_DRIVER', '/uploads/companyLogo/brandLogo/coupangeats.png', '김명규', '서울특별시 송파구 송파대로 570', '2021-05-15', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_delivery_driver.png?raw=true', '빠르고 편리한 맛집 배달의 시작, 쿠팡이츠입니다.'),
+(42, '요기요', 'DELIVERY_DRIVER', '/uploads/companyLogo/brandLogo/yogiyo.png', '전준희', '서울특별시 서초구 서초대로 38길 12', '2011-11-01', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_delivery_driver.png?raw=true', '즐거움을 전하는 푸드 플랫폼 요기요입니다.'),
+(43, '땡겨요', 'DELIVERY_DRIVER', '/uploads/companyLogo/brandLogo/ddangyo.png', '정상혁', '서울특별시 중구 세종대로 9', '2022-01-14', 'https://github.com/prgrms-aibe-devcourse/AIBE5-Project2-Team07/blob/brand-jwh/frontend/src/assets/banner/banner_delivery_driver.png?raw=true', '사장님도 고객도 행복한 착한 배달 서비스 땡겨요입니다.');
 
 
 
@@ -385,7 +389,7 @@ INSERT IGNORE INTO individual_profile (id, member_id, is_active, is_special, is_
 INSERT IGNORE INTO business_profile
 (id, member_id, company_name, founded_date, company_image_url, brand_id, business_number, company_phone, company_address, homepage_url) VALUES
 (1, 1001, '한강유통', '2001-03-03', '/uploads/companyLogo/company_01.png', NULL, '101-21-70001', '031-301-4001', '경기도 미추홀구 봉은사로 214', 'https://www.bizcompany01.co.kr'),
-(2, 1002, 'GS25 시흥신천점', '2002-04-05', '/uploads/companyLogo/company_02.png', 7, '102-22-70002', '051-252-5002', '경기도 시흥시 신천동 123-4', 'https://www.bizcompany02.co.kr'),
+(2, 1002, 'GS25 시흥신천점', '2002-04-05', '/uploads/companyLogo/company_02.png', 7, '102-22-70002', '051-252-5002', '경기도 시흥시 신천6길 2-2', 'https://www.bizcompany02.co.kr'),
 (3, 1003, '에이스편의운영', '2003-05-07', '/uploads/companyLogo/company_03.png', NULL, '103-23-70003', '032-283-6003', '경기도 해운대구 올림픽로 88', 'https://www.bizcompany03.co.kr'),
 (4, 1004, '공차 송파잠실점', '2004-06-09', '/uploads/companyLogo/company_04.png', 13, '104-24-70004', '02-204-3004', '서울특별시 송파구 잠실동 40-1', 'https://www.bizcompany04.co.kr'),
 (5, 1005, '스피드딜리버리', '2005-07-11', '/uploads/companyLogo/company_05.png', NULL, '105-25-70005', '031-305-4005', '부산광역시 미추홀구 가산디지털1로 71', NULL),
@@ -437,7 +441,7 @@ INSERT IGNORE INTO business_profile
 
 INSERT IGNORE INTO recruit (id, business_member_id, title, brand_id, is_urgent, recruit_status, deadline, salary, salary_type, head_count, region_id, detail_address, description, resume_form_url) VALUES
 (1, 1001, '카페 바리스타 및 매장관리 모집', NULL, FALSE, 'OPEN', '2026-05-03', 10493, 'HOURLY', 2, 53, '주안동 214-1', '근무 태도 성실하고 시간 약속을 잘 지키는 분을 우대합니다. 초보 가능하며 업무 매뉴얼과 교육을 제공합니다. 공고번호 001.', NULL),
-(2, 1002, 'GS25 시흥신천점 매장관리 및 캐셔 스태프 모집', 7, FALSE, 'OPEN', '2026-05-05', 10666, 'HOURLY', 3, 99, '신천동 123-4', '근무 태도 성실하고 시간 약속을 잘 지키는 분을 우대합니다. 초보 가능하며 업무 매뉴얼과 교육을 제공합니다. 공고번호 002.', NULL),
+(2, 1002, 'GS25 시흥신천점 매장관리 및 캐셔 스태프 모집', 7, FALSE, 'OPEN', '2026-05-05', 10666, 'HOURLY', 3, 99, '신천6길 2-2', '근무 태도 성실하고 시간 약속을 잘 지키는 분을 우대합니다. 초보 가능하며 업무 매뉴얼과 교육을 제공합니다. 공고번호 002.', NULL),
 (3, 1003, '매장 운영 및 고객응대 스태프 모집', NULL, TRUE, 'OPEN', '2026-05-07', 10839, 'HOURLY', 4, 34, '우동 88-1', '근무 태도 성실하고 시간 약속을 잘 지키는 분을 우대합니다. 초보 가능하며 업무 매뉴얼과 교육을 제공합니다. 공고번호 003.', NULL),
 (4, 1004, '공차 송파잠실점 바리스타 및 매장 스태프 모집', 13, FALSE, 'OPEN', '2026-05-09', 2255164, 'MONTHLY', 5, 24, '잠실동 40-1', '근무 태도 성실하고 시간 약속을 잘 지키는 분을 우대합니다. 초보 가능하며 업무 매뉴얼과 교육을 제공합니다. 공고번호 004.', '/uploads/businessResumes/resume_form_004.hwp'),
 (5, 1005, '물류 상하차/분류 스태프 모집', NULL, FALSE, 'OPEN', '2026-05-11', 11185, 'HOURLY', 6, 53, '도화동 71-3', '근무 태도 성실하고 시간 약속을 잘 지키는 분을 우대합니다. 초보 가능하며 업무 매뉴얼과 교육을 제공합니다. 공고번호 005.', NULL),
@@ -1199,3 +1203,284 @@ INSERT IGNORE INTO business_type (id, recruit_id, type) VALUES
 (98, 98, 'CAFE'),
 (99, 99, 'RETAIL_STORE'),
 (100, 100, 'FOOD_RESTAURANT');
+
+       -- =====================================================================
+-- 개인회원 프로필 + 이력서 더미데이터 (member_id 1~20, 20명)  [수정본]
+-- Career, License, HighestEducation이 resume_id FK를 직접 보유
+-- → resume_career / resume_license / resume_education 조인테이블 불필요
+-- =====================================================================
+
+-- ───────────────────────────────────────────────
+-- 1. individual_profile 업데이트
+--    is_special: 1,2,5,6,9,10,13,14,17,18 → TRUE (10명)
+--    is_active : 홀수 TRUE, 짝수 FALSE
+-- ───────────────────────────────────────────────
+UPDATE individual_profile SET is_active = TRUE,  is_special = TRUE  WHERE member_id = 1;
+UPDATE individual_profile SET is_active = FALSE, is_special = TRUE  WHERE member_id = 2;
+UPDATE individual_profile SET is_active = TRUE,  is_special = FALSE WHERE member_id = 3;
+UPDATE individual_profile SET is_active = FALSE, is_special = FALSE WHERE member_id = 4;
+UPDATE individual_profile SET is_active = TRUE,  is_special = TRUE  WHERE member_id = 5;
+UPDATE individual_profile SET is_active = FALSE, is_special = TRUE  WHERE member_id = 6;
+UPDATE individual_profile SET is_active = TRUE,  is_special = FALSE WHERE member_id = 7;
+UPDATE individual_profile SET is_active = FALSE, is_special = FALSE WHERE member_id = 8;
+UPDATE individual_profile SET is_active = TRUE,  is_special = TRUE  WHERE member_id = 9;
+UPDATE individual_profile SET is_active = FALSE, is_special = TRUE  WHERE member_id = 10;
+UPDATE individual_profile SET is_active = TRUE,  is_special = FALSE WHERE member_id = 11;
+UPDATE individual_profile SET is_active = FALSE, is_special = FALSE WHERE member_id = 12;
+UPDATE individual_profile SET is_active = TRUE,  is_special = TRUE  WHERE member_id = 13;
+UPDATE individual_profile SET is_active = FALSE, is_special = TRUE  WHERE member_id = 14;
+UPDATE individual_profile SET is_active = TRUE,  is_special = FALSE WHERE member_id = 15;
+UPDATE individual_profile SET is_active = FALSE, is_special = FALSE WHERE member_id = 16;
+UPDATE individual_profile SET is_active = TRUE,  is_special = TRUE  WHERE member_id = 17;
+UPDATE individual_profile SET is_active = FALSE, is_special = TRUE  WHERE member_id = 18;
+UPDATE individual_profile SET is_active = TRUE,  is_special = FALSE WHERE member_id = 19;
+UPDATE individual_profile SET is_active = FALSE, is_special = FALSE WHERE member_id = 20;
+
+
+-- ───────────────────────────────────────────────
+-- 2. resume (이력서) — 먼저 삽입해야 career 등에서 resume_id 참조 가능
+--    visibility = TRUE (전원 인재정보 노출)
+-- ───────────────────────────────────────────────
+INSERT IGNORE INTO resume (id, member_id, title, visibility, content, created_at, updated_at) VALUES
+(1,  1,  '카페·음료 전문 바리스타 지원합니다', TRUE,
+ '스타벅스에서 2년 이상 바리스타로 근무하며 에스프레소 음료 제조와 고객 응대 역량을 쌓았습니다. 성실하고 밝은 태도로 팀워크를 발휘합니다.',
+ '2024-01-10 09:00:00', '2024-03-15 11:00:00'),
+
+(2,  2,  '편의점·유통 경력 3년, 꼼꼼한 매장 관리자', TRUE,
+ 'GS25와 CU에서 총 4년간 야간 캐셔 및 점포 운영을 담당했습니다. 재고 관리, POS 운용, 상품 진열 경험이 풍부합니다.',
+ '2024-01-15 10:00:00', '2024-02-20 14:00:00'),
+
+(3,  3,  '외식업 조리·홀 서빙 경험자 구직 중', TRUE,
+ '맥도날드, 롯데리아 등 패스트푸드 매장에서 홀 서빙과 주방 보조를 경험했습니다. 빠른 적응력과 위생 관념을 갖추고 있습니다.',
+ '2024-02-01 08:30:00', '2024-03-01 09:00:00'),
+
+(4,  4,  '물류 상하차 및 창고 관리 경험자', TRUE,
+ '쿠팡 물류센터에서 2년 이상 상하차 및 분류 작업을 수행했습니다. 지게차 운전면허 보유, 야간 근무 가능합니다.',
+ '2024-01-20 07:00:00', '2024-02-10 08:00:00'),
+
+(5,  5,  '배달 라이더 경력 4년, 안전 운전 최우선', TRUE,
+ '배달의민족과 요기요에서 총 4년 배달 라이더로 활동하며 우수 평점을 유지했습니다. 지역 지리에 밝고 시간 관리 능력이 뛰어납니다.',
+ '2024-01-25 13:00:00', '2024-03-10 15:00:00'),
+
+(6,  6,  '치킨·외식 주방 경력 보유, 적응력 높은 파트타이머', TRUE,
+ '교촌치킨과 BBQ에서 총 4년간 주방 및 홀 업무를 담당했습니다. 양식 조리기능사 자격증 보유, 위생 관리에 철저합니다.',
+ '2024-02-05 11:00:00', '2024-03-20 12:00:00'),
+
+(7,  7,  '커피 전문 바리스타 1급, 카페 관리 경험', TRUE,
+ '메가커피에서 2년 이상 바리스타로 근무하며 음료 레시피 관리 및 매장 재고 관리를 담당했습니다. 바리스타 1급 자격 보유.',
+ '2024-01-30 10:30:00', '2024-02-28 11:00:00'),
+
+(8,  8,  '제과제빵·카페 경력 보유, 성실한 파트타이머', TRUE,
+ '투썸플레이스와 빽다방에서 바리스타 및 케이크 판매 업무를 수행했습니다. 제과제빵기능사 자격 보유, 디저트 관련 업무에 열정이 있습니다.',
+ '2024-02-10 09:00:00', '2024-03-05 10:00:00'),
+
+(9,  9,  '베이커리 홀 서빙 및 포장 전문가', TRUE,
+ '파리바게뜨, 뚜레쥬르에서 약 5년간 홀 서빙과 빵 포장 업무를 담당했습니다. 제과제빵기능사 자격 보유, 신속·정확한 업무 처리가 강점입니다.',
+ '2024-01-12 14:00:00', '2024-03-08 15:00:00'),
+
+(10, 10, 'PC방 야간 관리 및 고객응대 경험', TRUE,
+ '3POP PC방과 개인 PC방에서 매장 관리, 고객 응대, 야간 운영을 담당했습니다. 컴퓨터활용능력 2급 보유, 트러블슈팅 능력 우수.',
+ '2024-02-15 20:00:00', '2024-03-18 21:00:00'),
+
+(11, 11, '카페·편의점 알바 경험 다수, 성실 지원자', TRUE,
+ '서울 강남 지역 카페 및 편의점에서 바리스타, 캐셔 업무를 수행했습니다. 바리스타 2급 자격 보유, 빠른 습득력이 장점입니다.',
+ '2024-02-20 10:00:00', '2024-03-22 11:00:00'),
+
+(12, 12, '물류 현장 경험자, 야간 근무 가능', TRUE,
+ '동탄물류센터와 인천항에서 상하차 및 분류 작업을 담당했습니다. 체력이 좋고 팀 작업에 능숙합니다.',
+ '2024-01-18 06:30:00', '2024-02-14 07:00:00'),
+
+(13, 13, '식음료·외식 홀 서빙 경력 보유', TRUE,
+ '홍대 이자카야와 마포구 식당에서 홀 서빙과 주방 보조 경험을 쌓았습니다. 한식 조리기능사 자격 보유, 친절한 서비스 마인드를 갖추었습니다.',
+ '2024-02-25 12:00:00', '2024-03-25 13:00:00'),
+
+(14, 14, '베이커리·카페 판매 및 홀 운영 경험', TRUE,
+ '강남 지역 베이커리와 카페에서 빵 판매 및 홀 운영 경험이 있습니다. 고객 친화적이고 정리정돈 능력이 우수합니다.',
+ '2024-01-22 09:30:00', '2024-02-22 10:00:00'),
+
+(15, 15, '사무보조·물류 창고 파트타임 경험자', TRUE,
+ '판교 IT 기업에서 사무 보조를, 성남 물류창고에서 피킹·패킹 작업을 담당했습니다. 컴퓨터활용능력 1급 보유, 꼼꼼하고 책임감이 강합니다.',
+ '2024-02-08 11:00:00', '2024-03-12 12:00:00'),
+
+(16, 16, '외식·카페 업종 다양한 경험', TRUE,
+ '종로구 음식점 홀 서빙과 대학로 카페 바리스타 경험이 있습니다. 서비스업에 대한 이해도가 높고 손님 응대가 자연스럽습니다.',
+ '2024-01-28 13:30:00', '2024-03-02 14:00:00'),
+
+(17, 17, '편의점·물류 경력 보유, 야간 선호', TRUE,
+ '해운대 편의점 야간 캐셔와 부산 물류터미널 상하차 경험이 있습니다. 지게차운전기능사 보유, 체력과 성실함이 강점입니다.',
+ '2024-02-03 07:00:00', '2024-03-07 08:00:00'),
+
+(18, 18, '베이커리·편의점 판매 경험, 친절한 고객응대', TRUE,
+ '광주 베이커리 홀 판매와 전남 편의점 캐셔 업무를 수행했습니다. 재고 관리와 상품 진열 경험이 풍부합니다.',
+ '2024-01-16 10:00:00', '2024-02-16 11:00:00'),
+
+(19, 19, '제주 카페·음식점 서비스 경험 보유', TRUE,
+ '제주도 카페 바리스타와 서귀포 음식점 홀 서빙 경험이 있습니다. 바리스타 2급 자격 보유, 관광 지역 고객 응대 경험이 풍부합니다.',
+ '2024-02-12 14:30:00', '2024-03-14 15:00:00'),
+
+(20, 20, 'PC방·편의점 야간 관리 경험, 꼼꼼한 관리자', TRUE,
+ '인천 PC방 야간 관리자와 부평 편의점 매장 관리를 담당했습니다. 심야 고객 응대와 시설 점검에 익숙하며, 책임감 있게 업무를 수행합니다.',
+ '2024-01-14 21:00:00', '2024-03-16 22:00:00');
+
+
+-- ───────────────────────────────────────────────
+-- 3. career — resume_id FK 직접 포함
+--    member 1~10: 브랜드 연결 경력
+--    member 11~20: 일반 경력
+-- ───────────────────────────────────────────────
+INSERT IGNORE INTO career (id, member_id, brand_id, company, role, start_date, end_date, resume_id) VALUES
+-- member 1 (resume_id=1): 스타벅스 → 개인카페
+(101, 1, 10,   '스타벅스',   '바리스타/음료 제조',       '2018-03-01', '2020-06-30', 1),
+(102, 1, NULL, '홍익커피',   '매장 매니저',              '2020-08-01', '2022-12-31', 1),
+
+-- member 2 (resume_id=2): GS25 → CU
+(103, 2, 7,    'GS25',       '야간 캐셔 및 매장관리',    '2017-06-01', '2019-02-28', 2),
+(104, 2, 6,    'CU',         '점포 운영 및 재고관리',    '2019-05-01', '2021-08-31', 2),
+
+-- member 3 (resume_id=3): 맥도날드 → 롯데리아
+(105, 3, 20,   '맥도날드',   '홀 서빙 및 주방 보조',    '2019-04-01', '2021-03-31', 3),
+(106, 3, 19,   '롯데리아',   '주방 파트타이머',          '2021-06-01', '2022-11-30', 3),
+
+-- member 4 (resume_id=4): 쿠팡 → 한강유통
+(107, 4, 1,    '쿠팡 물류센터', '물류 상하차 및 분류',   '2020-01-01', '2022-04-30', 4),
+(108, 4, NULL, '한강유통',   '창고 관리 보조',           '2022-07-01', NULL,         4),
+
+-- member 5 (resume_id=5): 배달의민족 → 요기요
+(109, 5, 40,   '배달의민족', '배달 라이더',              '2019-09-01', '2021-01-31', 5),
+(110, 5, 42,   '요기요',     '배달/픽업 라이더',         '2021-04-01', '2023-03-31', 5),
+
+-- member 6 (resume_id=6): 교촌치킨 → BBQ
+(111, 6, 27,   '교촌치킨',   '주방 파트타이머',          '2018-07-01', '2020-02-29', 6),
+(112, 6, 28,   'BBQ',        '홀 서빙 및 주방 보조',    '2020-05-01', '2022-06-30', 6),
+
+-- member 7 (resume_id=7): 메가커피 → 개인카페
+(113, 7, 11,   '메가커피',   '바리스타 및 음료 제조',   '2020-11-01', '2023-01-31', 7),
+(114, 7, NULL, '오렌지카페', '매장 운영 보조',           '2023-03-01', NULL,         7),
+
+-- member 8 (resume_id=8): 투썸플레이스 → 빽다방
+(115, 8, 12,   '투썸플레이스', '바리스타 및 케이크 판매', '2019-05-01', '2021-09-30', 8),
+(116, 8, 15,   '빽다방',     '바리스타',                 '2021-12-01', '2023-05-31', 8),
+
+-- member 9 (resume_id=9): 파리바게뜨 → 뚜레쥬르
+(117, 9, 36,   '파리바게뜨', '홀 서빙 및 포장 업무',    '2018-02-01', '2020-07-31', 9),
+(118, 9, 35,   '뚜레쥬르',   '빵 포장 및 홀 관리',      '2020-10-01', '2023-02-28', 9),
+
+-- member 10 (resume_id=10): 3POP PC방 → 개인 PC방
+(119, 10, 37,  '3POP PC방',  '매장 관리 및 고객응대',   '2020-06-01', '2022-08-31', 10),
+(120, 10, NULL,'게임존 PC방', '야간 관리자',             '2022-10-01', NULL,         10),
+
+-- member 11 (resume_id=11)
+(121, 11, NULL, '선릉카페',      '바리스타',             '2021-03-01', '2022-09-30', 11),
+(122, 11, NULL, '강남편의점',    '야간 캐셔',            '2022-11-01', NULL,         11),
+
+-- member 12 (resume_id=12)
+(123, 12, NULL, '동탄물류센터',  '물류 상하차',          '2020-05-01', '2022-04-30', 12),
+(124, 12, NULL, '인천항 배송센터','분류 작업원',         '2022-07-01', '2023-12-31', 12),
+
+-- member 13 (resume_id=13)
+(125, 13, NULL, '홍대 이자카야', '홀 서빙',              '2019-08-01', '2021-02-28', 13),
+(126, 13, NULL, '마포구 식당',   '주방 보조',            '2021-05-01', '2022-10-31', 13),
+
+-- member 14 (resume_id=14)
+(127, 14, NULL, '서초구 베이커리','빵 포장 및 판매',     '2020-02-01', '2021-11-30', 14),
+(128, 14, NULL, '강남구 카페',   '홀 운영 및 주문 응대', '2022-01-01', NULL,         14),
+
+-- member 15 (resume_id=15)
+(129, 15, NULL, '판교 IT기업',   '사무보조 (파트타임)', '2021-06-01', '2022-12-31', 15),
+(130, 15, NULL, '성남 물류창고', '피킹 및 패킹 작업',   '2023-02-01', NULL,         15),
+
+-- member 16 (resume_id=16)
+(131, 16, NULL, '종로구 음식점', '홀 서빙 및 주방 보조', '2020-09-01', '2022-08-31', 16),
+(132, 16, NULL, '대학로 카페',   '바리스타 (주말 알바)', '2022-10-01', '2023-06-30', 16),
+
+-- member 17 (resume_id=17)
+(133, 17, NULL, '해운대 편의점', '야간 캐셔',            '2019-11-01', '2021-05-31', 17),
+(134, 17, NULL, '부산 물류터미널','상하차 작업원',       '2021-08-01', '2022-12-31', 17),
+
+-- member 18 (resume_id=18)
+(135, 18, NULL, '광주 베이커리', '홀 판매 및 포장',      '2020-04-01', '2022-03-31', 18),
+(136, 18, NULL, '전남 편의점',   '캐셔 및 진열',         '2022-06-01', NULL,         18),
+
+-- member 19 (resume_id=19)
+(137, 19, NULL, '제주도 카페',   '바리스타',             '2021-01-01', '2022-07-31', 19),
+(138, 19, NULL, '서귀포 음식점', '홀 서빙',              '2022-09-01', '2023-11-30', 19),
+
+-- member 20 (resume_id=20)
+(139, 20, NULL, '인천 PC방',     '야간 관리자',          '2020-07-01', '2022-06-30', 20),
+(140, 20, NULL, '부평 편의점',   '매장 관리 및 캐셔',    '2022-09-01', NULL,         20);
+
+
+-- ───────────────────────────────────────────────
+-- 4. license — resume_id FK 직접 포함
+-- ───────────────────────────────────────────────
+INSERT IGNORE INTO license (id, member_id, license_name, license_number, acquisition_date, issued_by, license_file_url, resume_id) VALUES
+(101,  1,  '바리스타 2급',        'BRS-2022-001', '2022-04-15', '한국커피협회',      NULL, 1),
+(102,  2,  '유통관리사 2급',       'DIS-2020-002', '2020-08-20', '대한상공회의소',    NULL, 2),
+(103,  3,  '조리기능사 (한식)',     'CKK-2021-003', '2021-05-10', '한국산업인력공단',  NULL, 3),
+(104,  4,  '지게차운전기능사',      'FRK-2019-004', '2019-11-25', '한국산업인력공단',  NULL, 4),
+(105,  5,  '오토바이 2종 소형면허', 'MCL-2018-005', '2018-07-01', '도로교통공단',      NULL, 5),
+(106,  6,  '조리기능사 (양식)',     'CKW-2020-006', '2020-03-18', '한국산업인력공단',  NULL, 6),
+(107,  7,  '바리스타 1급',        'BRS-2023-007', '2023-02-20', '한국커피협회',      NULL, 7),
+(108,  8,  '제과제빵기능사',       'BKR-2021-008', '2021-09-05', '한국산업인력공단',  NULL, 8),
+(109,  9,  '제과제빵기능사',       'BKR-2022-009', '2022-06-12', '한국산업인력공단',  NULL, 9),
+(110, 10,  '컴퓨터활용능력 2급',   'CCP-2021-010', '2021-12-01', '대한상공회의소',    NULL, 10),
+(111, 11,  '바리스타 2급',        'BRS-2022-011', '2022-09-30', '한국커피협회',      NULL, 11),
+(112, 13,  '조리기능사 (한식)',     'CKK-2022-013', '2022-08-14', '한국산업인력공단',  NULL, 13),
+(113, 15,  '컴퓨터활용능력 1급',   'CCP-2022-015', '2022-11-08', '대한상공회의소',    NULL, 15),
+(114, 17,  '지게차운전기능사',      'FRK-2021-017', '2021-04-22', '한국산업인력공단',  NULL, 17),
+(115, 19,  '바리스타 2급',        'BRS-2021-019', '2021-05-30', '한국커피협회',      NULL, 19);
+
+
+-- ───────────────────────────────────────────────
+-- 5. highest_education — resume_id FK 직접 포함
+-- ───────────────────────────────────────────────
+INSERT IGNORE INTO highest_education (id, member_id, school_name, school_type, major, resume_id) VALUES
+(101,  1,  '서울대학교',       '4년제 대학교',    '식품공학과',           1),
+(102,  2,  '경기대학교',       '4년제 대학교',    '경영학과',             2),
+(103,  3,  '부산대학교',       '4년제 대학교',    '조리외식학과',         3),
+(104,  4,  '인천대학교',       '4년제 대학교',    '물류시스템학과',       4),
+(105,  5,  '인천전문대학교',   '2년제 전문대',    NULL,                   5),
+(106,  6,  '한양대학교',       '4년제 대학교',    '식품영양학과',         6),
+(107,  7,  '연세대학교',       '4년제 대학교',    '생활과학부',           7),
+(108,  8,  '성신여자대학교',   '4년제 대학교',    '식품영양학과',         8),
+(109,  9,  '덕성여자대학교',   '4년제 대학교',    '식품영양학과',         9),
+(110, 10,  '세종사이버대학교', '사이버 대학교',   '컴퓨터공학과',         10),
+(111, 11,  '강남대학교',       '4년제 대학교',    NULL,                   11),
+(112, 12,  '수원과학대학교',   '2년제 전문대',    NULL,                   12),
+(113, 13,  '경희대학교',       '4년제 대학교',    '조리·서비스경영학과',  13),
+(114, 14,  '서원대학교',       '4년제 대학교',    '제과제빵학과',         14),
+(115, 15,  '국민대학교',       '4년제 대학교',    '경영정보학과',         15),
+(116, 16,  '동국대학교',       '4년제 대학교',    '관광경영학과',         16),
+(117, 17,  '동명대학교',       '4년제 대학교',    NULL,                   17),
+(118, 18,  '조선대학교',       '4년제 대학교',    '식품공학과',           18),
+(119, 19,  '제주대학교',       '4년제 대학교',    '관광학부',             19),
+(120, 20,  '인하대학교',       '4년제 대학교',    '경영학과',             20);
+
+-- 1) 희망 업종 (desired_business_type) 추가
+INSERT IGNORE INTO desired_business_type (id, member_id, type) VALUES
+       (1, 1, 'CAFE'), (2, 2, 'RETAIL_STORE'), (3, 3, 'FOOD_RESTAURANT'), (4, 4, 'MANUAL_LABOR'),
+       (5, 5, 'DELIVERY_DRIVER'), (6, 6, 'FOOD_RESTAURANT'), (7, 7, 'CAFE'), (8, 8, 'CAFE'), (9, 9, 'FOOD_RESTAURANT'),
+       (10, 10, 'RETAIL_STORE'), (11, 11, 'CAFE'), (12, 12, 'MANUAL_LABOR'), (13, 13, 'FOOD_RESTAURANT'), (14, 14, 'FOOD_RESTAURANT'),
+       (15, 15, 'SERVICE'), (16, 16, 'FOOD_RESTAURANT'), (17, 17, 'RETAIL_STORE'), (18, 18, 'RETAIL_STORE'), (19, 19, 'CAFE'), (20, 20, 'RETAIL_STORE');
+-- 2) 희망 근무지 (member_preferred_region) 추가 -- region 테이블에서 sido/sigungu로 id를 찾아서 넣습니다.
+INSERT IGNORE INTO member_preferred_region (id, member_id, region_id) VALUES
+       (1, 1, (SELECT id FROM region WHERE sido = '서울특별시' AND sigungu = '중구')),
+       (2, 2, (SELECT id FROM region WHERE sido = '경기도' AND sigungu = '시흥시')),
+       (3, 3, (SELECT id FROM region WHERE sido = '서울특별시' AND sigungu = '종로구')),
+       (4, 4, (SELECT id FROM region WHERE sido = '경기도' AND sigungu = '성남시 분당구')),
+       (5, 5, (SELECT id FROM region WHERE sido = '인천광역시' AND sigungu = '남동구')),
+       (6, 6, (SELECT id FROM region WHERE sido = '경기도' AND sigungu = '오산시')),
+       (7, 7, (SELECT id FROM region WHERE sido = '서울특별시' AND sigungu = '강남구')),
+       (8, 8, (SELECT id FROM region WHERE sido = '서울특별시' AND sigungu = '중구')),
+       (9, 9, (SELECT id FROM region WHERE sido = '경기도' AND sigungu = '성남시 분당구')),
+       (10, 10, (SELECT id FROM region WHERE sido = '서울특별시' AND sigungu = '성동구')),
+       (11, 11, (SELECT id FROM region WHERE sido = '서울특별시' AND sigungu = '강남구')),
+       (12, 12, (SELECT id FROM region WHERE sido = '경기도' AND sigungu = '화성시')),
+       (13, 13, (SELECT id FROM region WHERE sido = '서울특별시' AND sigungu = '마포구')),
+       (14, 14, (SELECT id FROM region WHERE sido = '서울특별시' AND sigungu = '서초구')),
+       (15, 15, (SELECT id FROM region WHERE sido = '경기도' AND sigungu = '성남시 분당구')),
+       (16, 16, (SELECT id FROM region WHERE sido = '서울특별시' AND sigungu = '종로구')),
+       (17, 17, (SELECT id FROM region WHERE sido = '부산광역시' AND sigungu = '해운대구')),
+       (18, 18, (SELECT id FROM region WHERE sido = '광주광역시' AND sigungu = '광산구')),
+       (19, 19, (SELECT id FROM region WHERE sido = '제주특별자치도' AND sigungu = '제주시')),
+       (20, 20, (SELECT id FROM region WHERE sido = '인천광역시' AND sigungu = '부평구'));
