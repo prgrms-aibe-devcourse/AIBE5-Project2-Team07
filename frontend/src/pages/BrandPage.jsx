@@ -236,6 +236,7 @@ export default function BrandPage() {
                 const cnt = b.urgentCount ?? b.urgent_count ?? b.count ?? 0;
                 const id = b.id ?? b.brandId ?? b.brand_id ?? '';
                 const bannerUrl = getUrgentBannerUrl(b);
+                const logoUrl = getBrandLogoUrl(b);
                 return (
                   <div
                     key={name + '_' + id}
@@ -265,8 +266,20 @@ export default function BrandPage() {
                     </div>
                     <div className="p-6">
                       <div className="flex justify-between items-start mb-4">
-                        <div>
-                          <h3 className="text-xl font-bold mb-1">{name}</h3>
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-10 h-10 rounded-full bg-[#f9f9f9] border border-outline/50 overflow-hidden flex items-center justify-center shrink-0">
+                            {logoUrl ? (
+                              <img
+                                src={logoUrl}
+                                alt={`${name} 로고`}
+                                className="w-full h-full object-contain"
+                                loading="lazy"
+                              />
+                            ) : (
+                              <span className="material-symbols-outlined text-on-surface-variant text-[16px]">image</span>
+                            )}
+                          </div>
+                          <h3 className="text-xl font-bold mb-1 truncate">{name}</h3>
                         </div>
                       </div>
                       <div className="flex items-center justify-between pt-5 border-t border-outline/50">

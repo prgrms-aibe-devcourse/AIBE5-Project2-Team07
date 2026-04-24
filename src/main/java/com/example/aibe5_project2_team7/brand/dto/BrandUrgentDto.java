@@ -13,4 +13,7 @@ public class BrandUrgentDto {
 
     @JsonProperty("banner_img")
     private String bannerImg;
+
+    @JsonProperty("logo_img")
+    private String logoImg;
 }

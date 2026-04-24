@@ -1,5 +1,6 @@
 package com.example.aibe5_project2_team7.brand.dto;
 
+import com.example.aibe5_project2_team7.recruit.constant.SalaryType;
 import com.example.aibe5_project2_team7.recruit.constant.Times;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -19,6 +20,8 @@ public class BrandShortRecruitDto {
 
     @NotNull(message = "급여는 필수 입력 값입니다.")
     private Integer salary;
+
+    private SalaryType salaryType;
 
     @NotNull(message = "근무 시간은 필수 입력 값입니다.")
     private Times workTime;
