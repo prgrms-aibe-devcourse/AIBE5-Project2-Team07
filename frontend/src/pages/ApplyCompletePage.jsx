@@ -92,7 +92,7 @@ export default function ApplyCompletePage() {
         {/* 액션 버튼 */}
         <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
           <Link
-            to="/personal-mypage?tab=work"
+            to="/personal-mypage?tab=status"
             className="flex-1 max-w-xs inline-flex items-center justify-center gap-2 px-8 py-5 bg-white border-2 border-outline text-on-surface font-bold text-lg rounded-2xl hover:bg-surface-container transition-all active:scale-95"
           >
             <span className="material-symbols-outlined">assignment</span>
