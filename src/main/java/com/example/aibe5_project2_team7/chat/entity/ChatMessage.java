@@ -10,7 +10,7 @@ import java.time.LocalDateTime;
 @Table(
         name = "chat_message",
         indexes = {
-                @Index(name = "idx_chat_message_room_sent_at", columnList = "room_id, sent_at")
+                @Index(name = "idx_chat_message_room_id_id", columnList = "room_id, id")
         }
 )
 @Getter
@@ -26,7 +26,7 @@ public class ChatMessage {
 
     private Long senderId;
 
-    @Column(columnDefinition = "TEXT", nullable = false)
+    @Column(nullable = false, length = 1000)
     private String content;
 
     private String email;
