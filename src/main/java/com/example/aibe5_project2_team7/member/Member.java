@@ -1,5 +1,7 @@
 package com.example.aibe5_project2_team7.member;
 
+import com.example.aibe5_project2_team7.common.BaseEntity;
+import com.example.aibe5_project2_team7.region.Region;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.Setter;
@@ -8,7 +10,7 @@ import java.time.LocalDate;
 
 @Entity
 @Getter @Setter
-public class Member {
+public class Member extends BaseEntity {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
