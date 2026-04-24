@@ -29,10 +29,6 @@ function BusinessCompanyEditPage() {
     contactName: '하드코딩',
     contactPhone: '하드코딩',
     contactEmail: '하드코딩',
-    openTime: '하드코딩',
-    closeTime: '하드코딩',
-    payDay: '하드코딩',
-    intro: '하드코딩',
     sido: '',
     sigungu: '',
   });
@@ -222,12 +218,6 @@ function BusinessCompanyEditPage() {
     }
   };
 
-  const handleSubmit = (event) => {
-    event.preventDefault();
-    // 현재는 UI 단계라 저장 결과만 안내합니다.
-    window.alert('기업 정보가 저장되었습니다.');
-  };
-
   useEffect(() => {
     let mounted = true;
 
@@ -307,7 +297,7 @@ function BusinessCompanyEditPage() {
               </button>
             </header>
 
-            <form onSubmit={handleSubmit} className="space-y-6">
+            <form className="space-y-6">
               <section className="bg-white border border-outline rounded-2xl p-6">
                 <h2 className="text-lg font-bold mb-4">기본 정보</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -422,42 +412,6 @@ function BusinessCompanyEditPage() {
                 </div>
               </section>
 
-              <section className="bg-white border border-outline rounded-2xl p-6">
-                <h2 className="text-lg font-bold mb-4">운영 정보</h2>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  <Field label="오픈 시간" name="openTime" value={form.openTime} onChange={handleChange} />
-                  <Field label="마감 시간" name="closeTime" value={form.closeTime} onChange={handleChange} />
-                  <Field label="급여 정산일" name="payDay" value={form.payDay} onChange={handleChange} />
-                </div>
-              </section>
-
-              <section className="bg-white border border-outline rounded-2xl p-6">
-                <h2 className="text-lg font-bold mb-4">기업 소개</h2>
-                <label className="block">
-                  <span className="text-xs font-bold text-on-surface-variant mb-2 block">소개 문구</span>
-                  <textarea
-                    name="intro"
-                    value={form.intro}
-                    onChange={handleChange}
-                    rows={6}
-                    className="w-full rounded-xl border border-outline bg-white px-4 py-3 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none resize-none"
-                  />
-                </label>
-              </section>
-
-              <div className="flex flex-col sm:flex-row gap-3 justify-end pb-6">
-                <CommonButton
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => navigate('/dashboard?tab=dashboard')}
-                >
-                  취소
-                </CommonButton>
-                <CommonButton type="submit" size="sm">
-                  저장하기
-                </CommonButton>
-              </div>
             </form>
           </main>
         </div>
