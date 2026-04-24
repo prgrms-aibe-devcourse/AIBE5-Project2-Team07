@@ -1,9 +1,39 @@
 import React from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useLocation } from 'react-router-dom';
 import TopNavBar from '../components/TopNavBar';
 import AppFooter from '../components/AppFooter';
 
+function formatApplyNumber(applyId) {
+  if (!applyId) {
+    return '-';
+  }
+
+  return `No. ${String(applyId).padStart(8, '0')}`;
+}
+
+function formatDateTime(dateText) {
+  if (!dateText) {
+    return '-';
+  }
+
+  const date = new Date(dateText);
+  if (Number.isNaN(date.getTime())) {
+    return dateText;
+  }
+
+  return new Intl.DateTimeFormat('ko-KR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false,
+  }).format(date);
+}
+
 export default function ApplyCompletePage() {
+  const { state } = useLocation();
+
   return (
     <div className="flex flex-col min-h-screen bg-white text-on-surface">
       <TopNavBar />
@@ -38,15 +68,15 @@ export default function ApplyCompletePage() {
                 <span className="px-3 py-1 bg-primary text-white text-xs font-bold rounded-full">
                   지원 완료
                 </span>
-                <span className="text-sm text-on-surface-variant font-medium">No. 20240524-001</span>
+                <span className="text-sm text-on-surface-variant font-medium">{formatApplyNumber(state?.applyId)}</span>
               </div>
               <div>
                 <h2 className="text-2xl md:text-3xl font-bold text-on-surface mb-2 tracking-tight">
-                  [긴급] 오늘 야간 편의점 대타 급구 (시급 1.5배)
+                  {state?.recruitTitle || '지원한 공고'}
                 </h2>
                 <div className="flex items-center gap-2 text-on-surface-variant">
                   <span className="material-symbols-outlined text-lg">corporate_fare</span>
-                  <span className="font-semibold">CU 서초중앙점</span>
+                  <span className="font-semibold">{state?.companyName || '-'}</span>
                 </div>
               </div>
             </div>
@@ -54,7 +84,7 @@ export default function ApplyCompletePage() {
               <span className="text-on-surface-variant text-xs font-medium uppercase tracking-wider mb-1">
                 지원 일시
               </span>
-              <span className="text-lg font-bold text-on-surface">2024.05.24 14:30</span>
+              <span className="text-lg font-bold text-on-surface">{formatDateTime(state?.createdAt)}</span>
             </div>
           </div>
         </div>
@@ -62,7 +92,7 @@ export default function ApplyCompletePage() {
         {/* 액션 버튼 */}
         <div className="flex flex-col sm:flex-row gap-4 w-full justify-center">
           <Link
-            to="/"
+            to="/personal-mypage?tab=work"
             className="flex-1 max-w-xs inline-flex items-center justify-center gap-2 px-8 py-5 bg-white border-2 border-outline text-on-surface font-bold text-lg rounded-2xl hover:bg-surface-container transition-all active:scale-95"
           >
             <span className="material-symbols-outlined">assignment</span>
