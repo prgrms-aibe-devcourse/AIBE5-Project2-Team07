@@ -250,16 +250,12 @@ export default function ResumeEditForm({
                 });
             }
 
-            // 실시간 근무 가능 여부 저장 (IndividualProfile.isActive)
-            // ⚠️ 현재 백엔드에 /personal/{memberId}/deactivate 가 없음.
-            //    activate만 호출 가능. 비활성화하려면 백엔드에 deactivate 또는 toggle API 추가 필요.
+            // 실시간 근무 가능 여부 저장: 항상 PATCH로 isActive 전달
             try {
-                if (form.isActive) {
-                    await requestWithAuth(`/personal/${memberId}/activate`, { method: 'PATCH' });
-                } else {
-                    // TODO: 백엔드에 PATCH /personal/{memberId}/deactivate 추가 후 아래 주석 해제
-                    // await requestWithAuth(`/personal/${memberId}/deactivate`, { method: 'PATCH' });
-                }
+                await requestWithAuth(`/personal/${memberId}/activate`, {
+                    method: 'PATCH',
+                    body: { isActive: !!form.isActive },
+                });
             } catch (profileErr) {
                 console.warn('실시간 근무 가능 여부 저장 실패 (무시):', profileErr.message);
             }

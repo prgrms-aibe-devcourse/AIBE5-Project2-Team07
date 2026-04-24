@@ -31,6 +31,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -232,6 +233,8 @@ public class ResumeService {
         List<String> desiredTypes = new ArrayList<>();
         List<ReviewResponse> reviews = new ArrayList<>();
 
+        Boolean isActive = false;
+
         if (m != null) {
             memberName = m.getName();
 
@@ -243,6 +246,11 @@ public class ResumeService {
             gender = m.getGender() != null ? m.getGender().toString() : null;
             email = m.getEmail();
             profileImageUrl = m.getImage();
+
+            IndividualProfile profile = individualProfileRepository.findByMemberId(m.getId())
+                    .orElse(null);
+
+            isActive = profile != null && Boolean.TRUE.equals(profile.getIsActive());
 
             phone = resolvePhone(m);
 
@@ -317,7 +325,8 @@ public class ResumeService {
                 licenses,
                 educations,
                 preferredRegions,
-                reviews
+                reviews,
+                isActive
         );
     }
     // 업직종별 인재 조회
@@ -376,6 +385,96 @@ public class ResumeService {
         Page<Resume> resumes = resumeRepository.findPublicByMemberIds(memberIds, pageable);
 
         List<ResumeSummaryDto> dtos = resumes.stream().map(r -> mapToSummary(r)).collect(Collectors.toList());
+        return new PageImpl<>(dtos, pageable, resumes.getTotalElements());
+    }
+
+    // 별점 높은 순
+    public Page<ResumeSummaryDto> getPublicResumesByRating(int page) {
+        Pageable pageable = PageRequest.of(page, 20);
+        Page<Resume> resumes = resumeRepository.findPublicResumesOrderByRating(pageable);
+        List<ResumeSummaryDto> dtos = resumes.stream().map(this::mapToSummary).collect(Collectors.toList());
+        return new PageImpl<>(dtos, pageable, resumes.getTotalElements());
+    }
+
+    // 경력 많은 순
+    public Page<ResumeSummaryDto> getResumesByCareerCount(int page) {
+        Pageable pageable = PageRequest.of(page, 20);
+        Page<Resume> resumes = resumeRepository.findPublicResumesOrderByCareerCount(pageable);
+        List<ResumeSummaryDto> dtos = resumes.stream().map(this::mapToSummary).collect(Collectors.toList());
+        return new PageImpl<>(dtos, pageable, resumes.getTotalElements());
+    }
+
+    // active + rating
+    public Page<ResumeSummaryDto> getActiveResumesByRating(int page) {
+        List<Long> activeMemberIds = individualProfileRepository.findByIsActiveTrue()
+                .stream()
+                .map(IndividualProfile::getMemberId)
+                .collect(Collectors.toList());
+        if (activeMemberIds.isEmpty()) return new PageImpl<>(List.of(), PageRequest.of(page,20), 0);
+        Pageable pageable = PageRequest.of(page, 20);
+        Page<Resume> resumes = resumeRepository.findPublicByMemberIdsOrderByRating(activeMemberIds, pageable);
+        List<ResumeSummaryDto> dtos = resumes.stream().map(this::mapToSummary).collect(Collectors.toList());
+        return new PageImpl<>(dtos, pageable, resumes.getTotalElements());
+    }
+
+    // active + careers
+    public Page<ResumeSummaryDto> getActiveResumesByCareerCount(int page) {
+        List<Long> activeMemberIds = individualProfileRepository.findByIsActiveTrue()
+                .stream()
+                .map(IndividualProfile::getMemberId)
+                .collect(Collectors.toList());
+        if (activeMemberIds.isEmpty()) return new PageImpl<>(List.of(), PageRequest.of(page,20), 0);
+        Pageable pageable = PageRequest.of(page, 20);
+        Page<Resume> resumes = resumeRepository.findPublicByMemberIdsOrderByCareerCount(activeMemberIds, pageable);
+        List<ResumeSummaryDto> dtos = resumes.stream().map(this::mapToSummary).collect(Collectors.toList());
+        return new PageImpl<>(dtos, pageable, resumes.getTotalElements());
+    }
+
+    // special + rating
+    public Page<ResumeSummaryDto> getSpecialResumesByRating(int page) {
+        List<Long> specialIds = individualProfileRepository.findByIsSpecialTrue()
+                .stream()
+                .map(IndividualProfile::getMemberId)
+                .collect(Collectors.toList());
+        if (specialIds.isEmpty()) return new PageImpl<>(List.of(), PageRequest.of(page,20), 0);
+        Pageable pageable = PageRequest.of(page, 20);
+        Page<Resume> resumes = resumeRepository.findPublicByMemberIdsOrderByRating(specialIds, pageable);
+        List<ResumeSummaryDto> dtos = resumes.stream().map(this::mapToSummary).collect(Collectors.toList());
+        return new PageImpl<>(dtos, pageable, resumes.getTotalElements());
+    }
+
+    // special + careers
+    public Page<ResumeSummaryDto> getSpecialResumesByCareerCount(int page) {
+        List<Long> specialIds = individualProfileRepository.findByIsSpecialTrue()
+                .stream()
+                .map(IndividualProfile::getMemberId)
+                .collect(Collectors.toList());
+        if (specialIds.isEmpty()) return new PageImpl<>(List.of(), PageRequest.of(page,20), 0);
+        Pageable pageable = PageRequest.of(page, 20);
+        Page<Resume> resumes = resumeRepository.findPublicByMemberIdsOrderByCareerCount(specialIds, pageable);
+        List<ResumeSummaryDto> dtos = resumes.stream().map(this::mapToSummary).collect(Collectors.toList());
+        return new PageImpl<>(dtos, pageable, resumes.getTotalElements());
+    }
+
+    // brands + rating
+    public Page<ResumeSummaryDto> getResumesByBrandIdsOrderByRating(List<Long> brandIds, int page) {
+        if (brandIds == null || brandIds.isEmpty()) return new PageImpl<>(List.of(), PageRequest.of(page,20), 0);
+        List<Long> memberIds = careerRepository.findDistinctMemberIdByBrandIdIn(brandIds);
+        if (memberIds == null || memberIds.isEmpty()) return new PageImpl<>(List.of(), PageRequest.of(page,20), 0);
+        Pageable pageable = PageRequest.of(page, 20);
+        Page<Resume> resumes = resumeRepository.findPublicByMemberIdsOrderByRating(memberIds, pageable);
+        List<ResumeSummaryDto> dtos = resumes.stream().map(this::mapToSummary).collect(Collectors.toList());
+        return new PageImpl<>(dtos, pageable, resumes.getTotalElements());
+    }
+
+    // brands + careers
+    public Page<ResumeSummaryDto> getResumesByBrandIdsOrderByCareerCount(List<Long> brandIds, int page) {
+        if (brandIds == null || brandIds.isEmpty()) return new PageImpl<>(List.of(), PageRequest.of(page,20), 0);
+        List<Long> memberIds = careerRepository.findDistinctMemberIdByBrandIdIn(brandIds);
+        if (memberIds == null || memberIds.isEmpty()) return new PageImpl<>(List.of(), PageRequest.of(page,20), 0);
+        Pageable pageable = PageRequest.of(page, 20);
+        Page<Resume> resumes = resumeRepository.findPublicByMemberIdsOrderByCareerCount(memberIds, pageable);
+        List<ResumeSummaryDto> dtos = resumes.stream().map(this::mapToSummary).collect(Collectors.toList());
         return new PageImpl<>(dtos, pageable, resumes.getTotalElements());
     }
 
