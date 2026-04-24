@@ -20,6 +20,7 @@ import {
 import CareerSection from './CareerSection';
 import EducationSection from './EducationSection';
 import LicenseSection from './LicenseSection';
+import RegionSection from './RegionSection';
 
 export default function ResumeEditForm({
                                            mode,
@@ -37,6 +38,9 @@ export default function ResumeEditForm({
         visibility: typeof initialResume?.visibility === 'boolean' ? initialResume.visibility : true,
         desiredBusinessTypes: Array.isArray(initialResume?.desiredBusinessTypes)
             ? initialResume.desiredBusinessTypes
+            : [],
+        preferredRegionIds: Array.isArray(initialResume?.preferredRegions)
+            ? initialResume.preferredRegions.map((item) => Number(item.id))
             : [],
         isPhonePublic: initialResume?.phone && initialResume.phone !== '비공개',
     });
@@ -225,6 +229,8 @@ export default function ResumeEditForm({
             const educationIds = await syncEducations();
             const licenseIds = await syncLicenses();
 
+            console.log('form.preferredRegionIds =', form.preferredRegionIds);
+
             const payload = {
                 title: form.title,
                 visibility: form.visibility,
@@ -233,7 +239,10 @@ export default function ResumeEditForm({
                 educationIds,
                 licenseIds,
                 desiredBusinessTypes: form.desiredBusinessTypes,
+                preferredRegionIds: form.preferredRegionIds,
             };
+
+            console.log('resume payload =', payload);
 
             if (isCreateMode) {
                 await createResume(payload);
@@ -245,9 +254,12 @@ export default function ResumeEditForm({
             }
 
             const refreshedResume = await getMyResume();
+            console.log('refreshedResume =', refreshedResume);
+
             setMessage(isCreateMode ? '이력서가 등록되었습니다.' : '이력서가 수정되었습니다.');
             onSaved(refreshedResume);
         } catch (err) {
+            console.error('handleSave error:', err);
             setError(err.message || '이력서 저장 중 오류가 발생했습니다.');
         } finally {
             setSaving(false);
@@ -271,6 +283,7 @@ export default function ResumeEditForm({
             await deleteResume();
             onSaved(null);
         } catch (err) {
+            console.error('handleDelete error:', err);
             setError(err.message || '이력서 삭제 중 오류가 발생했습니다.');
         } finally {
             setDeleting(false);
@@ -301,7 +314,9 @@ export default function ResumeEditForm({
             <div className="space-y-6">
                 <section className="bg-white p-8 rounded-2xl border border-[#EAE5E3] shadow-sm space-y-8">
                     <div className="flex flex-col gap-2">
-                        <label className="text-[11px] font-bold text-primary uppercase tracking-wider">이력서 제목</label>
+                        <label className="text-[11px] font-bold text-primary uppercase tracking-wider">
+                            이력서 제목
+                        </label>
                         <input
                             type="text"
                             name="title"
@@ -399,13 +414,25 @@ export default function ResumeEditForm({
                     </div>
                 </section>
 
+                <RegionSection
+                    value={form.preferredRegionIds}
+                    onChange={(nextIds) =>
+                        setForm((prev) => ({
+                            ...prev,
+                            preferredRegionIds: nextIds,
+                        }))
+                    }
+                />
+
                 <CareerSection careers={careers} setCareers={setCareers} />
                 <EducationSection educations={educations} setEducations={setEducations} />
                 <LicenseSection licenses={licenses} setLicenses={setLicenses} />
 
                 <section className="bg-white p-8 rounded-2xl border border-[#EAE5E3] shadow-sm space-y-8">
                     <div className="flex flex-col gap-3">
-                        <label className="text-[11px] font-bold text-[#6B6766] uppercase tracking-wider">자기소개</label>
+                        <label className="text-[11px] font-bold text-[#6B6766] uppercase tracking-wider">
+                            자기소개
+                        </label>
                         <textarea
                             name="content"
                             value={form.content}

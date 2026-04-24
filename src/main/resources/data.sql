@@ -1199,3 +1199,260 @@ INSERT IGNORE INTO business_type (id, recruit_id, type) VALUES
 (98, 98, 'CAFE'),
 (99, 99, 'RETAIL_STORE'),
 (100, 100, 'FOOD_RESTAURANT');
+
+       -- =====================================================================
+-- 개인회원 프로필 + 이력서 더미데이터 (member_id 1~20, 20명)  [수정본]
+-- Career, License, HighestEducation이 resume_id FK를 직접 보유
+-- → resume_career / resume_license / resume_education 조인테이블 불필요
+-- =====================================================================
+
+-- ───────────────────────────────────────────────
+-- 1. individual_profile 업데이트
+--    is_special: 1,2,5,6,9,10,13,14,17,18 → TRUE (10명)
+--    is_active : 홀수 TRUE, 짝수 FALSE
+-- ───────────────────────────────────────────────
+UPDATE individual_profile SET is_active = TRUE,  is_special = TRUE  WHERE member_id = 1;
+UPDATE individual_profile SET is_active = FALSE, is_special = TRUE  WHERE member_id = 2;
+UPDATE individual_profile SET is_active = TRUE,  is_special = FALSE WHERE member_id = 3;
+UPDATE individual_profile SET is_active = FALSE, is_special = FALSE WHERE member_id = 4;
+UPDATE individual_profile SET is_active = TRUE,  is_special = TRUE  WHERE member_id = 5;
+UPDATE individual_profile SET is_active = FALSE, is_special = TRUE  WHERE member_id = 6;
+UPDATE individual_profile SET is_active = TRUE,  is_special = FALSE WHERE member_id = 7;
+UPDATE individual_profile SET is_active = FALSE, is_special = FALSE WHERE member_id = 8;
+UPDATE individual_profile SET is_active = TRUE,  is_special = TRUE  WHERE member_id = 9;
+UPDATE individual_profile SET is_active = FALSE, is_special = TRUE  WHERE member_id = 10;
+UPDATE individual_profile SET is_active = TRUE,  is_special = FALSE WHERE member_id = 11;
+UPDATE individual_profile SET is_active = FALSE, is_special = FALSE WHERE member_id = 12;
+UPDATE individual_profile SET is_active = TRUE,  is_special = TRUE  WHERE member_id = 13;
+UPDATE individual_profile SET is_active = FALSE, is_special = TRUE  WHERE member_id = 14;
+UPDATE individual_profile SET is_active = TRUE,  is_special = FALSE WHERE member_id = 15;
+UPDATE individual_profile SET is_active = FALSE, is_special = FALSE WHERE member_id = 16;
+UPDATE individual_profile SET is_active = TRUE,  is_special = TRUE  WHERE member_id = 17;
+UPDATE individual_profile SET is_active = FALSE, is_special = TRUE  WHERE member_id = 18;
+UPDATE individual_profile SET is_active = TRUE,  is_special = FALSE WHERE member_id = 19;
+UPDATE individual_profile SET is_active = FALSE, is_special = FALSE WHERE member_id = 20;
+
+
+-- ───────────────────────────────────────────────
+-- 2. resume (이력서) — 먼저 삽입해야 career 등에서 resume_id 참조 가능
+--    visibility = TRUE (전원 인재정보 노출)
+-- ───────────────────────────────────────────────
+INSERT IGNORE INTO resume (id, member_id, title, visibility, content, created_at, updated_at) VALUES
+(1,  1,  '카페·음료 전문 바리스타 지원합니다', TRUE,
+ '스타벅스에서 2년 이상 바리스타로 근무하며 에스프레소 음료 제조와 고객 응대 역량을 쌓았습니다. 성실하고 밝은 태도로 팀워크를 발휘합니다.',
+ '2024-01-10 09:00:00', '2024-03-15 11:00:00'),
+
+(2,  2,  '편의점·유통 경력 3년, 꼼꼼한 매장 관리자', TRUE,
+ 'GS25와 CU에서 총 4년간 야간 캐셔 및 점포 운영을 담당했습니다. 재고 관리, POS 운용, 상품 진열 경험이 풍부합니다.',
+ '2024-01-15 10:00:00', '2024-02-20 14:00:00'),
+
+(3,  3,  '외식업 조리·홀 서빙 경험자 구직 중', TRUE,
+ '맥도날드, 롯데리아 등 패스트푸드 매장에서 홀 서빙과 주방 보조를 경험했습니다. 빠른 적응력과 위생 관념을 갖추고 있습니다.',
+ '2024-02-01 08:30:00', '2024-03-01 09:00:00'),
+
+(4,  4,  '물류 상하차 및 창고 관리 경험자', TRUE,
+ '쿠팡 물류센터에서 2년 이상 상하차 및 분류 작업을 수행했습니다. 지게차 운전면허 보유, 야간 근무 가능합니다.',
+ '2024-01-20 07:00:00', '2024-02-10 08:00:00'),
+
+(5,  5,  '배달 라이더 경력 4년, 안전 운전 최우선', TRUE,
+ '배달의민족과 요기요에서 총 4년 배달 라이더로 활동하며 우수 평점을 유지했습니다. 지역 지리에 밝고 시간 관리 능력이 뛰어납니다.',
+ '2024-01-25 13:00:00', '2024-03-10 15:00:00'),
+
+(6,  6,  '치킨·외식 주방 경력 보유, 적응력 높은 파트타이머', TRUE,
+ '교촌치킨과 BBQ에서 총 4년간 주방 및 홀 업무를 담당했습니다. 양식 조리기능사 자격증 보유, 위생 관리에 철저합니다.',
+ '2024-02-05 11:00:00', '2024-03-20 12:00:00'),
+
+(7,  7,  '커피 전문 바리스타 1급, 카페 관리 경험', TRUE,
+ '메가커피에서 2년 이상 바리스타로 근무하며 음료 레시피 관리 및 매장 재고 관리를 담당했습니다. 바리스타 1급 자격 보유.',
+ '2024-01-30 10:30:00', '2024-02-28 11:00:00'),
+
+(8,  8,  '제과제빵·카페 경력 보유, 성실한 파트타이머', TRUE,
+ '투썸플레이스와 빽다방에서 바리스타 및 케이크 판매 업무를 수행했습니다. 제과제빵기능사 자격 보유, 디저트 관련 업무에 열정이 있습니다.',
+ '2024-02-10 09:00:00', '2024-03-05 10:00:00'),
+
+(9,  9,  '베이커리 홀 서빙 및 포장 전문가', TRUE,
+ '파리바게뜨, 뚜레쥬르에서 약 5년간 홀 서빙과 빵 포장 업무를 담당했습니다. 제과제빵기능사 자격 보유, 신속·정확한 업무 처리가 강점입니다.',
+ '2024-01-12 14:00:00', '2024-03-08 15:00:00'),
+
+(10, 10, 'PC방 야간 관리 및 고객응대 경험', TRUE,
+ '3POP PC방과 개인 PC방에서 매장 관리, 고객 응대, 야간 운영을 담당했습니다. 컴퓨터활용능력 2급 보유, 트러블슈팅 능력 우수.',
+ '2024-02-15 20:00:00', '2024-03-18 21:00:00'),
+
+(11, 11, '카페·편의점 알바 경험 다수, 성실 지원자', TRUE,
+ '서울 강남 지역 카페 및 편의점에서 바리스타, 캐셔 업무를 수행했습니다. 바리스타 2급 자격 보유, 빠른 습득력이 장점입니다.',
+ '2024-02-20 10:00:00', '2024-03-22 11:00:00'),
+
+(12, 12, '물류 현장 경험자, 야간 근무 가능', TRUE,
+ '동탄물류센터와 인천항에서 상하차 및 분류 작업을 담당했습니다. 체력이 좋고 팀 작업에 능숙합니다.',
+ '2024-01-18 06:30:00', '2024-02-14 07:00:00'),
+
+(13, 13, '식음료·외식 홀 서빙 경력 보유', TRUE,
+ '홍대 이자카야와 마포구 식당에서 홀 서빙과 주방 보조 경험을 쌓았습니다. 한식 조리기능사 자격 보유, 친절한 서비스 마인드를 갖추었습니다.',
+ '2024-02-25 12:00:00', '2024-03-25 13:00:00'),
+
+(14, 14, '베이커리·카페 판매 및 홀 운영 경험', TRUE,
+ '강남 지역 베이커리와 카페에서 빵 판매 및 홀 운영 경험이 있습니다. 고객 친화적이고 정리정돈 능력이 우수합니다.',
+ '2024-01-22 09:30:00', '2024-02-22 10:00:00'),
+
+(15, 15, '사무보조·물류 창고 파트타임 경험자', TRUE,
+ '판교 IT 기업에서 사무 보조를, 성남 물류창고에서 피킹·패킹 작업을 담당했습니다. 컴퓨터활용능력 1급 보유, 꼼꼼하고 책임감이 강합니다.',
+ '2024-02-08 11:00:00', '2024-03-12 12:00:00'),
+
+(16, 16, '외식·카페 업종 다양한 경험', TRUE,
+ '종로구 음식점 홀 서빙과 대학로 카페 바리스타 경험이 있습니다. 서비스업에 대한 이해도가 높고 손님 응대가 자연스럽습니다.',
+ '2024-01-28 13:30:00', '2024-03-02 14:00:00'),
+
+(17, 17, '편의점·물류 경력 보유, 야간 선호', TRUE,
+ '해운대 편의점 야간 캐셔와 부산 물류터미널 상하차 경험이 있습니다. 지게차운전기능사 보유, 체력과 성실함이 강점입니다.',
+ '2024-02-03 07:00:00', '2024-03-07 08:00:00'),
+
+(18, 18, '베이커리·편의점 판매 경험, 친절한 고객응대', TRUE,
+ '광주 베이커리 홀 판매와 전남 편의점 캐셔 업무를 수행했습니다. 재고 관리와 상품 진열 경험이 풍부합니다.',
+ '2024-01-16 10:00:00', '2024-02-16 11:00:00'),
+
+(19, 19, '제주 카페·음식점 서비스 경험 보유', TRUE,
+ '제주도 카페 바리스타와 서귀포 음식점 홀 서빙 경험이 있습니다. 바리스타 2급 자격 보유, 관광 지역 고객 응대 경험이 풍부합니다.',
+ '2024-02-12 14:30:00', '2024-03-14 15:00:00'),
+
+(20, 20, 'PC방·편의점 야간 관리 경험, 꼼꼼한 관리자', TRUE,
+ '인천 PC방 야간 관리자와 부평 편의점 매장 관리를 담당했습니다. 심야 고객 응대와 시설 점검에 익숙하며, 책임감 있게 업무를 수행합니다.',
+ '2024-01-14 21:00:00', '2024-03-16 22:00:00');
+
+
+-- ───────────────────────────────────────────────
+-- 3. career — resume_id FK 직접 포함
+--    member 1~10: 브랜드 연결 경력
+--    member 11~20: 일반 경력
+-- ───────────────────────────────────────────────
+INSERT IGNORE INTO career (id, member_id, brand_id, company, role, start_date, end_date, resume_id) VALUES
+-- member 1 (resume_id=1): 스타벅스 → 개인카페
+(101, 1, 10,   '스타벅스',   '바리스타/음료 제조',       '2018-03-01', '2020-06-30', 1),
+(102, 1, NULL, '홍익커피',   '매장 매니저',              '2020-08-01', '2022-12-31', 1),
+
+-- member 2 (resume_id=2): GS25 → CU
+(103, 2, 7,    'GS25',       '야간 캐셔 및 매장관리',    '2017-06-01', '2019-02-28', 2),
+(104, 2, 6,    'CU',         '점포 운영 및 재고관리',    '2019-05-01', '2021-08-31', 2),
+
+-- member 3 (resume_id=3): 맥도날드 → 롯데리아
+(105, 3, 20,   '맥도날드',   '홀 서빙 및 주방 보조',    '2019-04-01', '2021-03-31', 3),
+(106, 3, 19,   '롯데리아',   '주방 파트타이머',          '2021-06-01', '2022-11-30', 3),
+
+-- member 4 (resume_id=4): 쿠팡 → 한강유통
+(107, 4, 1,    '쿠팡 물류센터', '물류 상하차 및 분류',   '2020-01-01', '2022-04-30', 4),
+(108, 4, NULL, '한강유통',   '창고 관리 보조',           '2022-07-01', NULL,         4),
+
+-- member 5 (resume_id=5): 배달의민족 → 요기요
+(109, 5, 40,   '배달의민족', '배달 라이더',              '2019-09-01', '2021-01-31', 5),
+(110, 5, 42,   '요기요',     '배달/픽업 라이더',         '2021-04-01', '2023-03-31', 5),
+
+-- member 6 (resume_id=6): 교촌치킨 → BBQ
+(111, 6, 27,   '교촌치킨',   '주방 파트타이머',          '2018-07-01', '2020-02-29', 6),
+(112, 6, 28,   'BBQ',        '홀 서빙 및 주방 보조',    '2020-05-01', '2022-06-30', 6),
+
+-- member 7 (resume_id=7): 메가커피 → 개인카페
+(113, 7, 11,   '메가커피',   '바리스타 및 음료 제조',   '2020-11-01', '2023-01-31', 7),
+(114, 7, NULL, '오렌지카페', '매장 운영 보조',           '2023-03-01', NULL,         7),
+
+-- member 8 (resume_id=8): 투썸플레이스 → 빽다방
+(115, 8, 12,   '투썸플레이스', '바리스타 및 케이크 판매', '2019-05-01', '2021-09-30', 8),
+(116, 8, 15,   '빽다방',     '바리스타',                 '2021-12-01', '2023-05-31', 8),
+
+-- member 9 (resume_id=9): 파리바게뜨 → 뚜레쥬르
+(117, 9, 36,   '파리바게뜨', '홀 서빙 및 포장 업무',    '2018-02-01', '2020-07-31', 9),
+(118, 9, 35,   '뚜레쥬르',   '빵 포장 및 홀 관리',      '2020-10-01', '2023-02-28', 9),
+
+-- member 10 (resume_id=10): 3POP PC방 → 개인 PC방
+(119, 10, 37,  '3POP PC방',  '매장 관리 및 고객응대',   '2020-06-01', '2022-08-31', 10),
+(120, 10, NULL,'게임존 PC방', '야간 관리자',             '2022-10-01', NULL,         10),
+
+-- member 11 (resume_id=11)
+(121, 11, NULL, '선릉카페',      '바리스타',             '2021-03-01', '2022-09-30', 11),
+(122, 11, NULL, '강남편의점',    '야간 캐셔',            '2022-11-01', NULL,         11),
+
+-- member 12 (resume_id=12)
+(123, 12, NULL, '동탄물류센터',  '물류 상하차',          '2020-05-01', '2022-04-30', 12),
+(124, 12, NULL, '인천항 배송센터','분류 작업원',         '2022-07-01', '2023-12-31', 12),
+
+-- member 13 (resume_id=13)
+(125, 13, NULL, '홍대 이자카야', '홀 서빙',              '2019-08-01', '2021-02-28', 13),
+(126, 13, NULL, '마포구 식당',   '주방 보조',            '2021-05-01', '2022-10-31', 13),
+
+-- member 14 (resume_id=14)
+(127, 14, NULL, '서초구 베이커리','빵 포장 및 판매',     '2020-02-01', '2021-11-30', 14),
+(128, 14, NULL, '강남구 카페',   '홀 운영 및 주문 응대', '2022-01-01', NULL,         14),
+
+-- member 15 (resume_id=15)
+(129, 15, NULL, '판교 IT기업',   '사무보조 (파트타임)', '2021-06-01', '2022-12-31', 15),
+(130, 15, NULL, '성남 물류창고', '피킹 및 패킹 작업',   '2023-02-01', NULL,         15),
+
+-- member 16 (resume_id=16)
+(131, 16, NULL, '종로구 음식점', '홀 서빙 및 주방 보조', '2020-09-01', '2022-08-31', 16),
+(132, 16, NULL, '대학로 카페',   '바리스타 (주말 알바)', '2022-10-01', '2023-06-30', 16),
+
+-- member 17 (resume_id=17)
+(133, 17, NULL, '해운대 편의점', '야간 캐셔',            '2019-11-01', '2021-05-31', 17),
+(134, 17, NULL, '부산 물류터미널','상하차 작업원',       '2021-08-01', '2022-12-31', 17),
+
+-- member 18 (resume_id=18)
+(135, 18, NULL, '광주 베이커리', '홀 판매 및 포장',      '2020-04-01', '2022-03-31', 18),
+(136, 18, NULL, '전남 편의점',   '캐셔 및 진열',         '2022-06-01', NULL,         18),
+
+-- member 19 (resume_id=19)
+(137, 19, NULL, '제주도 카페',   '바리스타',             '2021-01-01', '2022-07-31', 19),
+(138, 19, NULL, '서귀포 음식점', '홀 서빙',              '2022-09-01', '2023-11-30', 19),
+
+-- member 20 (resume_id=20)
+(139, 20, NULL, '인천 PC방',     '야간 관리자',          '2020-07-01', '2022-06-30', 20),
+(140, 20, NULL, '부평 편의점',   '매장 관리 및 캐셔',    '2022-09-01', NULL,         20);
+
+
+-- ───────────────────────────────────────────────
+-- 4. license — resume_id FK 직접 포함
+-- ───────────────────────────────────────────────
+INSERT IGNORE INTO license (id, member_id, license_name, license_number, acquisition_date, issued_by, license_file_url, resume_id) VALUES
+(101,  1,  '바리스타 2급',        'BRS-2022-001', '2022-04-15', '한국커피협회',      NULL, 1),
+(102,  2,  '유통관리사 2급',       'DIS-2020-002', '2020-08-20', '대한상공회의소',    NULL, 2),
+(103,  3,  '조리기능사 (한식)',     'CKK-2021-003', '2021-05-10', '한국산업인력공단',  NULL, 3),
+(104,  4,  '지게차운전기능사',      'FRK-2019-004', '2019-11-25', '한국산업인력공단',  NULL, 4),
+(105,  5,  '오토바이 2종 소형면허', 'MCL-2018-005', '2018-07-01', '도로교통공단',      NULL, 5),
+(106,  6,  '조리기능사 (양식)',     'CKW-2020-006', '2020-03-18', '한국산업인력공단',  NULL, 6),
+(107,  7,  '바리스타 1급',        'BRS-2023-007', '2023-02-20', '한국커피협회',      NULL, 7),
+(108,  8,  '제과제빵기능사',       'BKR-2021-008', '2021-09-05', '한국산업인력공단',  NULL, 8),
+(109,  9,  '제과제빵기능사',       'BKR-2022-009', '2022-06-12', '한국산업인력공단',  NULL, 9),
+(110, 10,  '컴퓨터활용능력 2급',   'CCP-2021-010', '2021-12-01', '대한상공회의소',    NULL, 10),
+(111, 11,  '바리스타 2급',        'BRS-2022-011', '2022-09-30', '한국커피협회',      NULL, 11),
+(112, 13,  '조리기능사 (한식)',     'CKK-2022-013', '2022-08-14', '한국산업인력공단',  NULL, 13),
+(113, 15,  '컴퓨터활용능력 1급',   'CCP-2022-015', '2022-11-08', '대한상공회의소',    NULL, 15),
+(114, 17,  '지게차운전기능사',      'FRK-2021-017', '2021-04-22', '한국산업인력공단',  NULL, 17),
+(115, 19,  '바리스타 2급',        'BRS-2021-019', '2021-05-30', '한국커피협회',      NULL, 19);
+
+
+-- ───────────────────────────────────────────────
+-- 5. highest_education — resume_id FK 직접 포함
+-- ───────────────────────────────────────────────
+INSERT IGNORE INTO highest_education (id, member_id, school_name, school_type, major, resume_id) VALUES
+(101,  1,  '서울대학교',       '4년제 대학교',    '식품공학과',           1),
+(102,  2,  '경기대학교',       '4년제 대학교',    '경영학과',             2),
+(103,  3,  '부산대학교',       '4년제 대학교',    '조리외식학과',         3),
+(104,  4,  '인천대학교',       '4년제 대학교',    '물류시스템학과',       4),
+(105,  5,  '인천전문대학교',   '2년제 전문대',    NULL,                   5),
+(106,  6,  '한양대학교',       '4년제 대학교',    '식품영양학과',         6),
+(107,  7,  '연세대학교',       '4년제 대학교',    '생활과학부',           7),
+(108,  8,  '성신여자대학교',   '4년제 대학교',    '식품영양학과',         8),
+(109,  9,  '덕성여자대학교',   '4년제 대학교',    '식품영양학과',         9),
+(110, 10,  '세종사이버대학교', '사이버 대학교',   '컴퓨터공학과',         10),
+(111, 11,  '강남대학교',       '4년제 대학교',    NULL,                   11),
+(112, 12,  '수원과학대학교',   '2년제 전문대',    NULL,                   12),
+(113, 13,  '경희대학교',       '4년제 대학교',    '조리·서비스경영학과',  13),
+(114, 14,  '서원대학교',       '4년제 대학교',    '제과제빵학과',         14),
+(115, 15,  '국민대학교',       '4년제 대학교',    '경영정보학과',         15),
+(116, 16,  '동국대학교',       '4년제 대학교',    '관광경영학과',         16),
+(117, 17,  '동명대학교',       '4년제 대학교',    NULL,                   17),
+(118, 18,  '조선대학교',       '4년제 대학교',    '식품공학과',           18),
+(119, 19,  '제주대학교',       '4년제 대학교',    '관광학부',             19),
+(120, 20,  '인하대학교',       '4년제 대학교',    '경영학과',             20);
+
+-- 1) 희망 업종 (desired_business_type) 추가
+INSERT IGNORE INTO desired_business_type (member_id, type) VALUES (1, 'CAFE'), (2, 'RETAIL_STORE'), (3, 'FOOD_RESTAURANT'), (4, 'MANUAL_LABOR'), (5, 'DELIVERY_DRIVER'), (6, 'FOOD_RESTAURANT'), (7, 'CAFE'), (8, 'CAFE'), (9, 'FOOD_RESTAURANT'), (10, 'RETAIL_STORE'), (11, 'CAFE'), (12, 'MANUAL_LABOR'), (13, 'FOOD_RESTAURANT'), (14, 'FOOD_RESTAURANT'), (15, 'SERVICE'), (16, 'FOOD_RESTAURANT'), (17, 'RETAIL_STORE'), (18, 'RETAIL_STORE'), (19, 'CAFE'), (20, 'RETAIL_STORE');
+-- 2) 희망 근무지 (member_preferred_region) 추가 -- region 테이블에서 sido/sigungu로 id를 찾아서 넣습니다.
+INSERT IGNORE INTO member_preferred_region (member_id, region_id) VALUES (1, (SELECT id FROM region WHERE sido = '서울특별시' AND sigungu = '중구')), (2, (SELECT id FROM region WHERE sido = '경기도' AND sigungu = '시흥시')), (3, (SELECT id FROM region WHERE sido = '서울특별시' AND sigungu = '종로구')), (4, (SELECT id FROM region WHERE sido = '경기도' AND sigungu = '성남시 분당구')), (5, (SELECT id FROM region WHERE sido = '인천광역시' AND sigungu = '남동구')), (6, (SELECT id FROM region WHERE sido = '경기도' AND sigungu = '오산시')), (7, (SELECT id FROM region WHERE sido = '서울특별시' AND sigungu = '강남구')), (8, (SELECT id FROM region WHERE sido = '서울특별시' AND sigungu = '중구')), (9, (SELECT id FROM region WHERE sido = '경기도' AND sigungu = '성남시 분당구')), (10, (SELECT id FROM region WHERE sido = '서울특별시' AND sigungu = '성동구')), (11, (SELECT id FROM region WHERE sido = '서울특별시' AND sigungu = '강남구')), (12, (SELECT id FROM region WHERE sido = '경기도' AND sigungu = '화성시')), (13, (SELECT id FROM region WHERE sido = '서울특별시' AND sigungu = '마포구')), (14, (SELECT id FROM region WHERE sido = '서울특별시' AND sigungu = '서초구')), (15, (SELECT id FROM region WHERE sido = '경기도' AND sigungu = '성남시 분당구')), (16, (SELECT id FROM region WHERE sido = '서울특별시' AND sigungu = '종로구')), (17, (SELECT id FROM region WHERE sido = '부산광역시' AND sigungu = '해운대구')), (18, (SELECT id FROM region WHERE sido = '광주광역시' AND sigungu = '광산구')), (19, (SELECT id FROM region WHERE sido = '제주특별자치도' AND sigungu = '제주시')), (20, (SELECT id FROM region WHERE sido = '인천광역시' AND sigungu = '부평구'));
