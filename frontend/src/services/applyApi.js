@@ -42,6 +42,7 @@ export async function decideBusinessApplication(applyId, accept) {
         },
         body: JSON.stringify({ accept: Boolean(accept) }),
     });
+}
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 function resolveMemberId(memberId) {
