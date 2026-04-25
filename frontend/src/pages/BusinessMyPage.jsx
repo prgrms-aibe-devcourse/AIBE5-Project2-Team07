@@ -54,7 +54,7 @@ export default function BusinessMyPage() {
             ...summary,
             brandId: me?.brandId ?? null,
             brandLogoUrl,
-            companyImageUrl: me?.companyImageUrl || summary?.companyImageUrl || '',
+            companyImageUrl: summary?.companyImageUrl || me?.companyImageUrl || '',
           });
         }
       } catch {

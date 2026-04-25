@@ -6,6 +6,7 @@ import CommonButton from '../components/CommonButton';
 import AddressSearchField from '../components/AddressSearchField';
 import BrandModal from '../components/BrandModal';
 import {
+  getMyBusinessAccountSummary,
   getMyBusinessAccountMe,
   updateMyBusinessCompanyAccount,
   updateMyBusinessMemberAccount,
@@ -48,6 +49,7 @@ function BusinessCompanyEditPage() {
     brandId: null,
     brandLogoUrl: '',
   });
+  const [draftCompanyImageUrl, setDraftCompanyImageUrl] = useState('');
   const [companyAddressBase, setCompanyAddressBase] = useState('');
   const [companyAddressDetail, setCompanyAddressDetail] = useState('');
   const [memberAddressBase, setMemberAddressBase] = useState('');
@@ -86,18 +88,6 @@ function BusinessCompanyEditPage() {
       if (!response.ok) return '';
       const result = await response.json();
       return result?.logoImg || '';
-    } catch {
-      return '';
-    }
-  };
-
-  const resolveBrandName = async (brandId) => {
-    if (brandId == null) return '';
-    try {
-      const response = await fetch(`/api/brand/${encodeURIComponent(brandId)}/summary`);
-      if (!response.ok) return '';
-      const result = await response.json();
-      return result?.brandName || '';
     } catch {
       return '';
     }
@@ -143,7 +133,7 @@ function BusinessCompanyEditPage() {
 
     try {
       setIsLogoUploading(true);
-      const oldUrl = sidebarCompanySummary?.companyImageUrl || '';
+      const oldUrl = draftCompanyImageUrl || '';
       const uploaded = await uploadCompanyLogo(file, oldUrl || undefined);
       const nextLogoUrl = uploaded?.url || '';
 
@@ -151,15 +141,22 @@ function BusinessCompanyEditPage() {
         throw new Error('로고 업로드 결과 URL이 없습니다.');
       }
 
-      setSidebarCompanySummary((prev) => ({ ...prev, companyImageUrl: nextLogoUrl }));
-      localStorage.setItem('businessCompanyLogoUrl', nextLogoUrl);
-      window.alert('로고 이미지가 업로드되었습니다.');
+      setDraftCompanyImageUrl(nextLogoUrl);
+      window.alert('로고 이미지가 업로드되었습니다. 저장 버튼을 누르면 반영됩니다.');
     } catch (error) {
       window.alert(error?.message || '로고 업로드에 실패했습니다.');
     } finally {
       setIsLogoUploading(false);
       event.target.value = '';
     }
+  };
+
+  const handleLogoRemove = () => {
+    if (!draftCompanyImageUrl) return;
+    const ok = window.confirm('현재 기업 로고를 삭제하시겠어요? 저장 버튼을 눌러야 최종 반영됩니다.');
+    if (!ok) return;
+
+    setDraftCompanyImageUrl('');
   };
 
   const handleSaveMemberInfo = async () => {
@@ -237,6 +234,7 @@ function BusinessCompanyEditPage() {
         companyPhone: form.companyPhone.trim(),
         homepageUrl: form.homepageUrl ? form.homepageUrl.trim() : '',
         companyAddress: mergedCompanyAddress,
+        companyImageUrl: draftCompanyImageUrl || '',
         // 백엔드 DTO에 brandId 필드가 추가되면 함께 저장됩니다.
         brandId: selectedBrandId,
       });
@@ -244,10 +242,16 @@ function BusinessCompanyEditPage() {
       setSidebarCompanySummary({
         companyName: form.companyName.trim(),
         businessNumber: form.businessNumber.trim(),
-        companyImageUrl: sidebarCompanySummary?.companyImageUrl || '',
+        companyImageUrl: draftCompanyImageUrl || '',
             brandId: selectedBrandId,
             brandLogoUrl: sidebarCompanySummary?.brandLogoUrl || '',
       });
+
+      if (draftCompanyImageUrl) {
+        localStorage.setItem('businessCompanyLogoUrl', draftCompanyImageUrl);
+      } else {
+        localStorage.removeItem('businessCompanyLogoUrl');
+      }
 
       window.alert('기본 정보가 저장되었습니다.');
     } catch (error) {
@@ -305,9 +309,12 @@ function BusinessCompanyEditPage() {
 
     const fetchMyBusinessAccount = async () => {
       try {
-        const data = await getMyBusinessAccountMe();
+        const [data, summary] = await Promise.all([
+          getMyBusinessAccountMe(),
+          getMyBusinessAccountSummary(),
+        ]);
         const brandLogoUrl = await resolveBrandLogoUrl(data?.brandId);
-        const brandName = await resolveBrandName(data?.brandId);
+        const brandName = data?.brandName || '';
         const regionName = typeof data?.regionName === 'string' ? data.regionName.trim() : '';
         const [sido = '', ...sigunguParts] = regionName.split(' ');
         const sigungu = sigunguParts.join(' ').trim();
@@ -340,14 +347,15 @@ function BusinessCompanyEditPage() {
           setCompanyAddressDetail('');
           setSelectedRegionId(selected?.id || null);
           setSidebarCompanySummary({
-            companyName: data?.companyName || '',
-            businessNumber: data?.businessNumber || '',
-            companyImageUrl: data?.companyImageUrl || localStorage.getItem('businessCompanyLogoUrl') || '',
+            companyName: summary?.companyName || data?.companyName || '',
+            businessNumber: summary?.businessNumber || data?.businessNumber || '',
+            companyImageUrl: summary?.companyImageUrl || data?.companyImageUrl || localStorage.getItem('businessCompanyLogoUrl') || '',
             brandId: data?.brandId ?? null,
             brandLogoUrl,
           });
+          setDraftCompanyImageUrl(summary?.companyImageUrl || data?.companyImageUrl || localStorage.getItem('businessCompanyLogoUrl') || '');
           setSelectedBrandId(data?.brandId ?? null);
-          setSelectedBrandName(brandName || '');
+          setSelectedBrandName(brandName);
         }
       } catch {
         // API 실패 시 빈 값 상태를 유지합니다.
@@ -434,20 +442,33 @@ function BusinessCompanyEditPage() {
                       <span className="text-xs font-bold text-on-surface-variant mb-2 block">기업 로고</span>
                       <div className="flex items-center gap-3">
                         <div className="w-14 h-14 rounded-xl border border-outline bg-surface-container-low overflow-hidden flex items-center justify-center">
-                          {sidebarCompanySummary?.companyImageUrl ? (
-                            <img src={sidebarCompanySummary.companyImageUrl} alt="기업 로고" className="w-full h-full object-cover" />
+                          {draftCompanyImageUrl ? (
+                            <img src={draftCompanyImageUrl} alt="기업 로고" className="w-full h-full object-cover" />
                           ) : (
                             <span className="material-symbols-outlined text-on-surface-variant">apartment</span>
                           )}
                         </div>
-                        <input
-                          type="file"
-                          accept="image/*"
-                          onChange={handleLogoUpload}
-                          disabled={isLogoUploading}
-                          className="block w-full rounded-xl border border-outline bg-white px-3 py-2 text-sm"
-                        />
+                        <div className="flex-1 flex flex-col sm:flex-row gap-2">
+                          <input
+                            type="file"
+                            accept="image/*"
+                            onChange={handleLogoUpload}
+                            disabled={isLogoUploading || isCompanySaving}
+                            className="block w-full rounded-xl border border-outline bg-white px-3 py-2 text-sm"
+                          />
+                          <button
+                            type="button"
+                            onClick={handleLogoRemove}
+                            disabled={!draftCompanyImageUrl || isLogoUploading || isCompanySaving}
+                            className="rounded-xl border border-outline px-3 py-2 text-xs font-bold text-on-surface-variant hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                          >
+                            로고 삭제
+                          </button>
+                        </div>
                       </div>
+                      <p className="mt-2 text-[11px] text-on-surface-variant">
+                        로고를 삭제한 뒤 <span className="font-bold">저장</span>을 눌러야 실제 반영됩니다.
+                      </p>
                     </label>
                   </div>
                 </div>
