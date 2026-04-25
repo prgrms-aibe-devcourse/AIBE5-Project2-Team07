@@ -39,12 +39,12 @@ class DummyGeneratorRunTest {
     private List<GeneratorStep> generatorSteps() {
         return List.of(
                 // Section 1
-                //new GeneratorStep("BusinessMemberGenerator", new BusinessMemberGenerator()::insertGeneratedMembers),
-                //new GeneratorStep("BusinessMemberAddressGenerator", new BusinessMemberAddressGenerator()::insertGeneratedMemberAddresses),
-                //new GeneratorStep("BusinessProfileGenerator", new BusinessProfileGenerator()::insertGeneratedBusinessProfiles)
+                new GeneratorStep("BusinessMemberGenerator", new BusinessMemberGenerator()::insertGeneratedMembers),
+                new GeneratorStep("BusinessMemberAddressGenerator", new BusinessMemberAddressGenerator()::insertGeneratedMemberAddresses),
+                new GeneratorStep("BusinessProfileGenerator", new BusinessProfileGenerator()::insertGeneratedBusinessProfiles)
 
                 // Section 2
-                new GeneratorStep("RecruitGenerator", new RecruitGenerator()::insertGeneratedRecruits)
+                //new GeneratorStep("RecruitGenerator", new RecruitGenerator()::insertGeneratedRecruits)
 
                 // 여기에 다른 Generator를 계속 추가하면 한 번에 실행됩니다.
                 // 예) new GeneratorStep("OtherGenerator", new OtherGenerator()::insertGeneratedXxx)
