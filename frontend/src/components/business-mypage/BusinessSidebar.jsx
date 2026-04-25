@@ -8,9 +8,10 @@ export default function BusinessSidebar({ activeTab, onChangeTab, navigate, comp
     const businessNumber = companySummary?.businessNumber || '-';
     const defaultCompanyImage = 'https://placehold.co/160x160?text=COMPANY';
     const companyImageUrl =
-        companySummary?.brandId != null
-            ? (companySummary?.brandLogoUrl || defaultCompanyImage)
-            : (companySummary?.companyImageUrl || localStorage.getItem('businessCompanyLogoUrl') || defaultCompanyImage);
+        companySummary?.companyImageUrl
+            || companySummary?.brandLogoUrl
+            || localStorage.getItem('businessCompanyLogoUrl')
+            || defaultCompanyImage;
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [deletePassword, setDeletePassword] = useState('');
     const [isDeleting, setIsDeleting] = useState(false);
