@@ -22,10 +22,54 @@ export async function getBusinessScrapMembers(params = {}) {
     });
 }
 
+export async function addBusinessScrapMember(individualProfileId) {
+    const businessProfileId = resolveBusinessProfileId();
+
+    return requestWithAuth(`/scraps/members/${encodeURIComponent(individualProfileId)}`, {
+        method: 'POST',
+        headers: {
+            'X-Business-Profile-Id': String(businessProfileId),
+        },
+    });
+}
+
+export async function addBusinessScrapMemberByMemberId(memberId) {
+    const businessProfileId = resolveBusinessProfileId();
+
+    return requestWithAuth(`/scraps/members/by-member/${encodeURIComponent(memberId)}`, {
+        method: 'POST',
+        headers: {
+            'X-Business-Profile-Id': String(businessProfileId),
+        },
+    });
+}
+
+export async function checkBusinessScrapMemberByMemberId(memberId) {
+    const businessProfileId = resolveBusinessProfileId();
+
+    return requestWithAuth(`/scraps/members/by-member/${encodeURIComponent(memberId)}/exists`, {
+        method: 'GET',
+        headers: {
+            'X-Business-Profile-Id': String(businessProfileId),
+        },
+    });
+}
+
 export async function removeBusinessScrapMember(individualProfileId) {
     const businessProfileId = resolveBusinessProfileId();
 
     return requestWithAuth(`/scraps/members/${encodeURIComponent(individualProfileId)}`, {
+        method: 'DELETE',
+        headers: {
+            'X-Business-Profile-Id': String(businessProfileId),
+        },
+    });
+}
+
+export async function removeBusinessScrapMemberByMemberId(memberId) {
+    const businessProfileId = resolveBusinessProfileId();
+
+    return requestWithAuth(`/scraps/members/by-member/${encodeURIComponent(memberId)}`, {
         method: 'DELETE',
         headers: {
             'X-Business-Profile-Id': String(businessProfileId),

@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
     getBusinessScrapMemberCount,
     getBusinessScrapMembers,
     removeBusinessScrapMember,
+    removeBusinessScrapMemberByMemberId,
 } from '../../../services/scrapMemberApi';
 
 function formatPreferredRegions(regions) {
@@ -14,6 +16,7 @@ function formatPreferredRegions(regions) {
 }
 
 export default function BusinessScrapTab() {
+    const navigate = useNavigate();
     const [scraps, setScraps] = useState([]);
     const [totalCount, setTotalCount] = useState(0);
     const [page, setPage] = useState(0);
@@ -55,27 +58,33 @@ export default function BusinessScrapTab() {
         };
     }, [page]);
 
-    const removeScrap = async (individualProfileId, fallbackMemberId) => {
-        if (!individualProfileId) {
-            window.alert(
-                `현재 스크랩 목록 응답에 individualProfileId가 없어 해제할 수 없습니다. (memberId: ${fallbackMemberId || '-'})`,
-            );
+    const removeScrap = async (memberId) => {
+        if (!memberId) {
+            window.alert('회원 ID를 찾을 수 없습니다.');
             return;
         }
 
-        const ok = window.confirm('해당 회원의 스크랩을 해제할까요?');
-        if (!ok) return;
 
         try {
-            setActionLoadingId(String(individualProfileId));
-            await removeBusinessScrapMember(individualProfileId);
-            setScraps((prev) => prev.filter((item) => String(item?.memberId) !== String(individualProfileId)));
+            setActionLoadingId(String(memberId));
+            await removeBusinessScrapMemberByMemberId(memberId);
+            setScraps((prev) => prev.filter((item) => String(item?.memberId) !== String(memberId)));
             setTotalCount((prev) => Math.max(prev - 1, 0));
         } catch (actionError) {
             window.alert(actionError?.message || '스크랩 해제에 실패했습니다.');
         } finally {
             setActionLoadingId(null);
         }
+    };
+
+    const handleOpenProfile = (member) => {
+        // 이력서가 공개 상태인지 확인 (isActive가 true면 공개, false면 비공개)
+        if (member?.isActive === false) {
+            window.alert('이 회원은 이력서 노출을 허용하지 않습니다.\n프로필 정보를 확인할 수 없습니다.');
+            return;
+        }
+        // 공개 상태이면 인재 상세 페이지로 이동
+        navigate(`/talent-profile/${member?.resumeId}`);
     };
 
     return (
@@ -117,18 +126,18 @@ export default function BusinessScrapTab() {
             ) : (
                 <div className="space-y-4">
                     {scraps.map((member) => {
-                        const removableProfileId = member?.individualProfileId || null;
                         return (
                         <div
                             key={member?.resumeId || member?.memberId}
-                            className="bg-white border border-outline rounded-2xl p-6 hover:border-primary/30 hover:shadow-md transition-all group"
+                            className="bg-white border border-outline rounded-2xl p-6 hover:border-primary/30 hover:shadow-md transition-all group cursor-pointer"
+                            onClick={() => handleOpenProfile(member)}
                         >
                             <div className="flex items-start gap-4">
                                 <div className="relative flex-shrink-0">
                                     <div className="w-14 h-14 rounded-2xl bg-primary-soft flex items-center justify-center">
-                      <span className="material-symbols-outlined text-primary text-3xl">
-                        person
-                      </span>
+                       <span className="material-symbols-outlined text-primary text-3xl">
+                         person
+                       </span>
                                     </div>
                                 </div>
 
@@ -142,14 +151,14 @@ export default function BusinessScrapTab() {
                                     <p className="text-xs text-on-surface-variant font-medium mb-1">{member?.title || '이력서 제목 없음'}</p>
 
                                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-on-surface-variant mb-3">
-                    <span className="flex items-center gap-0.5">
-                      <span className="material-symbols-outlined text-sm text-primary">star</span>
-                      <span className="font-bold text-on-surface">{Number(member?.ratingAverage || 0).toFixed(1)}</span>
-                    </span>
+                     <span className="flex items-center gap-0.5">
+                       <span className="material-symbols-outlined text-sm text-primary">star</span>
+                       <span className="font-bold text-on-surface">{Number(member?.ratingAverage || 0).toFixed(1)}</span>
+                     </span>
                                         <span className="flex items-center gap-0.5">
-                      <span className="material-symbols-outlined text-sm">location_on</span>
+                       <span className="material-symbols-outlined text-sm">location_on</span>
                                             {formatPreferredRegions(member?.preferredRegions)}
-                    </span>
+                     </span>
                                     </div>
 
                                     <div className="flex flex-wrap gap-1.5">
@@ -158,30 +167,33 @@ export default function BusinessScrapTab() {
                                                 key={tag}
                                                 className="text-[11px] font-bold bg-primary-soft text-primary px-2.5 py-0.5 rounded-full"
                                             >
-                        {tag}
-                      </span>
+                         {tag}
+                       </span>
                                         ))}
                                     </div>
                                 </div>
 
                                 <div className="flex flex-col items-end gap-2 flex-shrink-0">
                                     <button
-                                        onClick={() => removeScrap(removableProfileId, member?.memberId)}
-                                        disabled={!removableProfileId || actionLoadingId === String(removableProfileId)}
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            removeScrap(member?.memberId);
+                                        }}
+                                        disabled={actionLoadingId === String(member?.memberId)}
                                         className="p-2 rounded-xl hover:bg-primary-soft transition-colors disabled:opacity-50"
                                         title="스크랩 해제"
                                     >
-                    <span
-                        className="material-symbols-outlined text-primary text-xl"
-                        style={{ fontVariationSettings: "'FILL' 1" }}
-                    >
-                      {actionLoadingId === String(removableProfileId) ? 'hourglass_top' : 'bookmark'}
-                    </span>
+                     <span
+                         className="material-symbols-outlined text-primary text-xl"
+                         style={{ fontVariationSettings: "'FILL' 1" }}
+                     >
+                       {actionLoadingId === String(member?.memberId) ? 'hourglass_top' : 'bookmark'}
+                     </span>
                                     </button>
                                     <button className="p-2 rounded-xl hover:bg-gray-100 transition-colors" disabled>
-                    <span className="material-symbols-outlined text-on-surface-variant text-xl">
-                      chat
-                    </span>
+                     <span className="material-symbols-outlined text-on-surface-variant text-xl">
+                       chat
+                     </span>
                                     </button>
                                 </div>
                             </div>
@@ -216,7 +228,8 @@ export default function BusinessScrapTab() {
             <div className="mt-6 p-5 rounded-2xl bg-primary-soft/40 border border-primary/10 flex items-start gap-3">
                 <span className="material-symbols-outlined text-primary mt-0.5 text-sm">info</span>
                 <p className="text-xs text-on-surface-variant font-medium leading-relaxed">
-                    북마크 아이콘을 클릭하면 스크랩이 해제됩니다. 현재 목록 API에 individualProfileId가 없는 경우 해제가 제한됩니다.
+                    회원 정보를 클릭하면 인재 상세 페이지로 이동합니다. (이력서 공개 시에만 가능)
+                    북마크 아이콘을 클릭하면 스크랩이 해제됩니다.
                 </p>
             </div>
         </>

@@ -100,6 +100,31 @@ export async function completeBusinessApply(applyId) {
         },
     });
 }
+
+export async function offerToIndividualByBusiness(payload) {
+    const businessProfileId = resolveBusinessProfileId();
+
+    return requestWithAuth('/applies/offer', {
+        method: 'POST',
+        headers: {
+            'X-Business-Profile-Id': String(businessProfileId),
+        },
+        body: payload,
+    });
+}
+
+export async function offerToIndividualByBusinessAndMemberId(payload) {
+    const businessProfileId = resolveBusinessProfileId();
+
+    return requestWithAuth('/applies/offer/by-member', {
+        method: 'POST',
+        headers: {
+            'X-Business-Profile-Id': String(businessProfileId),
+        },
+        body: payload,
+    });
+}
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 function resolveMemberId(memberId) {

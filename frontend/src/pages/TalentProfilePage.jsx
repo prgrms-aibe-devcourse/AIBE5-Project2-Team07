@@ -3,6 +3,10 @@ import { useNavigate, useParams } from 'react-router-dom';
 import TopNavBar from '../components/TopNavBar';
 import AppFooter from '../components/AppFooter';
 import CommonButton from '../components/CommonButton';
+import { getStoredMember } from '../services/authApi';
+import { getMyBusinessRecruits } from '../services/accountApi';
+import { offerToIndividualByBusinessAndMemberId } from '../services/applyApi';
+import { addBusinessScrapMemberByMemberId, checkBusinessScrapMemberByMemberId, removeBusinessScrapMemberByMemberId } from '../services/scrapMemberApi';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
@@ -191,6 +195,7 @@ function mapResumeDetailToTalent(data) {
         })),
         preferredLocations: formatPreferredLocations(data?.preferredRegions),
         preferredJobs: formatPreferredJobs(data?.desiredBusinessTypes ?? data?.desiredTypes ?? []),
+        memberId: data?.memberId ?? null,
         reviews: {
             avgRating,
             totalCount: reviews.length,
@@ -199,6 +204,10 @@ function mapResumeDetailToTalent(data) {
             recent: mappedReviews.slice(0, 3),
         },
     };
+}
+
+function resolveIndividualProfileId(data) {
+    return data?.individualProfileId || data?.individualProfile?.id || null;
 }
 
 function StarRating({ rating, size = 'text-base' }) {
@@ -286,12 +295,38 @@ function ReviewCard({ review }) {
 export default function TalentProfilePage() {
     const navigate = useNavigate();
     const { resumeId } = useParams();
+    const storedMember = getStoredMember();
+    const isBusinessMember = storedMember?.memberType === 'BUSINESS';
 
     const [showContactModal, setShowContactModal] = useState(false);
     const [showAllReviewsModal, setShowAllReviewsModal] = useState(false);
+    const [showOfferModal, setShowOfferModal] = useState(false);
     const [talentData, setTalentData] = useState(initialTalentData);
+    const [targetIndividualProfileId, setTargetIndividualProfileId] = useState(null);
+
+    const [offerMessage, setOfferMessage] = useState('');
+    const [selectedRecruitId, setSelectedRecruitId] = useState('');
+    const [recruitOptions, setRecruitOptions] = useState([]);
+    const [loadingRecruits, setLoadingRecruits] = useState(false);
+    const [offerSubmitting, setOfferSubmitting] = useState(false);
+
+    const [scrapLoading, setScrapLoading] = useState(false);
+    const [isScrapped, setIsScrapped] = useState(false);
+
+    const [actionError, setActionError] = useState('');
+    const [actionMessage, setActionMessage] = useState('');
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
+
+    useEffect(() => {
+        if (!actionMessage) return undefined;
+
+        const timer = window.setTimeout(() => {
+            setActionMessage('');
+        }, 2000);
+
+        return () => window.clearTimeout(timer);
+    }, [actionMessage]);
 
     useEffect(() => {
         async function loadResumeDetail() {
@@ -313,6 +348,17 @@ export default function TalentProfilePage() {
                 }
 
                 setTalentData(mapResumeDetailToTalent(result));
+                setTargetIndividualProfileId(resolveIndividualProfileId(result));
+
+                // memberId 기반으로 스크랩 여부 초기화
+                if (isBusinessMember && result?.memberId) {
+                    try {
+                        const scrapped = await checkBusinessScrapMemberByMemberId(result.memberId);
+                        setIsScrapped(Boolean(scrapped));
+                    } catch {
+                        setIsScrapped(false);
+                    }
+                }
             } catch (e) {
                 console.error(e);
                 setError(e.message || '인재 프로필 정보를 불러오지 못했습니다.');
@@ -323,6 +369,127 @@ export default function TalentProfilePage() {
 
         loadResumeDetail();
     }, [resumeId]);
+
+    useEffect(() => {
+        let mounted = true;
+
+        const loadBusinessRecruits = async () => {
+            if (!isBusinessMember) {
+                setRecruitOptions([]);
+                setSelectedRecruitId('');
+                return;
+            }
+
+            try {
+                setLoadingRecruits(true);
+                const data = await getMyBusinessRecruits();
+                if (!mounted) return;
+
+                const items = Array.isArray(data) ? data : [];
+                setRecruitOptions(items);
+                if (items.length > 0) {
+                    setSelectedRecruitId(String(items[0]?.id || ''));
+                }
+            } catch {
+                if (!mounted) return;
+                setRecruitOptions([]);
+            } finally {
+                if (mounted) setLoadingRecruits(false);
+            }
+        };
+
+        loadBusinessRecruits();
+
+        return () => {
+            mounted = false;
+        };
+    }, [isBusinessMember]);
+
+    // 핸들러 함수들
+    const handleScrap = async () => {
+        if (!isBusinessMember) {
+            setShowContactModal(true);
+            return;
+        }
+        const memberIdForScrap = talentData?.memberId;
+        if (!memberIdForScrap) {
+            setActionError('이 인재의 회원 ID를 가져오지 못했습니다.');
+            return;
+        }
+        if (scrapLoading) return;
+
+        // 이미 스크랩된 경우 스크랩 해제
+        if (isScrapped) {
+            try {
+                setScrapLoading(true);
+                setActionError('');
+                setActionMessage('');
+                await removeBusinessScrapMemberByMemberId(memberIdForScrap);
+                setIsScrapped(false);
+                setActionMessage('스크랩이 해제되었습니다.');
+            } catch (e) {
+                setActionError(e?.message || '스크랩 해제에 실패했습니다.');
+            } finally {
+                setScrapLoading(false);
+            }
+            return;
+        }
+
+        // 스크랩 추가
+        try {
+            setScrapLoading(true);
+            setActionError('');
+            setActionMessage('');
+            await addBusinessScrapMemberByMemberId(memberIdForScrap);
+            setIsScrapped(true);
+            setActionMessage('스크랩되었습니다!');
+        } catch (e) {
+            setActionError(e?.message || '스크랩에 실패했습니다.');
+        } finally {
+            setScrapLoading(false);
+        }
+    };
+
+    const handleOpenOffer = () => {
+        if (!isBusinessMember) {
+            setShowContactModal(true);
+            return;
+        }
+        setActionError('');
+        setActionMessage('');
+        setShowOfferModal(true);
+    };
+
+    const handleSubmitOffer = async () => {
+        if (!isBusinessMember) return;
+        if (!selectedRecruitId) {
+            setActionError('제의할 공고를 선택해주세요.');
+            return;
+        }
+        const memberIdForOffer = talentData?.memberId;
+        if (!memberIdForOffer) {
+            setActionError('이 인재의 회원 ID를 가져오지 못했습니다.');
+            return;
+        }
+        if (offerSubmitting) return;
+
+        try {
+            setOfferSubmitting(true);
+            setActionError('');
+            await offerToIndividualByBusinessAndMemberId({
+                recruitId: Number(selectedRecruitId),
+                memberId: Number(memberIdForOffer),
+                message: offerMessage.trim(),
+            });
+            setShowOfferModal(false);
+            setOfferMessage('');
+            setActionMessage('제의가 성공적으로 전송되었습니다!');
+        } catch (e) {
+            setActionError(e?.message || '제의 전송에 실패했습니다.');
+        } finally {
+            setOfferSubmitting(false);
+        }
+    };
 
     const d = talentData;
 
@@ -579,29 +746,37 @@ export default function TalentProfilePage() {
                 </div>
             </main>
 
+            {(actionMessage || actionError) && (
+                <div className={`fixed bottom-24 left-1/2 -translate-x-1/2 z-[200] px-6 py-3 rounded-2xl shadow-lg text-sm font-bold transition-all ${
+                    actionError ? 'bg-red-600 text-white' : 'bg-green-600 text-white'
+                }`}>
+                    {actionError || actionMessage}
+                </div>
+            )}
+
             <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-xl border-t border-outline px-6 py-4 z-50">
                 <div className="max-w-4xl mx-auto flex items-center gap-4">
-                    <button className="flex flex-col items-center gap-1 text-on-surface-variant hover:text-primary transition-colors shrink-0">
-                        <span className="material-symbols-outlined text-2xl">bookmark</span>
-                        <span className="text-[10px] font-bold">스크랩</span>
-                    </button>
-                    <button className="flex flex-col items-center gap-1 text-on-surface-variant hover:text-primary transition-colors shrink-0">
-                        <span className="material-symbols-outlined text-2xl">share</span>
-                        <span className="text-[10px] font-bold">공유</span>
+                    <button
+                        onClick={handleScrap}
+                        disabled={scrapLoading}
+                        className={`flex flex-col items-center gap-1 transition-colors shrink-0 disabled:opacity-60 ${
+                            isScrapped ? 'text-primary' : 'text-on-surface-variant hover:text-primary'
+                        }`}
+                        title={isScrapped ? '스크랩됨' : '스크랩하기'}
+                    >
+                        <span
+                            className="material-symbols-outlined text-2xl"
+                            style={isScrapped ? { fontVariationSettings: '"FILL" 1' } : {}}
+                        >
+                            {scrapLoading ? 'hourglass_top' : 'bookmark'}
+                        </span>
+                        <span className="text-[10px] font-bold">{isScrapped ? '스크랩됨' : '스크랩'}</span>
                     </button>
                     <div className="h-10 w-px bg-outline/30 mx-2 hidden md:block"></div>
                     <div className="flex-1 flex gap-3">
                         <CommonButton
-                            variant="subtle"
-                            size="full"
                             className="flex-1 rounded-xl"
-                            onClick={() => setShowContactModal(true)}
-                        >
-                            메시지 보내기
-                        </CommonButton>
-                        <CommonButton
-                            className="flex-[2] rounded-xl"
-                            onClick={() => setShowContactModal(true)}
+                            onClick={handleOpenOffer}
                         >
                             제의하기
                         </CommonButton>
@@ -654,6 +829,7 @@ export default function TalentProfilePage() {
 
             <AppFooter />
 
+            {/* 비사업자 안내 모달 */}
             <div className={`${showContactModal ? '' : 'hidden'} fixed inset-0 z-[100] flex items-center justify-center p-6`}>
                 <div
                     className="absolute inset-0 bg-on-surface/40 backdrop-blur-sm"
@@ -670,7 +846,7 @@ export default function TalentProfilePage() {
                     </div>
                     <h5 className="text-2xl font-bold mb-3">기업회원 전용 메뉴입니다</h5>
                     <p className="text-on-surface-variant mb-8 leading-relaxed font-medium">
-                        인재 제의 및 메시지 발송은
+                        인재 제의 및 스크랩은
                         <br />
                         기업회원 로그인 후 이용하실 수 있습니다.
                     </p>
@@ -688,6 +864,76 @@ export default function TalentProfilePage() {
                     >
                         닫기
                     </button>
+                </div>
+            </div>
+
+            {/* 제의하기 모달 */}
+            <div className={`${showOfferModal ? '' : 'hidden'} fixed inset-0 z-[100] flex items-center justify-center p-6`}>
+                <div
+                    className="absolute inset-0 bg-on-surface/40 backdrop-blur-sm"
+                    onClick={() => setShowOfferModal(false)}
+                ></div>
+                <div className="relative bg-white w-full max-w-lg rounded-2xl shadow-2xl overflow-hidden">
+                    <div className="px-6 py-5 border-b border-outline flex items-center justify-between">
+                        <h3 className="text-xl font-extrabold text-on-surface">제의하기</h3>
+                        <button
+                            onClick={() => setShowOfferModal(false)}
+                            className="w-9 h-9 rounded-lg bg-surface-container-low hover:bg-surface-variant transition-colors flex items-center justify-center"
+                        >
+                            <span className="material-symbols-outlined text-on-surface-variant">close</span>
+                        </button>
+                    </div>
+                    <div className="p-6 space-y-4">
+                        <div>
+                            <label className="block text-xs font-bold text-on-surface-variant uppercase mb-2">
+                                제의할 공고 선택 <span className="text-red-500">*</span>
+                            </label>
+                            {loadingRecruits ? (
+                                <p className="text-sm text-on-surface-variant">공고를 불러오는 중...</p>
+                            ) : recruitOptions.length === 0 ? (
+                                <p className="text-sm text-red-500">등록된 공고가 없습니다. 먼저 공고를 등록해주세요.</p>
+                            ) : (
+                                <select
+                                    value={selectedRecruitId}
+                                    onChange={(e) => setSelectedRecruitId(e.target.value)}
+                                    className="w-full rounded-xl border border-outline px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20"
+                                >
+                                    <option value="">공고 선택</option>
+                                    {recruitOptions.map((r) => (
+                                        <option key={r.id} value={String(r.id)}>
+                                            {r.title || `공고 #${r.id}`}
+                                        </option>
+                                    ))}
+                                </select>
+                            )}
+                        </div>
+                        <div>
+                            <label className="block text-xs font-bold text-on-surface-variant uppercase mb-2">
+                                메시지 (선택)
+                            </label>
+                            <textarea
+                                value={offerMessage}
+                                onChange={(e) => setOfferMessage(e.target.value)}
+                                placeholder="제의 메시지를 입력하세요..."
+                                rows={4}
+                                className="w-full rounded-xl border border-outline px-4 py-3 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-primary/20"
+                            />
+                        </div>
+                        {actionError && (
+                            <p className="text-xs text-red-600 font-medium">{actionError}</p>
+                        )}
+                    </div>
+                    <div className="px-6 py-4 border-t border-outline bg-white flex justify-end gap-3">
+                        <CommonButton variant="subtle" onClick={() => setShowOfferModal(false)}>
+                            취소
+                        </CommonButton>
+                        <CommonButton
+                            onClick={handleSubmitOffer}
+                            disabled={offerSubmitting || !selectedRecruitId}
+                        >
+                            {offerSubmitting ? '전송 중...' : '제의 전송'}
+                        </CommonButton>
+                    </div>
                 </div>
             </div>
         </>

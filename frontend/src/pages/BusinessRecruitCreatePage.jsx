@@ -7,8 +7,11 @@ import AddressSearchField from '../components/AddressSearchField';
 import BusinessSidebar from '../components/business-mypage/BusinessSidebar';
 import {
   createMyBusinessRecruit,
+  getMyBusinessAccountMe,
   getMyBusinessAccountSummary,
 } from '../services/accountApi';
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 const WORK_PERIOD_OPTIONS = [
   { value: 'OneDay', label: '하루' },
@@ -85,12 +88,137 @@ function isUrgentDeadline(deadline) {
   return diff >= 0 && diff <= 3;
 }
 
+function normalizeRegionText(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim();
+}
+
+function normalizeSidoName(value) {
+  const normalized = normalizeRegionText(value);
+
+  const aliasMap = {
+    '서울': '서울특별시',
+    '서울시': '서울특별시',
+    '부산': '부산광역시',
+    '부산시': '부산광역시',
+    '대구': '대구광역시',
+    '대구시': '대구광역시',
+    '인천': '인천광역시',
+    '인천시': '인천광역시',
+    '광주': '광주광역시',
+    '광주시': '광주광역시',
+    '대전': '대전광역시',
+    '대전시': '대전광역시',
+    '울산': '울산광역시',
+    '울산시': '울산광역시',
+    '세종': '세종특별자치시',
+    '세종시': '세종특별자치시',
+    '경기': '경기도',
+    '강원': '강원특별자치도',
+    '강원도': '강원특별자치도',
+    '충북': '충청북도',
+    '충남': '충청남도',
+    '전북': '전북특별자치도',
+    '전라북도': '전북특별자치도',
+    '전남': '전라남도',
+    '경북': '경상북도',
+    '경남': '경상남도',
+    '제주': '제주특별자치도',
+    '제주도': '제주특별자치도',
+  };
+
+  return aliasMap[normalized] || normalized;
+}
+
+function getSidoAliases(value) {
+  const canonical = normalizeSidoName(value);
+  const shortAliasMap = {
+    '서울특별시': '서울',
+    '부산광역시': '부산',
+    '대구광역시': '대구',
+    '인천광역시': '인천',
+    '광주광역시': '광주',
+    '대전광역시': '대전',
+    '울산광역시': '울산',
+    '세종특별자치시': '세종',
+    '경기도': '경기',
+    '강원특별자치도': '강원',
+    '충청북도': '충북',
+    '충청남도': '충남',
+    '전북특별자치도': '전북',
+    '전라남도': '전남',
+    '경상북도': '경북',
+    '경상남도': '경남',
+    '제주특별자치도': '제주',
+  };
+
+  return [canonical, shortAliasMap[canonical]].filter(Boolean);
+}
+
+function extractAddressTokens(address = '') {
+  const normalizedAddress = normalizeRegionText(address)
+    .replace(/\([^)]*\)/g, '')
+    .trim();
+
+  if (!normalizedAddress) {
+    return { normalizedAddress: '', parsedSido: '', parsedSigungu: '' };
+  }
+
+  const tokens = normalizedAddress.split(' ').filter(Boolean);
+  const parsedSido = tokens[0] || '';
+
+  let parsedSigungu = tokens[1] || '';
+  if (tokens.length >= 3 && /(시|군)$/u.test(tokens[1]) && /(구)$/u.test(tokens[2])) {
+    parsedSigungu = `${tokens[1]} ${tokens[2]}`;
+  }
+
+  return { normalizedAddress, parsedSido, parsedSigungu };
+}
+
+function findRegionId(regionOptions, sido, sigungu, address = '') {
+  if (!Array.isArray(regionOptions) || regionOptions.length === 0) return null;
+  const { normalizedAddress, parsedSido, parsedSigungu } = extractAddressTokens(address);
+  const normalizedSido = normalizeSidoName(sido || parsedSido);
+  const normalizedSigungu = normalizeRegionText(sigungu || parsedSigungu);
+  if (!normalizedSido) return null;
+
+  const sameSidoRegions = regionOptions.filter((region) => normalizeSidoName(region?.sido) === normalizedSido);
+  if (sameSidoRegions.length === 0) return null;
+
+  const exactMatched = normalizedSigungu
+    ? sameSidoRegions.find((region) => normalizeRegionText(region?.sigungu) === normalizedSigungu)
+    : null;
+  if (exactMatched?.id != null) return exactMatched.id;
+
+  if (normalizedAddress) {
+    const prefixMatched = [...sameSidoRegions]
+      .sort((a, b) => normalizeRegionText(b?.sigungu).length - normalizeRegionText(a?.sigungu).length)
+      .find((region) => getSidoAliases(region?.sido).some((sidoAlias) => {
+        const regionPrefix = `${normalizeRegionText(sidoAlias)} ${normalizeRegionText(region?.sigungu)}`.trim();
+        return normalizedAddress.startsWith(regionPrefix);
+      }));
+
+    if (prefixMatched?.id != null) return prefixMatched.id;
+  }
+
+  if (normalizedSigungu) {
+    const partialMatched = sameSidoRegions.find((region) => {
+      const regionSigungu = normalizeRegionText(region?.sigungu);
+      return regionSigungu.includes(normalizedSigungu) || normalizedSigungu.includes(regionSigungu);
+    });
+
+    if (partialMatched?.id != null) return partialMatched.id;
+  }
+
+  return null;
+}
+
 function BusinessRecruitCreatePage() {
   const navigate = useNavigate();
 
   const [companySummary, setCompanySummary] = useState(null);
   const [loadingSubmit, setLoadingSubmit] = useState(false);
   const [error, setError] = useState('');
+  const [regionOptions, setRegionOptions] = useState([]);
 
   const [form, setForm] = useState({
     urgent: false,
@@ -105,6 +233,9 @@ function BusinessRecruitCreatePage() {
     workplacePostalCode: '',
     workplaceAddress: '',
     workplaceAddressDetail: '',
+    workplaceSido: '',
+    workplaceSigungu: '',
+    regionId: null,
     deadline: '',
     applicationMethods: ['ONLINE'],
     applyContact: '',
@@ -113,10 +244,34 @@ function BusinessRecruitCreatePage() {
 
   useEffect(() => {
     let mounted = true;
+
+    const resolveBrandLogoUrl = async (brandId) => {
+      if (brandId == null) return '';
+      try {
+        const response = await fetch(`/api/brand/${encodeURIComponent(brandId)}/summary`);
+        if (!response.ok) return '';
+        const result = await response.json();
+        return result?.logoImg || '';
+      } catch {
+        return '';
+      }
+    };
+
     const loadSummary = async () => {
       try {
-        const data = await getMyBusinessAccountSummary();
-        if (mounted) setCompanySummary(data);
+        const [summary, me] = await Promise.all([
+          getMyBusinessAccountSummary(),
+          getMyBusinessAccountMe(),
+        ]);
+        const brandLogoUrl = await resolveBrandLogoUrl(me?.brandId);
+        if (mounted) {
+          setCompanySummary({
+            ...summary,
+            brandId: me?.brandId ?? null,
+            brandLogoUrl,
+            companyImageUrl: me?.companyImageUrl || summary?.companyImageUrl || '',
+          });
+        }
       } catch {
         if (mounted) setCompanySummary(null);
       }
@@ -126,6 +281,49 @@ function BusinessRecruitCreatePage() {
       mounted = false;
     };
   }, []);
+
+  useEffect(() => {
+    let mounted = true;
+
+    const loadRegions = async () => {
+      try {
+        const response = await fetch(`${API_BASE}/api/regions`, { method: 'GET' });
+        if (!response.ok) {
+          throw new Error(`지역 목록 조회 실패 (${response.status})`);
+        }
+
+        const result = await response.json();
+        if (!mounted) return;
+        setRegionOptions(Array.isArray(result) ? result : []);
+      } catch (regionError) {
+        if (!mounted) return;
+        setRegionOptions([]);
+        console.error(regionError);
+      }
+    };
+
+    loadRegions();
+
+    return () => {
+      mounted = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!form.workplaceSido || !form.workplaceSigungu) return;
+
+    const nextRegionId = findRegionId(
+      regionOptions,
+      form.workplaceSido,
+      form.workplaceSigungu,
+      form.workplaceAddress,
+    );
+    setForm((prev) => (
+      prev.regionId === nextRegionId
+        ? prev
+        : { ...prev, regionId: nextRegionId }
+    ));
+  }, [form.workplaceSido, form.workplaceSigungu, form.workplaceAddress, regionOptions]);
 
   const urgentDeadlineValid = useMemo(() => isUrgentDeadline(form.deadline), [form.deadline]);
 
@@ -173,12 +371,16 @@ function BusinessRecruitCreatePage() {
     });
   };
 
-  const handleWorkplaceAddressSelect = ({ zonecode, address }) => {
+  const handleWorkplaceAddressSelect = ({ zonecode, address, sido, sigungu }) => {
+    const nextRegionId = findRegionId(regionOptions, sido, sigungu, address);
     setForm((prev) => ({
       ...prev,
       workplacePostalCode: zonecode,
       workplaceAddress: address,
       workplaceAddressDetail: '',
+      workplaceSido: sido || '',
+      workplaceSigungu: sigungu || '',
+      regionId: nextRegionId,
     }));
   };
 
@@ -206,6 +408,21 @@ function BusinessRecruitCreatePage() {
       setError('근무요일을 1개 이상 선택해주세요.');
       return;
     }
+    if (!form.workplaceAddress.trim()) {
+      setError('근무지 주소를 선택해주세요.');
+      return;
+    }
+    const resolvedRegionId = form.regionId || findRegionId(
+      regionOptions,
+      form.workplaceSido,
+      form.workplaceSigungu,
+      form.workplaceAddress,
+    );
+
+    if (!resolvedRegionId) {
+      setError('근무지 지역 정보를 확인하지 못했습니다. 주소를 다시 선택해주세요.');
+      return;
+    }
 
     const methodText = form.applicationMethods
       .map((item) => (item === 'ONLINE' ? '온라인 지원' : '이메일 지원'))
@@ -220,11 +437,12 @@ function BusinessRecruitCreatePage() {
     const payload = {
       title: form.title.trim(),
       isUrgent: Boolean(form.urgent),
+      urgent: Boolean(form.urgent),
       deadline: form.deadline,
       salary: Number(form.payAmount),
       salaryType: form.payType,
       headCount: Number(form.recruitCount) || 1,
-      regionId: null,
+      regionId: Number(resolvedRegionId),
       detailAddress: [form.workplaceAddress, form.workplaceAddressDetail].filter(Boolean).join(' ').trim() || null,
       workPeriod: [form.workPeriod],
       workDays: form.workDays,
@@ -276,28 +494,6 @@ function BusinessRecruitCreatePage() {
                 공고 관리로 돌아가기
               </button>
             </header>
-
-            <div className={`mb-6 rounded-2xl border p-5 flex flex-col sm:flex-row items-start sm:items-center gap-4 ${form.urgent ? 'bg-red-50 border-red-200' : 'bg-white border-outline'}`}>
-              <div className="flex-1">
-                <p className="font-bold text-sm">긴급 공고</p>
-                <p className="text-xs text-on-surface-variant mt-0.5">
-                  긴급 공고는 마감일이 오늘 기준 3일 이내일 때만 체크할 수 있습니다.
-                </p>
-              </div>
-              <button
-                type="button"
-                onClick={toggleUrgent}
-                className={`px-4 py-2 rounded-lg text-xs font-bold border ${form.urgent ? 'bg-red-500 text-white border-red-500' : 'bg-white text-on-surface-variant border-outline'}`}
-              >
-                {form.urgent ? '긴급 공고 사용 중' : '긴급 공고 사용'}
-              </button>
-            </div>
-
-            {error && (
-              <div className="mb-4 bg-red-50 border border-red-200 rounded-2xl p-4 text-sm font-medium text-red-600">
-                {error}
-              </div>
-            )}
 
             <form onSubmit={handleSubmit} className="space-y-6">
               <FormSection title="모집 내용">
@@ -358,7 +554,7 @@ function BusinessRecruitCreatePage() {
 
               <FormSection title="근무지/접수 정보">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div>
+                  <div className="md:col-span-2 grid grid-cols-1 md:grid-cols-[minmax(0,1fr)_220px] gap-4 items-end">
                     <label className="block">
                       <span className="text-xs font-bold text-on-surface-variant mb-2 flex items-center gap-1">마감일 <Required /></span>
                       <input
@@ -369,6 +565,23 @@ function BusinessRecruitCreatePage() {
                         className="w-full rounded-xl border border-outline bg-white px-4 py-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none"
                       />
                     </label>
+                    <div className={`rounded-2xl border p-4 ${form.urgent ? 'bg-red-50 border-red-200' : 'bg-white border-outline'}`}>
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="font-bold text-sm">긴급 공고</p>
+                          <p className="text-xs text-on-surface-variant mt-0.5 break-keep">
+                            마감일이 오늘 기준 3일 이내일 때만 설정할 수 있습니다.
+                          </p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={toggleUrgent}
+                          className={`shrink-0 px-4 py-2 rounded-lg text-xs font-bold border ${form.urgent ? 'bg-red-500 text-white border-red-500' : 'bg-white text-on-surface-variant border-outline'}`}
+                        >
+                          {form.urgent ? '사용 중' : '사용'}
+                        </button>
+                      </div>
+                    </div>
                   </div>
 
                   <div className="md:col-span-2">
@@ -419,6 +632,11 @@ function BusinessRecruitCreatePage() {
               </FormSection>
 
               <div className="flex flex-col sm:flex-row gap-3 justify-end pb-6">
+                {error && (
+                  <div className="w-full sm:mr-auto sm:max-w-xl bg-red-50 border border-red-200 rounded-2xl p-4 text-sm font-medium text-red-600">
+                    {error}
+                  </div>
+                )}
                 <CommonButton type="button" variant="outline" size="sm" onClick={() => navigate('/dashboard?tab=recruits')}>
                   취소
                 </CommonButton>

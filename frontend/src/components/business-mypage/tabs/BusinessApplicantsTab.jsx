@@ -52,6 +52,7 @@ export default function BusinessApplicantsTab() {
     const [recruitOptions, setRecruitOptions] = useState([]);
 
     const [rows, setRows] = useState([]);
+    const [selectedApplyRow, setSelectedApplyRow] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [message, setMessage] = useState('');
@@ -132,8 +133,13 @@ export default function BusinessApplicantsTab() {
         return `선택 공고: ${selectedRecruit?.title || `#${selectedRecruitId}`}`;
     }, [recruitOptions, selectedRecruitId]);
 
-    const openApplicantDetail = (resumeId, applyId, applyStatus) => {
+    const openApplicantDetail = (item) => {
+        const resumeId = item?.resumeId;
+        const applyId = item?.id;
+        const applyStatus = item?.status;
         if (!resumeId) return;
+
+        setSelectedApplyRow(item);
 
         const nextParams = new URLSearchParams(searchParams);
         nextParams.set('tab', 'applicants');
@@ -146,6 +152,7 @@ export default function BusinessApplicantsTab() {
     };
 
     const closeApplicantDetail = () => {
+        setSelectedApplyRow(null);
         const nextParams = new URLSearchParams(searchParams);
         nextParams.set('tab', 'applicants');
         nextParams.delete('resumeId');
@@ -213,11 +220,15 @@ export default function BusinessApplicantsTab() {
     };
 
     if (selectedResumeId) {
+        const selectedFromRows = rows.find((item) => String(item?.id) === String(selectedApplyId));
+        const selectedRow = selectedFromRows || selectedApplyRow;
+
         return (
             <TalentProfilePageCopied
                 resumeId={selectedResumeId}
                 applyId={selectedApplyId}
                 applyStatus={selectedApplyStatus}
+                applyMessage={selectedRow?.message || ''}
                 canDecide={selectedApplyType !== 'OFFERS'}
                 onBack={closeApplicantDetail}
                 onDecisionComplete={handleDecisionComplete}
@@ -295,7 +306,7 @@ export default function BusinessApplicantsTab() {
 
                 {!loading && !error && rows.length > 0 && (
                     <div className="overflow-x-auto">
-                        <table className="w-full min-w-[980px]">
+                        <table className="w-full min-w-[1120px]">
                             <thead className="bg-[#F8F9FA]">
                             <tr className="text-left text-xs font-bold text-on-surface-variant">
                                 <th className="px-5 py-3">지원자명</th>
@@ -303,6 +314,7 @@ export default function BusinessApplicantsTab() {
                                 <th className="px-5 py-3">구분</th>
                                 <th className="px-5 py-3">상태</th>
                                 <th className="px-5 py-3">일시</th>
+                                <th className="px-5 py-3">추가메시지</th>
                                 <th className="px-5 py-3">처리</th>
                             </tr>
                             </thead>
@@ -317,7 +329,7 @@ export default function BusinessApplicantsTab() {
                                     <tr
                                         key={item?.id || `${item?.individualName}-${item?.createdAt || ''}`}
                                         className={`border-t border-outline text-sm text-on-surface ${rowResumeId ? 'cursor-pointer hover:bg-primary-soft/40' : ''}`}
-                                        onClick={() => openApplicantDetail(rowResumeId, item?.id, item?.status)}
+                                        onClick={() => openApplicantDetail(item)}
                                     >
                                         <td className="px-5 py-4 font-semibold">{item?.individualName || '-'}</td>
                                         <td className="px-5 py-4 text-on-surface-variant">{item?.recruitTitle || '-'}</td>
@@ -328,6 +340,11 @@ export default function BusinessApplicantsTab() {
                                             </span>
                                         </td>
                                         <td className="px-5 py-4 text-on-surface-variant">{formatDateTime(item?.createdAt)}</td>
+                                        <td className="px-5 py-4 text-on-surface-variant max-w-[240px]">
+                                            <p className="truncate" title={item?.message || ''}>
+                                                {item?.message || '-'}
+                                            </p>
+                                        </td>
                                         <td className="px-5 py-4" onClick={(event) => event.stopPropagation()}>
                                             {canDecide ? (
                                                 <div className="flex items-center gap-2">
