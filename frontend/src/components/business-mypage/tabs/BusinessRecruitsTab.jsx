@@ -251,14 +251,14 @@ export default function BusinessRecruitsTab() {
 
     return (
         <div className="space-y-8">
-            <section className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-                <div className="space-y-1">
-                    <h1 className="text-3xl font-black tracking-tight text-on-surface">공고 관리</h1>
-                    <p className="text-sm text-on-surface-variant">
+            <section className="mb-8 space-y-4">
+                <div>
+                    <h1 className="text-3xl font-black tracking-tight text-[#1F1D1D]">공고 관리</h1>
+                    <p className="text-[#6B6766] mt-1 text-sm">
                         작성하신 공고 현황을 확인하고 제의/지원자를 관리하세요.
                     </p>
                 </div>
-                <div className="relative w-full md:w-64">
+                <div className="relative w-full lg:w-96">
           <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg">
             search
           </span>

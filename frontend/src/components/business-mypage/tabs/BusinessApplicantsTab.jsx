@@ -238,10 +238,10 @@ export default function BusinessApplicantsTab() {
 
     return (
         <>
-            <header className="mb-6 space-y-4">
+            <header className="mb-8 space-y-4">
                 <div>
-                    <h2 className="text-2xl font-black text-on-surface">제의/지원 현황</h2>
-                    <p className="text-sm text-on-surface-variant mt-1">{headerDescription}</p>
+                    <h1 className="text-3xl font-black tracking-tight text-[#1F1D1D]">제의/지원 현황</h1>
+                    <p className="text-[#6B6766] mt-1 text-sm">{headerDescription}</p>
                 </div>
 
                 <div className="flex flex-col lg:flex-row lg:items-center gap-3">

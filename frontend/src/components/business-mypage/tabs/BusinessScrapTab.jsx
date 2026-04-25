@@ -1,9 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { BUSINESS_TYPE_LABELS } from '../../../constants/businessTypeLabels';
 import {
     getBusinessScrapMemberCount,
     getBusinessScrapMembers,
-    removeBusinessScrapMember,
     removeBusinessScrapMemberByMemberId,
 } from '../../../services/scrapMemberApi';
 
@@ -13,6 +13,10 @@ function formatPreferredRegions(regions) {
         .map((region) => `${region?.sido || ''} ${region?.sigungu || ''}`.trim())
         .filter(Boolean)
         .join(' · ') || '-';
+}
+
+function translateBusinessType(type) {
+    return BUSINESS_TYPE_LABELS[type] || type;
 }
 
 export default function BusinessScrapTab() {
@@ -89,11 +93,11 @@ export default function BusinessScrapTab() {
 
     return (
         <>
-            <header className="mb-8">
+            <header className="mb-8 space-y-4">
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-black mb-1">스크랩 회원</h1>
-                        <p className="text-sm text-on-surface-variant">
+                        <h1 className="text-3xl font-black tracking-tight text-[#1F1D1D]">스크랩 회원</h1>
+                        <p className="text-[#6B6766] mt-1 text-sm">
                             관심 있는 구직자를 저장하고 필요할 때 바로 연락하세요.
                         </p>
                     </div>
@@ -167,7 +171,7 @@ export default function BusinessScrapTab() {
                                                 key={tag}
                                                 className="text-[11px] font-bold bg-primary-soft text-primary px-2.5 py-0.5 rounded-full"
                                             >
-                         {tag}
+                         {translateBusinessType(tag)}
                        </span>
                                         ))}
                                     </div>
