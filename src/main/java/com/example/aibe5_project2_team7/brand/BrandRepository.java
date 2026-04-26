@@ -24,10 +24,10 @@ public interface BrandRepository extends JpaRepository<Brand, Long> {
             ") from Brand b where b.businessType = :businessType order by b.name asc")
     List<BrandRecruitCountDto> findRecruitCountsByBusinessType(@Param("businessType") BusinessTypeName businessType);
 
-    @Query(value = "SELECT b.id AS brand_id, b.name AS brand_name, COUNT(r.id) AS urgent_count " +
+    @Query(value = "SELECT b.id AS brand_id, b.name AS brand_name, COUNT(r.id) AS urgent_count, b.banner_img AS banner_img, b.logo_img AS logo_img " +
             "FROM recruit r JOIN Brand b ON r.brand_id = b.id " +
             "WHERE r.is_urgent = 1 AND r.recruit_status = 'OPEN' " +
-            "GROUP BY b.id, b.name " +
+            "GROUP BY b.id, b.name, b.banner_img, b.logo_img " +
             "ORDER BY RAND() " +
             "LIMIT 3", nativeQuery = true)
     List<BrandUrgentProjection> findRandom3UrgentBrandsNative();
