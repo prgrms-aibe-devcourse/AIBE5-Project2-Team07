@@ -21,7 +21,7 @@ public class BusinessProfile {
     private LocalDate foundedDate;
     @Column(name = "company_image_url")
     private String companyImageUrl;
-    @OneToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "brand_id")
     private Brand brandId; // null 가능
     @Column(name = "business_number", nullable = false)
