@@ -1,56 +1,123 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { BUSINESS_TYPE_LABELS } from '../../../constants/businessTypeLabels';
+import {
+    getBusinessScrapMemberCount,
+    getBusinessScrapMembers,
+    removeBusinessScrapMemberByMemberId,
+} from '../../../services/scrapMemberApi';
 
-const SCRAP_MEMBERS = [
-    {
-        id: 1,
-        name: '김민준',
-        role: '바리스타 · 홀서빙',
-        location: '서울 강남구',
-        exp: '경력 3년',
-        rating: 4.8,
-        reviewCount: 24,
-        tags: ['바리스타', '홀서빙', '단기 가능'],
-        available: true,
-        img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuAXkMJjGuJdAOyOjPMscb75mMfIZvaAoffyOuEVjhe-ckVK2M-Oj89UgT6e_4MIu6hwvDFCwovpMbkrgwHeWwbcnyPd0pcG1uqvPjrQvGTpH3GxjvUtsSuHZWxVZcmONgtgM-3Xy2PhPsEunvoVRyD9PP2JWx_95Ql1Jda5_vrl1k2-E5Ri8JE1GM5mVlYzcuBe8ANJYT-LTrKvPLhwU2WAZOhqLpJbXCMSyxx3YLypOL2TRLMUPAYfWMQqqi_5DmjPuep4ezqs5ag',
-    },
-    {
-        id: 2,
-        name: '이지은',
-        role: '헬스 트레이너',
-        location: '서울 강남구',
-        exp: '경력 5년',
-        rating: 4.9,
-        reviewCount: 31,
-        tags: ['트레이너', '오전 가능', '장기 선호'],
-        available: true,
-        img: 'https://lh3.googleusercontent.com/aida-public/AB6AXuD-nD7znoOOeOaREqQ8C9uuJ7yJekJ63cx7zvA_DqUCD1j9scbLzNU8MmXlikcPtbRwiXdd_1rg4E776ppHnXroW5oTUk88ixYr564gzTziqjGhUTL_tBbfInBZoq_oaSHvaZ0i9Ae2pZpvsU_PY1wy6UWLxYRaxdVPCoQmSRgFAu3hz9RZgxJISGk2V_bFUbkDbcxOVS54ehfjQP4Z6kXrt7wE9hBzx-1bLeCgj96wKSphh6OrIFm4XGi3EM4ipM2LQ2FcWYQZogI',
-    },
-];
+function formatPreferredRegions(regions) {
+    if (!Array.isArray(regions) || regions.length === 0) return '-';
+    return regions
+        .map((region) => `${region?.sido || ''} ${region?.sigungu || ''}`.trim())
+        .filter(Boolean)
+        .join(' · ') || '-';
+}
+
+function translateBusinessType(type) {
+    return BUSINESS_TYPE_LABELS[type] || type;
+}
 
 export default function BusinessScrapTab() {
-    const [scraps, setScraps] = React.useState(SCRAP_MEMBERS);
+    const navigate = useNavigate();
+    const [scraps, setScraps] = useState([]);
+    const [totalCount, setTotalCount] = useState(0);
+    const [page, setPage] = useState(0);
+    const [totalPages, setTotalPages] = useState(1);
+    const [loading, setLoading] = useState(false);
+    const [error, setError] = useState('');
+    const [actionLoadingId, setActionLoadingId] = useState(null);
 
-    const removeScrap = (id) => {
-        setScraps((prev) => prev.filter((m) => m.id !== id));
+    useEffect(() => {
+        let mounted = true;
+
+        const loadScraps = async () => {
+            try {
+                setLoading(true);
+                setError('');
+
+                const [pageResult, countResult] = await Promise.all([
+                    getBusinessScrapMembers({ page }),
+                    getBusinessScrapMemberCount(),
+                ]);
+
+                if (!mounted) return;
+
+                setScraps(Array.isArray(pageResult?.content) ? pageResult.content : []);
+                setTotalPages(Math.max(Number(pageResult?.totalPages) || 1, 1));
+                setTotalCount(Number(countResult) || 0);
+            } catch (fetchError) {
+                if (!mounted) return;
+                setScraps([]);
+                setError(fetchError?.message || '스크랩 회원 목록을 불러오지 못했습니다.');
+            } finally {
+                if (mounted) setLoading(false);
+            }
+        };
+
+        loadScraps();
+        return () => {
+            mounted = false;
+        };
+    }, [page]);
+
+    const removeScrap = async (memberId) => {
+        if (!memberId) {
+            window.alert('회원 ID를 찾을 수 없습니다.');
+            return;
+        }
+
+
+        try {
+            setActionLoadingId(String(memberId));
+            await removeBusinessScrapMemberByMemberId(memberId);
+            setScraps((prev) => prev.filter((item) => String(item?.memberId) !== String(memberId)));
+            setTotalCount((prev) => Math.max(prev - 1, 0));
+        } catch (actionError) {
+            window.alert(actionError?.message || '스크랩 해제에 실패했습니다.');
+        } finally {
+            setActionLoadingId(null);
+        }
+    };
+
+    const handleOpenProfile = (member) => {
+        // 이력서가 공개 상태인지 확인 (isActive가 true면 공개, false면 비공개)
+        if (member?.isActive === false) {
+            window.alert('이 회원은 이력서 노출을 허용하지 않습니다.\n프로필 정보를 확인할 수 없습니다.');
+            return;
+        }
+        // 공개 상태이면 인재 상세 페이지로 이동
+        navigate(`/talent-profile/${member?.resumeId}`);
     };
 
     return (
         <>
-            <header className="mb-8">
+            <header className="mb-8 space-y-4">
                 <div className="flex items-center justify-between">
                     <div>
-                        <h1 className="text-2xl font-black mb-1">스크랩 회원</h1>
-                        <p className="text-sm text-on-surface-variant">
+                        <h1 className="text-3xl font-black tracking-tight text-[#1F1D1D]">스크랩 회원</h1>
+                        <p className="text-[#6B6766] mt-1 text-sm">
                             관심 있는 구직자를 저장하고 필요할 때 바로 연락하세요.
                         </p>
                     </div>
                     <span className="bg-primary-soft text-primary text-sm font-bold px-4 py-2 rounded-xl border border-primary/10">
-            총 {scraps.length}명
+            총 {totalCount}명
           </span>
                 </div>
             </header>
 
-            {scraps.length === 0 ? (
+            {error && (
+                <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-sm font-medium text-red-600 mb-4">
+                    {error}
+                </div>
+            )}
+
+            {loading ? (
+                <div className="bg-white border border-outline rounded-2xl p-16 text-center text-on-surface-variant">
+                    스크랩 회원을 불러오는 중입니다.
+                </div>
+            ) : scraps.length === 0 ? (
                 <div className="bg-white border border-outline rounded-2xl p-16 flex flex-col items-center justify-center text-center">
                     <div className="w-16 h-16 bg-primary-soft rounded-2xl flex items-center justify-center mb-4">
                         <span className="material-symbols-outlined text-3xl text-primary">bookmark</span>
@@ -62,108 +129,111 @@ export default function BusinessScrapTab() {
                 </div>
             ) : (
                 <div className="space-y-4">
-                    {scraps.map((member) => (
+                    {scraps.map((member) => {
+                        return (
                         <div
-                            key={member.id}
-                            className="bg-white border border-outline rounded-2xl p-6 hover:border-primary/30 hover:shadow-md transition-all group"
+                            key={member?.resumeId || member?.memberId}
+                            className="bg-white border border-outline rounded-2xl p-6 hover:border-primary/30 hover:shadow-md transition-all group cursor-pointer"
+                            onClick={() => handleOpenProfile(member)}
                         >
                             <div className="flex items-start gap-4">
                                 <div className="relative flex-shrink-0">
-                                    {member.img ? (
-                                        <img
-                                            src={member.img}
-                                            alt={member.name}
-                                            className="w-14 h-14 rounded-2xl object-cover"
-                                        />
-                                    ) : (
-                                        <div className="w-14 h-14 rounded-2xl bg-primary-soft flex items-center justify-center">
-                      <span className="material-symbols-outlined text-primary text-3xl">
-                        person
-                      </span>
-                                        </div>
-                                    )}
-                                    <span
-                                        className={`absolute -bottom-1 -right-1 w-3.5 h-3.5 rounded-full border-2 border-white ${
-                                            member.available ? 'bg-green-500' : 'bg-gray-300'
-                                        }`}
-                                    />
+                                    <div className="w-14 h-14 rounded-2xl bg-primary-soft flex items-center justify-center">
+                       <span className="material-symbols-outlined text-primary text-3xl">
+                         person
+                       </span>
+                                    </div>
                                 </div>
 
                                 <div className="flex-1 min-w-0">
                                     <div className="flex items-center gap-2 mb-0.5">
                                         <h3 className="font-black text-base group-hover:text-primary transition-colors">
-                                            {member.name}
+                                            {member?.memberName || '-'}
                                         </h3>
-                                        <span
-                                            className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${
-                                                member.available
-                                                    ? 'bg-green-50 text-green-600'
-                                                    : 'bg-gray-100 text-on-surface-variant'
-                                            }`}
-                                        >
-                      {member.available ? '구직 중' : '구직 중단'}
-                    </span>
                                     </div>
 
-                                    <p className="text-xs text-on-surface-variant font-medium mb-1">{member.role}</p>
+                                    <p className="text-xs text-on-surface-variant font-medium mb-1">{member?.title || '이력서 제목 없음'}</p>
 
                                     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-on-surface-variant mb-3">
-                    <span className="flex items-center gap-0.5">
-                      <span className="material-symbols-outlined text-sm text-primary">star</span>
-                      <span className="font-bold text-on-surface">{member.rating}</span>
-                      <span>({member.reviewCount}개 리뷰)</span>
-                    </span>
+                     <span className="flex items-center gap-0.5">
+                       <span className="material-symbols-outlined text-sm text-primary">star</span>
+                       <span className="font-bold text-on-surface">{Number(member?.ratingAverage || 0).toFixed(1)}</span>
+                     </span>
                                         <span className="flex items-center gap-0.5">
-                      <span className="material-symbols-outlined text-sm">location_on</span>
-                                            {member.location}
-                    </span>
-                                        <span className="flex items-center gap-0.5">
-                      <span className="material-symbols-outlined text-sm">work</span>
-                                            {member.exp}
-                    </span>
+                       <span className="material-symbols-outlined text-sm">location_on</span>
+                                            {formatPreferredRegions(member?.preferredRegions)}
+                     </span>
                                     </div>
 
                                     <div className="flex flex-wrap gap-1.5">
-                                        {member.tags.map((tag) => (
+                                        {(Array.isArray(member?.desiredBusinessTypes) ? member.desiredBusinessTypes : []).map((tag) => (
                                             <span
                                                 key={tag}
                                                 className="text-[11px] font-bold bg-primary-soft text-primary px-2.5 py-0.5 rounded-full"
                                             >
-                        {tag}
-                      </span>
+                         {translateBusinessType(tag)}
+                       </span>
                                         ))}
                                     </div>
                                 </div>
 
                                 <div className="flex flex-col items-end gap-2 flex-shrink-0">
                                     <button
-                                        onClick={() => removeScrap(member.id)}
-                                        className="p-2 rounded-xl hover:bg-primary-soft transition-colors"
+                                        onClick={(e) => {
+                                            e.stopPropagation();
+                                            removeScrap(member?.memberId);
+                                        }}
+                                        disabled={actionLoadingId === String(member?.memberId)}
+                                        className="p-2 rounded-xl hover:bg-primary-soft transition-colors disabled:opacity-50"
                                         title="스크랩 해제"
                                     >
-                    <span
-                        className="material-symbols-outlined text-primary text-xl"
-                        style={{ fontVariationSettings: "'FILL' 1" }}
-                    >
-                      bookmark
-                    </span>
+                     <span
+                         className="material-symbols-outlined text-primary text-xl"
+                         style={{ fontVariationSettings: "'FILL' 1" }}
+                     >
+                       {actionLoadingId === String(member?.memberId) ? 'hourglass_top' : 'bookmark'}
+                     </span>
                                     </button>
-                                    <button className="p-2 rounded-xl hover:bg-gray-100 transition-colors">
-                    <span className="material-symbols-outlined text-on-surface-variant text-xl">
-                      chat
-                    </span>
+                                    <button className="p-2 rounded-xl hover:bg-gray-100 transition-colors" disabled>
+                     <span className="material-symbols-outlined text-on-surface-variant text-xl">
+                       chat
+                     </span>
                                     </button>
                                 </div>
                             </div>
                         </div>
-                    ))}
+                        );
+                    })}
+                </div>
+            )}
+
+            {totalPages > 1 && (
+                <div className="mt-6 flex items-center justify-center gap-2">
+                    <button
+                        type="button"
+                        onClick={() => setPage((prev) => Math.max(0, prev - 1))}
+                        disabled={page <= 0}
+                        className="px-3 py-1.5 text-sm rounded-lg border border-outline disabled:opacity-50"
+                    >
+                        이전
+                    </button>
+                    <span className="text-sm text-on-surface-variant">{page + 1} / {totalPages}</span>
+                    <button
+                        type="button"
+                        onClick={() => setPage((prev) => Math.min(totalPages - 1, prev + 1))}
+                        disabled={page >= totalPages - 1}
+                        className="px-3 py-1.5 text-sm rounded-lg border border-outline disabled:opacity-50"
+                    >
+                        다음
+                    </button>
                 </div>
             )}
 
             <div className="mt-6 p-5 rounded-2xl bg-primary-soft/40 border border-primary/10 flex items-start gap-3">
                 <span className="material-symbols-outlined text-primary mt-0.5 text-sm">info</span>
                 <p className="text-xs text-on-surface-variant font-medium leading-relaxed">
-                    북마크 아이콘을 클릭하면 스크랩이 해제됩니다. 채팅 아이콘을 누르면 해당 회원에게 메시지를 보낼 수 있습니다.
+                    회원 정보를 클릭하면 인재 상세 페이지로 이동합니다. (이력서 공개 시에만 가능)
+                    북마크 아이콘을 클릭하면 스크랩이 해제됩니다.
                 </p>
             </div>
         </>

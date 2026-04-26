@@ -297,7 +297,7 @@ export default function ReviewContent({ account }) {
 
     return (
         <section className="flex-grow space-y-8">
-            <header className="flex flex-col sm:flex-row sm:items-end justify-between mb-6 gap-4">
+            <header className="mb-8 space-y-4">
                 <div>
                     <h1 className="text-3xl font-black tracking-tight text-[#1F1D1D]">리뷰 관리</h1>
                     <p className="text-[#6B6766] mt-1 text-sm">
@@ -314,12 +314,14 @@ export default function ReviewContent({ account }) {
                 </div>
 
                 {reviewTab === 'written' && (
-                    <button
-                        onClick={openCreateModal}
-                        className="bg-primary text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-[#D61F44] transition-all shadow-md shadow-primary/10"
-                    >
-                        리뷰 작성
-                    </button>
+                    <div className="flex justify-end">
+                        <button
+                            onClick={openCreateModal}
+                            className="bg-primary text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-[#D61F44] transition-all shadow-md shadow-primary/10"
+                        >
+                            리뷰 작성
+                        </button>
+                    </div>
                 )}
             </header>
 
@@ -540,6 +542,7 @@ export default function ReviewContent({ account }) {
                 loading={loadingAction || loadingReviewableApplies}
                 onClose={() => setModalOpen(false)}
                 reviewableApplies={reviewableApplies}
+                accountMemberType={account?.memberType}
                 onSubmit={(form, selectedApply) => {
                     if (modalMode === 'create') {
                         handleCreateReview(form, selectedApply);

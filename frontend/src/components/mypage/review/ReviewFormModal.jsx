@@ -2,10 +2,16 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { REVIEW_LABEL_OPTIONS_BY_TARGET } from '../../../constants/reviewConstants';
 
 function getApplyCardTitle(apply) {
+    if (apply?.__accountMemberType === 'BUSINESS') {
+        return apply?.individualName || `지원자 #${apply?.individualId ?? apply?.id ?? '-'}`;
+    }
     return apply?.recruitTitle || `지원 #${apply?.id ?? '-'}`;
 }
 
 function getApplyCardSubtitle(apply) {
+    if (apply?.__accountMemberType === 'BUSINESS') {
+        return apply?.recruitTitle || `recruitId: ${apply?.recruitId ?? '-'}`;
+    }
     return apply?.companyName || `recruitId: ${apply?.recruitId ?? '-'}`;
 }
 
@@ -28,6 +34,7 @@ export default function ReviewFormModal({
                                             onSubmit,
                                             loading,
                                             reviewableApplies = [],
+                                            accountMemberType,
                                         }) {
     const [form, setForm] = useState(initialValue);
     const [selectedApplyId, setSelectedApplyId] = useState(initialValue?.applyId || '');
@@ -49,9 +56,16 @@ export default function ReviewFormModal({
         return REVIEW_LABEL_OPTIONS_BY_TARGET[form.targetType] || [];
     }, [form.targetType]);
 
+    const enrichedApplies = useMemo(() => {
+        return reviewableApplies.map((item) => ({
+            ...item,
+            __accountMemberType: accountMemberType,
+        }));
+    }, [reviewableApplies, accountMemberType]);
+
     const selectedApply = useMemo(() => {
-        return reviewableApplies.find((item) => String(item.id) === String(selectedApplyId)) || null;
-    }, [reviewableApplies, selectedApplyId]);
+        return enrichedApplies.find((item) => String(item.id) === String(selectedApplyId)) || null;
+    }, [enrichedApplies, selectedApplyId]);
 
     const toggleLabel = (label) => {
         setForm((prev) => ({
@@ -76,10 +90,10 @@ export default function ReviewFormModal({
         <div className="fixed inset-0 z-[130] flex items-center justify-center p-4">
             <div className="absolute inset-0 bg-black/40" onClick={onClose}></div>
 
-            <div className="relative w-full max-w-2xl bg-white rounded-2xl border border-[#EAE5E3] shadow-2xl overflow-hidden">
-                <div className="px-6 py-5 border-b border-[#EAE5E3] flex items-center justify-between">
+            <div className="relative w-full max-w-5xl bg-white rounded-2xl border border-[#EAE5E3] shadow-2xl overflow-hidden">
+                <div className="px-5 py-4 border-b border-[#EAE5E3] flex items-center justify-between">
                     <div>
-                        <h3 className="text-xl font-extrabold text-[#1F1D1D]">
+                        <h3 className="text-lg font-extrabold text-[#1F1D1D]">
                             {mode === 'create' ? '리뷰 작성' : '리뷰 수정'}
                         </h3>
                         <p className="text-xs text-[#6B6766] mt-1">
@@ -97,7 +111,7 @@ export default function ReviewFormModal({
                     </button>
                 </div>
 
-                <div className={`grid ${mode === 'create' ? 'grid-cols-1 lg:grid-cols-[280px_minmax(0,1fr)]' : 'grid-cols-1'}`}>
+                <div className={`grid ${mode === 'create' ? 'grid-cols-1 lg:grid-cols-[340px_minmax(0,1fr)]' : 'grid-cols-1'}`}>
                     {mode === 'create' && (
                         <div className="border-r border-[#EAE5E3] bg-gray-50/50">
                             <div className="px-5 py-4 border-b border-[#EAE5E3]">
@@ -106,9 +120,9 @@ export default function ReviewFormModal({
                             </div>
 
                             <div className="max-h-[560px] overflow-y-auto">
-                                {reviewableApplies.length > 0 ? (
+                                {enrichedApplies.length > 0 ? (
                                     <div className="divide-y divide-[#EAE5E3]">
-                                        {reviewableApplies.map((apply) => {
+                                        {enrichedApplies.map((apply) => {
                                             const active = String(selectedApplyId) === String(apply.id);
 
                                             return (
@@ -152,7 +166,7 @@ export default function ReviewFormModal({
                         </div>
                     )}
 
-                    <div className={`space-y-6 ${mode === 'create' ? 'p-6' : 'px-8 py-6'}`}>
+                    <div className={`space-y-5 ${mode === 'create' ? 'p-5' : 'px-6 py-5'}`}>
                         {mode === 'create' && (
                             <div className="bg-[#FFF8FA] border border-[#F6DDE3] rounded-xl px-4 py-4">
                                 <div className="text-[11px] font-bold text-[#6B6766] uppercase tracking-wider mb-2">
@@ -202,7 +216,7 @@ export default function ReviewFormModal({
                             <label className="text-[11px] font-bold text-[#6B6766] uppercase tracking-wider block mb-2">
                                 별점
                             </label>
-                            <div className="flex gap-2">
+                            <div className="flex gap-1.5">
                                 {[1, 2, 3, 4, 5].map((num) => (
                                     <button
                                         key={num}
@@ -211,7 +225,7 @@ export default function ReviewFormModal({
                                         className="text-primary"
                                     >
                     <span
-                        className="material-symbols-outlined text-3xl"
+                        className="material-symbols-outlined text-[28px]"
                         style={num <= form.rating ? { fontVariationSettings: "'FILL' 1" } : {}}
                     >
                       star
@@ -234,7 +248,7 @@ export default function ReviewFormModal({
                                             key={label}
                                             type="button"
                                             onClick={() => toggleLabel(label)}
-                                            className={`px-2 py-2 rounded-lg text-xs font-bold border text-center ${
+                                            className={`px-2 py-2 rounded-lg text-xs font-bold border text-center whitespace-nowrap ${
                                                 active
                                                     ? 'bg-[#FFF0F3] border-primary text-primary'
                                                     : 'bg-white border-[#EAE5E3] text-[#6B6766]'
@@ -254,7 +268,7 @@ export default function ReviewFormModal({
                             <textarea
                                 value={form.content}
                                 onChange={(e) => setForm((prev) => ({ ...prev, content: e.target.value }))}
-                                className="w-full min-h-[180px] bg-gray-50 border border-[#EAE5E3] rounded-xl py-4 px-4 text-sm font-medium resize-none leading-relaxed focus:bg-white focus:outline-none focus:border-primary"
+                                className="w-full min-h-[140px] bg-gray-50 border border-[#EAE5E3] rounded-xl py-3 px-4 text-sm font-medium resize-none leading-relaxed focus:bg-white focus:outline-none focus:border-primary"
                                 placeholder="리뷰 내용을 입력해주세요."
                             />
                         </div>

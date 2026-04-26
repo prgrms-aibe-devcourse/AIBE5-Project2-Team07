@@ -63,6 +63,13 @@ public class ScrapMemberService {
         return resumeService.getResumesByMemberIds(memberIds, page, 20);
     }
 
+    // 스크랩 여부 확인
+    @Transactional(readOnly = true)
+    public boolean existsScrap(Long businessProfileId, Long individualProfileId) {
+        return scrapMemberRepository.existsByBusinessProfileIdAndIndividualProfileId(
+                businessProfileId, individualProfileId);
+    }
+
     // 스크랩 개수 조회
     @Transactional(readOnly = true)
     public long countScrapMember(Long businessProfileId) {

@@ -6,9 +6,14 @@ import com.example.aibe5_project2_team7.apply.dto.ApplyResponseDto;
 import com.example.aibe5_project2_team7.apply.dto.OfferRequestDto;
 import com.example.aibe5_project2_team7.apply.entity.ApplyStatus;
 import com.example.aibe5_project2_team7.apply.entity.ApplyType;
+import com.example.aibe5_project2_team7.individual_profile.IndividualProfile;
+import com.example.aibe5_project2_team7.individual_profile.IndividualProfileRepository;
+import jakarta.persistence.EntityNotFoundException;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotNull;
+import lombok.Getter;
 import lombok.RequiredArgsConstructor;
+import lombok.Setter;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.domain.Sort;
@@ -24,6 +29,7 @@ import java.util.Map;
 public class ApplyController {
 
     private final ApplyService applyService;
+    private final IndividualProfileRepository individualProfileRepository;
 
     // 지원 / 제의 생성
 
@@ -43,6 +49,24 @@ public class ApplyController {
             @RequestBody @Valid OfferRequestDto requestDto
     ) {
         return ResponseEntity.ok(applyService.offerForIndividual(businessProfileId, requestDto));
+    }
+
+    // 사업자회원이 개인회원(memberId)에게 제의 — TalentProfilePage에서 사용
+    @PostMapping("/offer/by-member")
+    public ResponseEntity<ApplyResponseDto> offerToIndividualByMemberId(
+            @RequestHeader(name = "X-Business-Profile-Id", required = false) Long businessProfileId,
+            @RequestBody @Valid OfferByMemberRequestDto requestDto
+    ) {
+        IndividualProfile profile = individualProfileRepository.findByMemberId(requestDto.getMemberId())
+                .orElseThrow(() -> new EntityNotFoundException("해당 회원의 IndividualProfile을 찾을 수 없습니다."));
+
+        OfferRequestDto offerRequestDto = new OfferRequestDto();
+        offerRequestDto.setRecruitId(requestDto.getRecruitId());
+        offerRequestDto.setIndividualProfileId(profile.getId());
+        offerRequestDto.setMessage(requestDto.getMessage());
+        offerRequestDto.setAttachedFileUrl(requestDto.getAttachedFileUrl());
+
+        return ResponseEntity.ok(applyService.offerForIndividual(businessProfileId, offerRequestDto));
     }
 
     // 지원/제의 현황 목록 (PENDING 중심)
@@ -168,16 +192,24 @@ public class ApplyController {
         return ResponseEntity.ok(Map.of("message", "취소되었습니다."));
     }
 
+    @Getter
+    @Setter
     public static class DecisionRequest {
         @NotNull
         private Boolean accept;
+    }
 
-        public Boolean getAccept() {
-            return accept;
-        }
+    // memberId 기반 제의 요청 DTO
+    @Getter
+    @Setter
+    public static class OfferByMemberRequestDto {
+        @NotNull
+        private Long recruitId;
 
-        public void setAccept(Boolean accept) {
-            this.accept = accept;
-        }
+        @NotNull
+        private Long memberId;
+
+        private String message;
+        private String attachedFileUrl;
     }
 }

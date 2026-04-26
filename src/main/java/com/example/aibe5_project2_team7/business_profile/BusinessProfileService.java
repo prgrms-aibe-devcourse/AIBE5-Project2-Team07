@@ -6,6 +6,7 @@ import com.example.aibe5_project2_team7.business_profile.request.BusinessMemberE
 import com.example.aibe5_project2_team7.business_profile.response.BusinessProfileResponse;
 import com.example.aibe5_project2_team7.business_profile.response.CompanyInfoResponse;
 import com.example.aibe5_project2_team7.business_profile.response.CompanySummaryResponse;
+import com.example.aibe5_project2_team7.brand.BrandRepository;
 import com.example.aibe5_project2_team7.brand.entity.Brand;
 import com.example.aibe5_project2_team7.member.Member;
 import com.example.aibe5_project2_team7.member.MemberType;
@@ -40,6 +41,7 @@ public class BusinessProfileService {
 	private final RegionRepository regionRepository;
 	private final RecruitRepository recruitRepository;
 	private final ReviewRepository reviewRepository;
+	private final BrandRepository brandRepository;
 	private final BCryptPasswordEncoder passwordEncoder;
 
 	/*
@@ -293,6 +295,8 @@ public class BusinessProfileService {
 		String companyPhone = request.getCompanyPhone();
 		String homepageUrl = request.getHomepageUrl();
 		String companyAddress = request.getCompanyAddress();
+		String companyImageUrl = request.getCompanyImageUrl();
+		Long brandId = request.getBrandId();
 
 		if (foundedDate == null || companyName == null || companyName.isBlank() || businessNumber == null || businessNumber.isBlank() || companyPhone == null || companyPhone.isBlank() || companyAddress == null || companyAddress.isBlank()) {
 			throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "foundedDate, companyName, businessNumber, companyPhone, companyAddress는 필수입니다.");
@@ -308,12 +312,20 @@ public class BusinessProfileService {
 		BusinessProfile profile = businessProfileRepository.findByMemberId(member.getId())
 				.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "사업자 프로필을 찾을 수 없습니다."));
 
+		Brand brand = null;
+		if (brandId != null) {
+			brand = brandRepository.findById(brandId)
+					.orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "브랜드 정보를 찾을 수 없습니다."));
+		}
+
 		profile.setFoundedDate(foundedDate);
 		profile.setCompanyName(companyName);
 		profile.setBusinessNumber(businessNumber);
 		profile.setCompanyPhone(companyPhone);
 		profile.setHomepageUrl(homepageUrl == null || homepageUrl.isBlank() ? null : homepageUrl.trim());
 		profile.setCompanyAddress(companyAddress);
+		profile.setCompanyImageUrl(companyImageUrl == null || companyImageUrl.isBlank() ? null : companyImageUrl.trim());
+		profile.setBrandId(brand);
 
 		businessProfileRepository.save(profile);
 	}

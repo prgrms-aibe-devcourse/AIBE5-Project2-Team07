@@ -23,3 +23,8 @@ export async function uploadPersonalResumeFile(file) {
 export async function uploadProfileImage(file, oldUrl) {
   return uploadFile('/api/files/upload/profile', file, oldUrl ? { oldUrl } : {});
 }
+
+export async function uploadCompanyLogo(file, oldUrl) {
+  return uploadFile('/api/files/upload/logo', file, oldUrl ? { oldUrl } : {});
+}
+

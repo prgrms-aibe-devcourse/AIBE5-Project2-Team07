@@ -1,13 +1,17 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
-import { getMyBusinessRecruits } from '../../../services/accountApi';
+import {
+    deleteMyBusinessRecruit,
+    getMyBusinessRecruits,
+    updateMyBusinessRecruitStatus,
+} from '../../../services/accountApi';
 import { getBusinessApplications } from '../../../services/applyApi';
 import RecruitDetailPage from './RecruitDetailPageCopied';
 
 const STATUS_LABEL_MAP = {
-    OPEN: '진행 중',
-    CLOSED: '마감됨',
-    EXPIRED: '마감됨',
+    OPEN: '모집 중',
+    CLOSED: '마감',
+    EXPIRED: '마감',
 };
 
 const RECRUIT_FILTER = {
@@ -20,7 +24,7 @@ const ITEMS_PER_PAGE = 10;
 
 const EMPTY_MESSAGE_BY_FILTER = {
     [RECRUIT_FILTER.ALL]: '공고가 없습니다',
-    [RECRUIT_FILTER.OPEN]: '진행 중 공고가 없습니다',
+    [RECRUIT_FILTER.OPEN]: '모집 중 공고가 없습니다',
     [RECRUIT_FILTER.CLOSED]: '마감된 공고가 없습니다',
 };
 
@@ -41,33 +45,35 @@ export default function BusinessRecruitsTab() {
     const [currentPage, setCurrentPage] = useState(1);
     const [recruits, setRecruits] = useState([]);
     const [pendingApplicantsCount, setPendingApplicantsCount] = useState(0);
+    const [applicantsCountByRecruitId, setApplicantsCountByRecruitId] = useState({});
     const [loading, setLoading] = useState(false);
+    const [actionLoadingId, setActionLoadingId] = useState(null);
     const [error, setError] = useState('');
 
-    useEffect(() => {
-        let mounted = true;
+    const fetchRecruits = async () => {
+        setLoading(true);
+        setError('');
+        try {
+            const data = await getMyBusinessRecruits();
+            setRecruits(Array.isArray(data) ? data : []);
+        } catch (fetchError) {
+            setRecruits([]);
+            setError(fetchError?.message || '공고 목록을 불러오지 못했습니다.');
+        } finally {
+            setLoading(false);
+        }
+    };
 
-        const fetchRecruits = async () => {
+    useEffect(() => {
+        const fetchSafely = async () => {
             try {
-                setLoading(true);
-                setError('');
-                const data = await getMyBusinessRecruits();
-                if (!mounted) return;
-                setRecruits(Array.isArray(data) ? data : []);
-            } catch (fetchError) {
-                if (!mounted) return;
-                setRecruits([]);
-                setError(fetchError?.message || '공고 목록을 불러오지 못했습니다.');
-            } finally {
-                if (mounted) setLoading(false);
+                await fetchRecruits();
+            } catch {
+                // fetchRecruits 내부에서 에러 상태를 처리합니다.
             }
         };
 
-        fetchRecruits();
-
-        return () => {
-            mounted = false;
-        };
+        fetchSafely();
     }, []);
 
     useEffect(() => {
@@ -79,20 +85,32 @@ export default function BusinessRecruitsTab() {
                 const firstContent = Array.isArray(firstPage?.content) ? firstPage.content : [];
                 const totalPages = Number.isFinite(firstPage?.totalPages) ? firstPage.totalPages : 1;
 
+                const allApplications = [...firstContent];
+
                 let pendingCount = firstContent.filter((item) => String(item?.status || '').toUpperCase() === 'PENDING').length;
 
                 for (let page = 1; page < totalPages; page += 1) {
                     const pageResponse = await getBusinessApplications({ page, size: 50 });
                     const pageContent = Array.isArray(pageResponse?.content) ? pageResponse.content : [];
+                    allApplications.push(...pageContent);
                     pendingCount += pageContent.filter((item) => String(item?.status || '').toUpperCase() === 'PENDING').length;
                 }
 
+                const countMap = {};
+                allApplications.forEach((item) => {
+                    const key = String(item?.recruitId || '');
+                    if (!key) return;
+                    countMap[key] = (countMap[key] || 0) + 1;
+                });
+
                 if (mounted) {
                     setPendingApplicantsCount(pendingCount);
+                    setApplicantsCountByRecruitId(countMap);
                 }
             } catch {
                 if (mounted) {
                     setPendingApplicantsCount(0);
+                    setApplicantsCountByRecruitId({});
                 }
             }
         };
@@ -154,6 +172,11 @@ export default function BusinessRecruitsTab() {
 
     const openRecruitDetail = (recruitId) => {
         if (!recruitId) return;
+        navigate(`/recruit-detail?recruitId=${encodeURIComponent(recruitId)}`);
+    };
+
+    const openRecruitManagementDetail = (recruitId) => {
+        if (!recruitId) return;
         const nextParams = new URLSearchParams(searchParams);
         nextParams.set('tab', 'recruits');
         nextParams.set('recruitId', String(recruitId));
@@ -171,6 +194,42 @@ export default function BusinessRecruitsTab() {
         const nextParams = new URLSearchParams(searchParams);
         nextParams.set('tab', 'applicants');
         navigate(`/dashboard?${nextParams.toString()}`);
+    };
+
+    const handleRecruitDelete = async (recruitId) => {
+        if (!recruitId || actionLoadingId) return;
+        const ok = window.confirm('해당 공고를 삭제할까요? 삭제 후에는 복구할 수 없습니다.');
+        if (!ok) return;
+
+        try {
+            setActionLoadingId(String(recruitId));
+            await deleteMyBusinessRecruit(recruitId);
+            window.alert('공고가 삭제되었습니다.');
+            await fetchRecruits();
+        } catch (actionError) {
+            window.alert(actionError?.message || '공고 삭제에 실패했습니다.');
+        } finally {
+            setActionLoadingId(null);
+        }
+    };
+
+    const handleRecruitStatusToggle = async (recruitId, currentStatus) => {
+        if (!recruitId || actionLoadingId) return;
+        const normalized = String(currentStatus || '').toUpperCase();
+        const nextStatus = normalized === 'OPEN' ? 'CLOSED' : 'OPEN';
+        const ok = window.confirm(`공고 상태를 ${nextStatus === 'OPEN' ? '모집 중' : '마감'}으로 변경할까요?`);
+        if (!ok) return;
+
+        try {
+            setActionLoadingId(String(recruitId));
+            await updateMyBusinessRecruitStatus(recruitId, nextStatus);
+            window.alert('공고 상태가 변경되었습니다.');
+            await fetchRecruits();
+        } catch (actionError) {
+            window.alert(actionError?.message || '공고 상태 변경에 실패했습니다.');
+        } finally {
+            setActionLoadingId(null);
+        }
     };
 
     if (selectedRecruitId) {
@@ -192,14 +251,14 @@ export default function BusinessRecruitsTab() {
 
     return (
         <div className="space-y-8">
-            <section className="flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-                <div className="space-y-1">
-                    <h1 className="text-3xl font-black tracking-tight text-on-surface">공고 관리</h1>
-                    <p className="text-sm text-on-surface-variant">
-                        작성하신 긴급 공고 현황을 확인하고 지원자를 관리하세요.
+            <section className="mb-8 space-y-4">
+                <div>
+                    <h1 className="text-3xl font-black tracking-tight text-[#1F1D1D]">공고 관리</h1>
+                    <p className="text-[#6B6766] mt-1 text-sm">
+                        작성하신 공고 현황을 확인하고 제의/지원자를 관리하세요.
                     </p>
                 </div>
-                <div className="relative w-full md:w-64">
+                <div className="relative w-full lg:w-96">
           <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-lg">
             search
           </span>
@@ -238,7 +297,7 @@ export default function BusinessRecruitsTab() {
                     className={`text-left bg-white border rounded-2xl p-5 transition-colors ${statusFilter === RECRUIT_FILTER.OPEN ? 'border-primary border-l-4 border-l-primary ring-1 ring-primary/30' : 'border-outline hover:border-primary/40'}`}
                 >
                     <p className="text-[10px] font-bold text-on-surface-variant mb-1 uppercase tracking-wider">
-                        진행 중
+                        모집 중
                     </p>
                     <p className="text-2xl font-black text-primary">{stats.open}</p>
                 </button>
@@ -284,14 +343,16 @@ export default function BusinessRecruitsTab() {
 
                 {!loading && !error && filteredRecruits.length > 0 && (
                     <div className="overflow-x-auto">
-                        <table className="w-full min-w-[760px]">
+                        <table className="w-full min-w-[1020px]">
                             <thead className="bg-[#F8F9FA]">
                                 <tr className="text-left text-xs font-bold text-on-surface-variant">
                                     <th className="px-5 py-3">공고명</th>
                                     <th className="px-5 py-3">근무지</th>
                                     <th className="px-5 py-3">상태</th>
+                                    <th className="px-5 py-3">총 지원</th>
                                     <th className="px-5 py-3">마감일</th>
                                     <th className="px-5 py-3">등록일</th>
+                                    <th className="px-5 py-3">관리</th>
                                 </tr>
                             </thead>
                             <tbody>
@@ -299,6 +360,8 @@ export default function BusinessRecruitsTab() {
                                     const status = String(item?.status || '').toUpperCase();
                                     const statusLabel = STATUS_LABEL_MAP[status] || (item?.status || '-');
                                     const recruitId = item?.id;
+                                    const isActing = actionLoadingId === String(recruitId);
+                                    const applicantsCount = applicantsCountByRecruitId[String(recruitId)] || 0;
                                     return (
                                         <tr
                                             key={item?.id || `${item?.title}-${item?.createdAt || ''}`}
@@ -315,8 +378,36 @@ export default function BusinessRecruitsTab() {
                                                     {statusLabel}
                                                 </span>
                                             </td>
+                                            <td className="px-5 py-4 text-on-surface-variant font-semibold">{applicantsCount}명</td>
                                             <td className="px-5 py-4 text-on-surface-variant">{formatDate(item?.deadline)}</td>
                                             <td className="px-5 py-4 text-on-surface-variant">{formatDate(item?.createdAt)}</td>
+                                            <td className="px-5 py-4" onClick={(event) => event.stopPropagation()}>
+                                                <div className="flex items-center gap-2 whitespace-nowrap">
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => openRecruitManagementDetail(recruitId)}
+                                                        className="px-2.5 py-1.5 rounded-lg border border-outline text-xs font-bold bg-white hover:bg-gray-50"
+                                                    >
+                                                        관리
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRecruitStatusToggle(recruitId, item?.status)}
+                                                        disabled={isActing}
+                                                        className="px-2.5 py-1.5 rounded-lg border border-outline text-xs font-bold bg-white hover:bg-gray-50 disabled:opacity-50"
+                                                    >
+                                                        {status === 'OPEN' ? '마감' : '재오픈'}
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => handleRecruitDelete(recruitId)}
+                                                        disabled={isActing}
+                                                        className="px-2.5 py-1.5 rounded-lg border border-red-200 text-xs font-bold text-red-600 bg-white hover:bg-red-50 disabled:opacity-50"
+                                                    >
+                                                        {isActing ? '처리 중...' : '삭제'}
+                                                    </button>
+                                                </div>
+                                            </td>
                                         </tr>
                                     );
                                 })}
