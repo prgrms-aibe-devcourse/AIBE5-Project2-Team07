@@ -1,3 +1,5 @@
+const BASE_URL = 'http://localhost:8080';
+
 /**
  * 조건 선택 기반 추천 공고를 요청합니다.
  * @param {{
@@ -13,7 +15,7 @@
  * @returns {Promise<Array>}
  */
 export async function fetchRecommendJobs(payload) {
-  const response = await fetch('/recommend/category', {
+  const response = await fetch(`${BASE_URL}/recommend/category`, {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
