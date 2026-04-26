@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useRef, useEffect } from "react";
 import CommonButton from "./CommonButton";
 
 function formatRoomTime(value) {
@@ -64,6 +64,48 @@ export default function GlobalMemberMessagePanel({
       : currentMemberType === "INDIVIDUAL"
         ? "사업자회원"
         : "회원";
+
+  const messagesEndRef = useRef(null);
+  const textareaRef = useRef(null);
+  const isInitialLoad = useRef(true);
+
+  const scrollToBottom = (behavior = "smooth") => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollIntoView({ behavior, block: "end" });
+    }
+  };
+
+  const lastMessage =
+    messages && messages.length > 0 ? messages[messages.length - 1] : null;
+  const lastMessageId = lastMessage
+    ? lastMessage.id ?? lastMessage.sentAt
+    : null;
+
+  useEffect(() => {
+    isInitialLoad.current = true;
+  }, [selectedRoomId]);
+
+  useEffect(() => {
+    if (lastMessageId) {
+      setTimeout(() => {
+        if (isInitialLoad.current) {
+          scrollToBottom("auto");
+          isInitialLoad.current = false;
+        } else {
+          scrollToBottom("smooth");
+        }
+      }, 50);
+    }
+  }, [lastMessageId]);
+
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = "auto";
+      if (replyValue) {
+        textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+      }
+    }
+  }, [replyValue]);
 
   return (
     <div
@@ -255,24 +297,37 @@ export default function GlobalMemberMessagePanel({
                       );
                     })
                   )}
+                  <div ref={messagesEndRef} />
                 </div>
 
                 <form
-                  className="px-3 py-2 border-t border-outline flex items-center gap-2 bg-white"
+                  className="px-3 py-2 border-t border-outline flex items-end gap-2 bg-white"
                   onSubmit={(event) => {
                     event.preventDefault();
-                    onSendReply();
+                    if (canSend) {
+                      onSendReply();
+                    }
                   }}
                 >
-                  <input
-                    type="text"
+                  <textarea
+                    ref={textareaRef}
                     value={replyValue}
                     onChange={(event) => onReplyChange(event.target.value)}
-                    placeholder="메시지를 입력하세요"
-                    className="flex-1 border border-outline rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary"
+                    onKeyDown={(event) => {
+                      if (event.key === "Enter" && !event.shiftKey) {
+                        event.preventDefault();
+                        if (canSend) {
+                          onSendReply();
+                        }
+                      }
+                    }}
+                    placeholder="메시지를 입력하세요 (Shift+Enter로 줄바꿈)"
+                    className="flex-1 border border-outline rounded-xl px-3 py-2 text-sm focus:outline-none focus:border-primary resize-none overflow-y-auto leading-relaxed"
+                    rows={1}
+                    style={{ minHeight: "38px", maxHeight: "120px" }}
                   />
-                  <CommonButton type="submit" size="sm" disabled={!canSend}>
-                    {sendLoading ? "전송 중..." : "보내기"}
+                  <CommonButton type="submit" size="sm" disabled={!canSend} className="mb-0.5 whitespace-nowrap">
+                    {sendLoading ? "전송 중" : "보내기"}
                   </CommonButton>
                 </form>
 
