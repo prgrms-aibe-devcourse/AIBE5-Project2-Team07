@@ -74,7 +74,7 @@ public class BusinessProfileController {
         return ResponseEntity.noContent().build();
     }
 
-    // 사업자 정보 수정 (회사명, 설립일, 사업자등록번호, 회사 번호, 사업장 주소)
+    // 사업자 정보 수정 (회사명, 설립일, 사업자등록번호, 회사 번호, 사업장 주소, 회사 이미지, 브랜드)
     @PatchMapping("/business/account/edit/company")
     public ResponseEntity<Void> editMyCompany(
             Authentication authentication,

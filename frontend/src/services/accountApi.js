@@ -71,6 +71,19 @@ export async function getMyBusinessRecruits() {
     });
 }
 
+export async function createMyBusinessRecruit(payload) {
+    const storedMember = getStoredMember();
+    const memberId = storedMember?.id || storedMember?.memberId;
+
+    return requestWithAuth('/business/recruit/new', {
+        method: 'POST',
+        headers: {
+            ...(memberId ? { 'X-Member-Id': String(memberId) } : {}),
+        },
+        body: JSON.stringify(payload),
+    });
+}
+
 export async function updateMyBusinessRecruitStatus(recruitId, status) {
     const storedMember = getStoredMember();
     const memberId = storedMember?.id || storedMember?.memberId;

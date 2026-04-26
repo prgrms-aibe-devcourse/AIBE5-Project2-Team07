@@ -68,7 +68,9 @@ public class BrandService {
             Long id = p.getBrand_id();
             String name = p.getBrand_name();
             Long urgentCount = p.getUrgent_count() != null ? p.getUrgent_count() : 0L;
-            results.add(new BrandUrgentDto(id, name, urgentCount));
+            String bannerImg = p.getBanner_img();
+            String logoImg = p.getLogo_img();
+            results.add(new BrandUrgentDto(id, name, urgentCount, bannerImg, logoImg));
         }
         return results;
     }
@@ -79,7 +81,7 @@ public class BrandService {
         return BrandSummaryDto.of(brand);
     }
     
-    public BrandRecruitListResponse<BrandShortRecruitDto> getBrandShortRecruitList(Long brandId, int page, Long regionId, List<String> workDates, List<String> workTimes, Boolean urgentOnly, String sort) {
+    public BrandRecruitListResponse<BrandShortRecruitDto> getBrandShortRecruitList(Long brandId, int page, List<Long> regionIds, List<String> workDates, List<String> workTimes, Boolean urgentOnly, String sort) {
         int pageIndex = Math.max(1, page) - 1;
         final int size = 20;
         int limit = size;
@@ -132,12 +134,21 @@ public class BrandService {
             }
         }
 
+        List<Long> regionParams = regionIds == null ? new ArrayList<>() : regionIds.stream().filter(java.util.Objects::nonNull).distinct().toList();
+
         StringBuilder fromWhere = new StringBuilder();
         fromWhere.append(" FROM recruit r ");
         fromWhere.append(" JOIN Brand b ON r.brand_id = b.id ");
         fromWhere.append(" JOIN region rg ON r.region_id = rg.id ");
         fromWhere.append(" WHERE r.brand_id = :brandId AND r.recruit_status = 'OPEN' ");
-        fromWhere.append(" AND (:regionId IS NULL OR r.region_id = :regionId) ");
+        if (!regionParams.isEmpty()) {
+            fromWhere.append(" AND r.region_id IN (");
+            for (int i = 0; i < regionParams.size(); i++) {
+                if (i > 0) fromWhere.append(", ");
+                fromWhere.append(":r").append(i);
+            }
+            fromWhere.append(") ");
+        }
 
         if (Boolean.TRUE.equals(urgentOnly)) {
             fromWhere.append(" AND r.is_urgent = TRUE ");
@@ -167,7 +178,7 @@ public class BrandService {
         String countSql = "SELECT COUNT(DISTINCT r.id)" + fromWhere.toString();
         Query countQ = entityManager.createNativeQuery(countSql);
         countQ.setParameter("brandId", brandId);
-        countQ.setParameter("regionId", regionId);
+        for (int i = 0; i < regionParams.size(); i++) countQ.setParameter("r" + i, regionParams.get(i));
         for (int i = 0; i < dateParams.size(); i++) countQ.setParameter("d" + i, dateParams.get(i));
         for (int i = 0; i < timeParams.size(); i++) countQ.setParameter("t" + i, timeParams.get(i));
         Number totalCountNum = ((Number) countQ.getSingleResult());
@@ -175,7 +186,7 @@ public class BrandService {
 
         // data query (short list) - select fields in order matching mapping
         StringBuilder selectSql = new StringBuilder();
-        selectSql.append("SELECT r.id, r.title, (SELECT bp.company_name FROM business_profile bp WHERE bp.member_id = r.business_member_id LIMIT 1) AS company_name, r.salary, ");
+        selectSql.append("SELECT r.id, r.title, (SELECT bp.company_name FROM business_profile bp WHERE bp.member_id = r.business_member_id LIMIT 1) AS company_name, r.salary, r.salary_type, ");
         selectSql.append(" (SELECT wt2.times FROM work_time wt2 WHERE wt2.recruit_id = r.id LIMIT 1) AS work_time, ");
         selectSql.append(" r.region_id, CONCAT(rg.sido, ' ', rg.sigungu) AS region_name, r.is_urgent, r.created_at, r.deadline ");
         selectSql.append(fromWhere.toString());
@@ -183,7 +194,7 @@ public class BrandService {
 
         Query q = entityManager.createNativeQuery(selectSql.toString());
         q.setParameter("brandId", brandId);
-        q.setParameter("regionId", regionId);
+        for (int i = 0; i < regionParams.size(); i++) q.setParameter("r" + i, regionParams.get(i));
         for (int i = 0; i < dateParams.size(); i++) q.setParameter("d" + i, dateParams.get(i));
         for (int i = 0; i < timeParams.size(); i++) q.setParameter("t" + i, timeParams.get(i));
         q.setParameter("limit", limit);
@@ -203,7 +214,15 @@ public class BrandService {
             Number sal = (Number) row[3];
             dto.setSalary(sal != null ? sal.intValue() : null);
 
-            String workTimeStr = row[4] != null ? row[4].toString() : null;
+            if (row[4] != null) {
+                try {
+                    dto.setSalaryType(com.example.aibe5_project2_team7.recruit.constant.SalaryType.valueOf(row[4].toString()));
+                } catch (Exception ex) {
+                    // leave null if unrecognized
+                }
+            }
+
+            String workTimeStr = row[5] != null ? row[5].toString() : null;
             if (workTimeStr != null) {
                 try {
                     dto.setWorkTime(com.example.aibe5_project2_team7.recruit.constant.Times.valueOf(workTimeStr));
@@ -212,18 +231,18 @@ public class BrandService {
                 }
             }
 
-            Number regionNum = (Number) row[5];
+            Number regionNum = (Number) row[6];
             dto.setRegionId(regionNum != null ? regionNum.longValue() : null);
-            dto.setRegionName((String) row[6]);
+            dto.setRegionName((String) row[7]);
 
-            Object urgentObj = row[7];
+            Object urgentObj = row[8];
             boolean isUrgent = false;
             if (urgentObj instanceof Boolean) isUrgent = (Boolean) urgentObj;
             else if (urgentObj instanceof Number) isUrgent = ((Number) urgentObj).intValue() != 0;
             dto.setIsUrgent(isUrgent ? "Y" : "N");
 
-            Object createdAtObj = row[8];
-            Object deadlineObj = row[9];
+            Object createdAtObj = row[9];
+            Object deadlineObj = row[10];
             // set createdAt from DB created_at column when available
             if (createdAtObj instanceof java.sql.Timestamp) {
                 java.time.LocalDateTime ldt = ((java.sql.Timestamp) createdAtObj).toLocalDateTime();
@@ -260,7 +279,7 @@ public class BrandService {
         return resp;
     }
 
-    public BrandRecruitListResponse<BrandLongRecruitDto> getBrandLongRecruits(Long brandId, int page, Long regionId,
+    public BrandRecruitListResponse<BrandLongRecruitDto> getBrandLongRecruits(Long brandId, int page, List<Long> regionIds,
                                                                              List<String> workPeriods, List<String> workTimes,
                                                                              List<String> workDays, List<String> excludeDays, String sort) {
         int pageIndex = Math.max(1, page) - 1;
@@ -317,12 +336,21 @@ public class BrandService {
             }
         }
 
+        List<Long> regionParams = regionIds == null ? new ArrayList<>() : regionIds.stream().filter(java.util.Objects::nonNull).distinct().toList();
+
         StringBuilder fromWhere = new StringBuilder();
         fromWhere.append(" FROM recruit r ");
         fromWhere.append(" JOIN Brand b ON r.brand_id = b.id ");
         fromWhere.append(" JOIN region rg ON r.region_id = rg.id ");
         fromWhere.append(" WHERE r.brand_id = :brandId AND r.recruit_status = 'OPEN' ");
-        fromWhere.append(" AND (:regionId IS NULL OR r.region_id = :regionId) ");
+        if (!regionParams.isEmpty()) {
+            fromWhere.append(" AND r.region_id IN (");
+            for (int i = 0; i < regionParams.size(); i++) {
+                if (i > 0) fromWhere.append(", ");
+                fromWhere.append(":r").append(i);
+            }
+            fromWhere.append(") ");
+        }
 
         if (!periodParams.isEmpty()) {
             fromWhere.append(" AND EXISTS (SELECT 1 FROM work_period wp WHERE wp.recruit_id = r.id AND wp.period IN (");
@@ -355,7 +383,7 @@ public class BrandService {
         String countSql = "SELECT COUNT(DISTINCT r.id)" + fromWhere.toString();
         Query countQ = entityManager.createNativeQuery(countSql);
         countQ.setParameter("brandId", brandId);
-        countQ.setParameter("regionId", regionId);
+        for (int i = 0; i < regionParams.size(); i++) countQ.setParameter("r" + i, regionParams.get(i));
         for (int i = 0; i < periodParams.size(); i++) countQ.setParameter("p" + i, periodParams.get(i));
         for (int i = 0; i < timeParams.size(); i++) countQ.setParameter("t" + i, timeParams.get(i));
         for (int i = 0; i < dayParams.size(); i++) countQ.setParameter("d" + i, dayParams.get(i));
@@ -374,7 +402,7 @@ public class BrandService {
 
         Query q = entityManager.createNativeQuery(selectSql.toString());
         q.setParameter("brandId", brandId);
-        q.setParameter("regionId", regionId);
+        for (int i = 0; i < regionParams.size(); i++) q.setParameter("r" + i, regionParams.get(i));
         for (int i = 0; i < periodParams.size(); i++) q.setParameter("p" + i, periodParams.get(i));
         for (int i = 0; i < timeParams.size(); i++) q.setParameter("t" + i, timeParams.get(i));
         for (int i = 0; i < dayParams.size(); i++) q.setParameter("d" + i, dayParams.get(i));
@@ -484,7 +512,7 @@ public class BrandService {
     public BrandRecruitListResponse<BrandCombinedRecruitDto> getBrandRecruits(
             Long brandId,
             int page,
-            Long regionId,
+            List<Long> regionIds,
             List<String> workTimes,
             String sort,
             List<String> workDates,
@@ -509,12 +537,21 @@ public class BrandService {
         List<String> longDayParams = parseEnumNames(workDays, com.example.aibe5_project2_team7.recruit.constant.Days.class);
         List<String> longExcludeDayParams = parseEnumNames(excludeDays, com.example.aibe5_project2_team7.recruit.constant.Days.class);
 
+        List<Long> regionParams = regionIds == null ? new ArrayList<>() : regionIds.stream().filter(java.util.Objects::nonNull).distinct().toList();
+
         StringBuilder shortFromWhere = new StringBuilder();
         shortFromWhere.append(" FROM recruit r ");
         shortFromWhere.append(" JOIN Brand b ON r.brand_id = b.id ");
         shortFromWhere.append(" JOIN region rg ON r.region_id = rg.id ");
         shortFromWhere.append(" WHERE r.brand_id = :brandId AND r.recruit_status = 'OPEN' ");
-        shortFromWhere.append(" AND (:regionId IS NULL OR r.region_id = :regionId) ");
+        if (!regionParams.isEmpty()) {
+            shortFromWhere.append(" AND r.region_id IN (");
+            for (int i = 0; i < regionParams.size(); i++) {
+                if (i > 0) shortFromWhere.append(", ");
+                shortFromWhere.append(":r").append(i);
+            }
+            shortFromWhere.append(") ");
+        }
 
         if (Boolean.TRUE.equals(urgentOnly)) {
             shortFromWhere.append(" AND r.is_urgent = TRUE ");
@@ -546,7 +583,14 @@ public class BrandService {
         longFromWhere.append(" JOIN Brand b ON r.brand_id = b.id ");
         longFromWhere.append(" JOIN region rg ON r.region_id = rg.id ");
         longFromWhere.append(" WHERE r.brand_id = :brandId AND r.recruit_status = 'OPEN' ");
-        longFromWhere.append(" AND (:regionId IS NULL OR r.region_id = :regionId) ");
+        if (!regionParams.isEmpty()) {
+            longFromWhere.append(" AND r.region_id IN (");
+            for (int i = 0; i < regionParams.size(); i++) {
+                if (i > 0) longFromWhere.append(", ");
+                longFromWhere.append(":r").append(i);
+            }
+            longFromWhere.append(") ");
+        }
 
         if (!commonTimeParams.isEmpty()) {
             longFromWhere.append(" AND EXISTS (SELECT 1 FROM work_time wt2 WHERE wt2.recruit_id = r.id AND wt2.times IN (");
@@ -589,7 +633,7 @@ public class BrandService {
 
         Query shortCountQ = entityManager.createNativeQuery("SELECT COUNT(DISTINCT r.id)" + shortFromWhere);
         shortCountQ.setParameter("brandId", brandId);
-        shortCountQ.setParameter("regionId", regionId);
+        for (int i = 0; i < regionParams.size(); i++) shortCountQ.setParameter("r" + i, regionParams.get(i));
         for (int i = 0; i < shortDateParams.size(); i++) shortCountQ.setParameter("sd" + i, shortDateParams.get(i));
         for (int i = 0; i < commonTimeParams.size(); i++) shortCountQ.setParameter("ct" + i, commonTimeParams.get(i));
         Number shortCountNum = (Number) shortCountQ.getSingleResult();
@@ -597,7 +641,7 @@ public class BrandService {
 
         Query longCountQ = entityManager.createNativeQuery("SELECT COUNT(DISTINCT r.id)" + longFromWhere);
         longCountQ.setParameter("brandId", brandId);
-        longCountQ.setParameter("regionId", regionId);
+        for (int i = 0; i < regionParams.size(); i++) longCountQ.setParameter("r" + i, regionParams.get(i));
         for (int i = 0; i < commonTimeParams.size(); i++) longCountQ.setParameter("ct" + i, commonTimeParams.get(i));
         for (int i = 0; i < longPeriodParams.size(); i++) longCountQ.setParameter("lp" + i, longPeriodParams.get(i));
         for (int i = 0; i < longDayParams.size(); i++) longCountQ.setParameter("ld" + i, longDayParams.get(i));
@@ -610,7 +654,7 @@ public class BrandService {
         StringBuilder shortSelect = new StringBuilder();
         shortSelect.append("SELECT r.id AS id, 'SHORT' AS recruit_type, r.title AS title, ");
         shortSelect.append("(SELECT bp.company_name FROM business_profile bp WHERE bp.member_id = r.business_member_id LIMIT 1) AS company_name, ");
-        shortSelect.append("r.salary AS salary, NULL AS salary_type, NULL AS work_period, ");
+        shortSelect.append("r.salary AS salary, r.salary_type AS salary_type, NULL AS work_period, ");
         shortSelect.append("(SELECT wt2.times FROM work_time wt2 WHERE wt2.recruit_id = r.id LIMIT 1) AS work_time, ");
         shortSelect.append("r.region_id AS region_id, CONCAT(rg.sido, ' ', rg.sigungu) AS region_name, ");
         shortSelect.append("r.is_urgent AS is_urgent, r.created_at AS created_at, r.deadline AS deadline ");
@@ -630,7 +674,7 @@ public class BrandService {
 
         Query dataQ = entityManager.createNativeQuery(dataSql);
         dataQ.setParameter("brandId", brandId);
-        dataQ.setParameter("regionId", regionId);
+        for (int i = 0; i < regionParams.size(); i++) dataQ.setParameter("r" + i, regionParams.get(i));
         for (int i = 0; i < shortDateParams.size(); i++) dataQ.setParameter("sd" + i, shortDateParams.get(i));
         for (int i = 0; i < commonTimeParams.size(); i++) dataQ.setParameter("ct" + i, commonTimeParams.get(i));
         for (int i = 0; i < longPeriodParams.size(); i++) dataQ.setParameter("lp" + i, longPeriodParams.get(i));

@@ -5,8 +5,11 @@ import MobileBottomNav from '../../MobileBottomNav';
 import AppFooter from '../../AppFooter';
 import CommonButton from '../../CommonButton';
 import KakaoMap from '../../KakaoMap';
+import ReviewListModal from '../../review/ReviewListModal';
 import { getBusinessApplications, decideBusinessApplication } from '../../../services/applyApi';
 import { deleteMyBusinessRecruit, updateMyBusinessRecruitStatus } from '../../../services/accountApi';
+import { getPublicReviewsByTarget } from '../../../services/reviewApi';
+import { getReviewLabelNames, normalizeReview } from '../../../utils/mypageUtils';
 
 const API_PREFIXES = ['/api', ''];
 
@@ -126,6 +129,40 @@ function getDday(deadline) {
   return `D-${diff}`;
 }
 
+function parseDateToTime(value) {
+  if (!value) return 0;
+  const time = new Date(value).getTime();
+  return Number.isNaN(time) ? 0 : time;
+}
+
+function formatAppliedDate(dateText) {
+  if (!dateText) return '-';
+  const date = new Date(dateText);
+  if (Number.isNaN(date.getTime())) return dateText;
+  return new Intl.DateTimeFormat('ko-KR', {
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+}
+
+function renderStars(rating, className = 'text-lg') {
+  const safeRating = Math.max(0, Math.min(5, Math.round(Number(rating) || 0)));
+  return (
+    <div className="flex text-primary">
+      {Array.from({ length: 5 }).map((_, index) => (
+        <span
+          key={`star-${index}`}
+          className={`material-symbols-outlined ${className}`}
+          style={index < safeRating ? { fontVariationSettings: "'FILL' 1" } : {}}
+        >
+          {index < safeRating ? 'star' : 'star_outline'}
+        </span>
+      ))}
+    </div>
+  );
+}
+
 function normalizeRecruitStatus(status) {
   return String(status || '').toUpperCase();
 }
@@ -153,6 +190,10 @@ export default function RecruitDetailPage({ embedded = false }) {
   const [hasAcceptedOrCompletedApplicants, setHasAcceptedOrCompletedApplicants] = useState(false);
   const [pendingApplyIds, setPendingApplyIds] = useState([]);
   const [isRecruitActionLoading, setIsRecruitActionLoading] = useState(false);
+  const [reviews, setReviews] = useState([]);
+  const [reviewLoading, setReviewLoading] = useState(false);
+  const [reviewError, setReviewError] = useState('');
+  const [showReviewModal, setShowReviewModal] = useState(false);
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -212,6 +253,10 @@ export default function RecruitDetailPage({ embedded = false }) {
   const displayAddress = useMemo(() => formatAddressSpaced(fullAddress), [fullAddress]);
   const isOpenStatus = useMemo(() => normalizeRecruitStatus(detail?.status) === 'OPEN', [detail?.status]);
   const deadlineBadgeText = useMemo(() => (isOpenStatus ? getDday(detail?.deadline) : '마감'), [isOpenStatus, detail?.deadline]);
+  const reviewTargetId = useMemo(
+    () => detail?.businessMemberId ?? detail?.memberId ?? null,
+    [detail?.businessMemberId, detail?.memberId],
+  );
 
   const moveToBusinessTab = (tabId) => {
     const nextParams = new URLSearchParams();
@@ -276,55 +321,152 @@ export default function RecruitDetailPage({ embedded = false }) {
     };
   }, [recruitId, isOpenStatus]);
 
-  const handleRecruitAction = async () => {
-    if (!recruitId || !isOpenStatus || isRecruitActionLoading) return;
+  useEffect(() => {
+    if (!reviewTargetId) {
+      setReviews([]);
+      return;
+    }
 
-    const isEarlyClose = hasAcceptedOrCompletedApplicants;
-    const confirmed = window.confirm(
-      isEarlyClose
-        ? '해당 공고를 조기마감하시겠습니까? 대기중인 지원자는 모두 거절 처리됩니다.'
-        : '해당 공고를 삭제하시겠습니까? 대기중인 지원자는 모두 거절 처리됩니다.'
-    );
+    let mounted = true;
+    const loadReviews = async () => {
+      try {
+        setReviewLoading(true);
+        setReviewError('');
+        const response = await getPublicReviewsByTarget(reviewTargetId);
+        if (!mounted) return;
+        const list = Array.isArray(response) ? response.map(normalizeReview) : [];
+        setReviews(list);
+      } catch (fetchError) {
+        if (!mounted) return;
+        setReviewError(fetchError?.message || '리뷰를 불러오지 못했습니다.');
+        setReviews([]);
+      } finally {
+        if (mounted) setReviewLoading(false);
+      }
+    };
+
+    loadReviews();
+    return () => {
+      mounted = false;
+    };
+  }, [reviewTargetId]);
+
+  const sortedReviews = useMemo(() => {
+    return [...reviews].sort((a, b) => {
+      const diff = parseDateToTime(b?.writtenAt) - parseDateToTime(a?.writtenAt);
+      if (diff !== 0) return diff;
+      return Number(b?.id || 0) - Number(a?.id || 0);
+    });
+  }, [reviews]);
+
+  const averageRating = useMemo(() => {
+    if (sortedReviews.length === 0) return 0;
+    const sum = sortedReviews.reduce((acc, review) => acc + Number(review?.rating || 0), 0);
+    return sum / sortedReviews.length;
+  }, [sortedReviews]);
+
+  const topLabels = useMemo(() => {
+    const labelCountMap = new Map();
+    sortedReviews.forEach((review) => {
+      getReviewLabelNames(review).forEach((label) => {
+        labelCountMap.set(label, (labelCountMap.get(label) || 0) + 1);
+      });
+    });
+    return [...labelCountMap.entries()]
+      .sort((a, b) => {
+        if (b[1] !== a[1]) return b[1] - a[1];
+        return a[0].localeCompare(b[0], 'ko');
+      })
+      .slice(0, 2);
+  }, [sortedReviews]);
+
+  const latestTwoReviews = useMemo(() => sortedReviews.slice(0, 2), [sortedReviews]);
+
+  const rejectPendingApplications = async () => {
+    if (pendingApplyIds.length === 0) return;
+    await Promise.all(pendingApplyIds.map((applyId) => decideBusinessApplication(applyId, false)));
+  };
+
+  const handleRecruitDelete = async () => {
+    if (!recruitId || isRecruitActionLoading) return;
+    const confirmed = window.confirm('공고를 삭제할까요? 대기 중 지원은 모두 거절 처리됩니다.');
     if (!confirmed) return;
 
     try {
       setIsRecruitActionLoading(true);
-
-      if (pendingApplyIds.length > 0) {
-        await Promise.all(pendingApplyIds.map((applyId) => decideBusinessApplication(applyId, false)));
-      }
-
-      if (isEarlyClose) {
-        await updateMyBusinessRecruitStatus(recruitId, 'CLOSED');
-        window.alert('공고가 조기마감 처리되었습니다.');
-      } else {
-        await deleteMyBusinessRecruit(recruitId);
-        window.alert('공고가 삭제되었습니다.');
-      }
-
+      await rejectPendingApplications();
+      await deleteMyBusinessRecruit(recruitId);
+      window.alert('공고가 삭제되었습니다.');
       moveToBusinessTab('recruits');
     } catch (actionError) {
-      window.alert(actionError?.message || '처리에 실패했습니다.');
+      window.alert(actionError?.message || '공고 삭제에 실패했습니다.');
     } finally {
       setIsRecruitActionLoading(false);
     }
   };
 
+  const handleRecruitStatusToggle = async () => {
+    if (!recruitId || isRecruitActionLoading) return;
+    const nextStatus = isOpenStatus ? 'CLOSED' : 'OPEN';
+    const confirmed = window.confirm(`공고 상태를 ${nextStatus === 'OPEN' ? '모집 중' : '마감'}으로 변경할까요?`);
+    if (!confirmed) return;
+
+    try {
+      setIsRecruitActionLoading(true);
+      if (nextStatus === 'CLOSED') {
+        await rejectPendingApplications();
+      }
+      await updateMyBusinessRecruitStatus(recruitId, nextStatus);
+      window.alert('공고 상태가 변경되었습니다.');
+      moveToBusinessTab('recruits');
+    } catch (actionError) {
+      window.alert(actionError?.message || '공고 상태 변경에 실패했습니다.');
+    } finally {
+      setIsRecruitActionLoading(false);
+    }
+  };
+
+
   return (
     <>
       {!embedded && <TopNavBar />}
       <main className={embedded ? 'bg-white border border-outline rounded-2xl p-6' : 'max-w-4xl mx-auto px-6 py-12 pt-32 pb-40'}>
+        {hasAcceptedOrCompletedApplicants && isOpenStatus && (
+          <div className="mb-4 rounded-xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-semibold text-amber-800">
+            진행 중 근무자가 있어 공고를 마감하면 대기 중 지원은 자동 거절됩니다.
+          </div>
+        )}
+
         <section className="mb-6">
           <div className="bg-white border border-outline rounded-2xl px-6 py-4">
-            <div className="flex flex-col md:flex-row items-stretch gap-3">
+            <div className="flex flex-wrap md:flex-nowrap items-stretch gap-2">
               <CommonButton type="button" variant="subtle" size="full" onClick={() => moveToBusinessTab('applicants')}>
-                지원자 현황
+                제의/지원 현황
               </CommonButton>
               <CommonButton type="button" variant="subtle" size="full" onClick={() => moveToBusinessTab('reviews')}>
                 리뷰 관리
               </CommonButton>
               <CommonButton type="button" size="full" onClick={() => moveToBusinessTab('work')}>
                 근무 관리
+              </CommonButton>
+              <CommonButton
+                type="button"
+                variant="outline"
+                size="full"
+                onClick={handleRecruitStatusToggle}
+                disabled={isRecruitActionLoading}
+              >
+                {isRecruitActionLoading ? '처리 중...' : (isOpenStatus ? '마감' : '재오픈')}
+              </CommonButton>
+              <CommonButton
+                type="button"
+                variant="outline"
+                size="full"
+                onClick={handleRecruitDelete}
+                disabled={isRecruitActionLoading}
+                className="text-red-600 border-red-200"
+              >
+                삭제
               </CommonButton>
             </div>
           </div>
@@ -353,16 +495,6 @@ export default function RecruitDetailPage({ embedded = false }) {
                     <h1 className="font-headline text-4xl md:text-5xl font-extrabold text-on-surface leading-tight tracking-tighter">
                       {detail.title}
                     </h1>
-                    {isOpenStatus && (
-                      <button
-                        type="button"
-                        onClick={handleRecruitAction}
-                        disabled={isRecruitActionLoading}
-                        className={`shrink-0 px-4 py-2 rounded-lg text-sm font-bold border ${hasAcceptedOrCompletedApplicants ? 'bg-primary text-white border-primary' : 'bg-white text-red-600 border-red-300'} disabled:opacity-50 disabled:cursor-not-allowed`}
-                      >
-                        {isRecruitActionLoading ? '처리 중...' : (hasAcceptedOrCompletedApplicants ? '조기마감' : '삭제')}
-                      </button>
-                    )}
                   </div>
                 </div>
                 {detail.brandId != null && (
@@ -457,11 +589,64 @@ export default function RecruitDetailPage({ embedded = false }) {
               </section>
 
               <section className="bg-surface-container-low p-8 rounded-2xl border border-outline">
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex justify-between items-center mb-6 gap-3">
                   <h3 className="font-headline text-xl font-bold">근무 후기</h3>
-                  <a className="text-primary text-xs font-bold hover:underline" href="#">View More</a>
+                  <button
+                    type="button"
+                    className="text-primary text-xs font-bold hover:underline"
+                    onClick={() => setShowReviewModal(true)}
+                  >
+                    리뷰 더보기 +
+                  </button>
                 </div>
-                <p className="text-sm text-on-surface-variant">리뷰 API 연동 전까지는 상세 보기만 연결했습니다.</p>
+
+                {reviewLoading && <p className="text-sm text-on-surface-variant">리뷰를 불러오는 중입니다...</p>}
+                {!reviewLoading && reviewError && <p className="text-sm text-red-600">{reviewError}</p>}
+
+                {!reviewLoading && !reviewError && (
+                  <>
+                    <div className="flex flex-wrap items-center gap-2 mb-5">
+                      {renderStars(averageRating)}
+                      <span className="font-black text-lg text-on-surface">{averageRating.toFixed(1)}</span>
+                      <span className="text-on-surface-variant text-sm">/ 5.0 · 리뷰 {sortedReviews.length}개</span>
+                    </div>
+
+                    <div className="flex flex-wrap gap-2 mb-6">
+                      {topLabels.length > 0 ? topLabels.map(([label, count]) => (
+                        <span key={label} className="text-xs font-bold bg-[#FFF0F3] text-primary px-2.5 py-1 rounded-full">
+                          #{label} ({count})
+                        </span>
+                      )) : (
+                        <span className="text-sm text-on-surface-variant">아직 강조 라벨이 없습니다.</span>
+                      )}
+                    </div>
+
+                    {latestTwoReviews.length > 0 ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {latestTwoReviews.map((review) => (
+                          <article key={review.id} className="bg-white rounded-xl border border-outline p-5 space-y-3">
+                            <div className="flex items-center justify-between gap-2">
+                              {renderStars(review.rating, 'text-base')}
+                              <span className="text-xs text-on-surface-variant">{formatAppliedDate(review.writtenAt)}</span>
+                            </div>
+                            <p className="text-sm text-on-surface leading-relaxed break-words">
+                              {review.content || '리뷰 내용이 없습니다.'}
+                            </p>
+                            <div className="flex flex-wrap gap-2">
+                              {getReviewLabelNames(review).map((label, index) => (
+                                <span key={`${review.id}-label-${index}`} className="text-[11px] font-bold bg-[#FFF0F3] text-primary px-2.5 py-0.5 rounded-full">
+                                  {label}
+                                </span>
+                              ))}
+                            </div>
+                          </article>
+                        ))}
+                      </div>
+                    ) : (
+                      <p className="text-sm text-on-surface-variant">아직 리뷰가 없네요. 첫 리뷰를 남겨주시면 큰 도움이 돼요!</p>
+                    )}
+                  </>
+                )}
               </section>
 
               <section className="p-8 rounded-2xl bg-white border border-outline">
@@ -495,6 +680,13 @@ export default function RecruitDetailPage({ embedded = false }) {
           </>
         )}
       </main>
+
+      <ReviewListModal
+        open={showReviewModal}
+        onClose={() => setShowReviewModal(false)}
+        reviews={sortedReviews}
+        title="근무 후기 전체 보기"
+      />
 
 
       {!embedded && <AppFooter />}

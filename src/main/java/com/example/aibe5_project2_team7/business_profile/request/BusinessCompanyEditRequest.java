@@ -1,5 +1,6 @@
 package com.example.aibe5_project2_team7.business_profile.request;
 
+import com.fasterxml.jackson.annotation.JsonAlias;
 import lombok.Getter;
 import lombok.Setter;
 
@@ -14,4 +15,8 @@ public class BusinessCompanyEditRequest {
     private String companyPhone;
     private String homepageUrl;
     private String companyAddress;
+    @JsonAlias("company_image_url")
+    private String companyImageUrl;
+    @JsonAlias("brand_id")
+    private Long brandId;
 }

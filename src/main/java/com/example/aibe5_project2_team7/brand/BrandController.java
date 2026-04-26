@@ -72,12 +72,12 @@ public class BrandController {
     public @ResponseBody ResponseEntity<BrandRecruitListResponse<BrandShortRecruitDto>> getBrandShortRecruits(
             @PathVariable(name = "brandId") Long brandId,
             @RequestParam(name = "page", defaultValue = "1") int page,
-            @RequestParam(name = "region_id", required = false) Long regionId,
+            @RequestParam(name = "region_id", required = false) List<Long> regionIds,
             @RequestParam(name = "work_date", required = false) List<String> workDate,
             @RequestParam(name = "work_time", required = false) List<String> workTime,
             @RequestParam(name = "urgent_only", required = false) Boolean urgentOnly,
             @RequestParam(name = "sort", required = false) String sort) {
-        BrandRecruitListResponse<BrandShortRecruitDto> results = brandService.getBrandShortRecruitList(brandId, page, regionId, workDate, workTime, urgentOnly, sort);
+        BrandRecruitListResponse<BrandShortRecruitDto> results = brandService.getBrandShortRecruitList(brandId, page, regionIds, workDate, workTime, urgentOnly, sort);
         return ResponseEntity.ok(results);
     }
 
@@ -85,13 +85,13 @@ public class BrandController {
     public @ResponseBody ResponseEntity<BrandRecruitListResponse<BrandLongRecruitDto>> getBrandLongRecruits(
             @PathVariable(name = "brandId") Long brandId,
             @RequestParam(name = "page", defaultValue = "1") int page,
-            @RequestParam(name = "region_id", required = false) Long regionId,
+            @RequestParam(name = "region_id", required = false) List<Long> regionIds,
             @RequestParam(name = "work_period", required = false) List<String> workPeriod,
             @RequestParam(name = "work_time", required = false) List<String> workTime,
             @RequestParam(name = "work_days", required = false) List<String> workDays,
             @RequestParam(name = "exclude_days", required = false) List<String> excludeDays,
             @RequestParam(name = "sort", required = false) String sort) {
-        BrandRecruitListResponse<BrandLongRecruitDto> results = brandService.getBrandLongRecruits(brandId, page, regionId, workPeriod, workTime, workDays, excludeDays, sort);
+        BrandRecruitListResponse<BrandLongRecruitDto> results = brandService.getBrandLongRecruits(brandId, page, regionIds, workPeriod, workTime, workDays, excludeDays, sort);
         return ResponseEntity.ok(results);
     }
 
@@ -99,7 +99,7 @@ public class BrandController {
     public @ResponseBody ResponseEntity<BrandRecruitListResponse<BrandCombinedRecruitDto>> getBrandRecruits(
             @PathVariable(name = "brandId") Long brandId,
             @RequestParam(name = "page", defaultValue = "1") int page,
-            @RequestParam(name = "region_id", required = false) Long regionId,
+            @RequestParam(name = "region_id", required = false) List<Long> regionIds,
             @RequestParam(name = "work_time", required = false) List<String> workTime,
             @RequestParam(name = "sort", required = false) String sort,
             @RequestParam(name = "work_date", required = false) List<String> workDate,
@@ -110,7 +110,7 @@ public class BrandController {
         BrandRecruitListResponse<BrandCombinedRecruitDto> results = brandService.getBrandRecruits(
                 brandId,
                 page,
-                regionId,
+                regionIds,
                 workTime,
                 sort,
                 workDate,

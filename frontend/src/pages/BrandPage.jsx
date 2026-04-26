@@ -13,6 +13,42 @@ import BrandModal from '../components/BrandModal';
 export default function BrandPage() {
   const navigate = useNavigate();
 
+  const getBrandLogoUrl = (brand) => {
+    const rawLogo = brand?.logoImagePath
+      || brand?.logo_image_path
+      || brand?.logoImg
+      || brand?.logo_img
+      || brand?.logoUrl
+      || brand?.logo_url
+      || brand?.brandLogo
+      || brand?.logo
+      || '';
+
+    if (!rawLogo || typeof rawLogo !== 'string') return '';
+    const trimmed = rawLogo.trim();
+    if (!trimmed) return '';
+
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('/')) {
+      return trimmed;
+    }
+
+    return `/${trimmed}`;
+  };
+
+  const getUrgentBannerUrl = (brand) => {
+    const rawBanner = brand?.banner_img || brand?.bannerImg || '';
+
+    if (!rawBanner || typeof rawBanner !== 'string') return '';
+    const trimmed = rawBanner.trim();
+    if (!trimmed) return '';
+
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('/')) {
+      return trimmed;
+    }
+
+    return `/${trimmed}`;
+  };
+
   // urgent brands fetched from backend
   const [urgentBrands, setUrgentBrands] = useState([]);
   const [urgentLoading, setUrgentLoading] = useState(false);
@@ -199,6 +235,8 @@ export default function BrandPage() {
                 const name = b.name || b.brand_name || b.brandName || '브랜드';
                 const cnt = b.urgentCount ?? b.urgent_count ?? b.count ?? 0;
                 const id = b.id ?? b.brandId ?? b.brand_id ?? '';
+                const bannerUrl = getUrgentBannerUrl(b);
+                const logoUrl = getBrandLogoUrl(b);
                 return (
                   <div
                     key={name + '_' + id}
@@ -209,8 +247,16 @@ export default function BrandPage() {
                     className="group bg-white rounded-2xl overflow-hidden transition-all shadow-md hover:shadow-xl hover:-translate-y-1 border border-outline/30 cursor-pointer"
                   >
                     <div className="h-48 overflow-hidden bg-primary-soft relative flex items-center justify-center">
-                      {/* empty image placeholder */}
-                      <div className="w-full h-full bg-gray-100" />
+                      {bannerUrl ? (
+                        <img
+                          src={bannerUrl}
+                          alt={`${name} 배너`}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : (
+                        <div className="w-full h-full bg-gray-100" />
+                      )}
                       <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-2.5 py-1 rounded-lg text-primary flex items-center shadow-sm">
                         <span className="material-symbols-outlined text-sm mr-1" style={{ fontVariationSettings: '"FILL" 1' }}>
                           emergency
@@ -220,8 +266,20 @@ export default function BrandPage() {
                     </div>
                     <div className="p-6">
                       <div className="flex justify-between items-start mb-4">
-                        <div>
-                          <h3 className="text-xl font-bold mb-1">{name}</h3>
+                        <div className="flex items-center gap-3 min-w-0">
+                          <div className="w-10 h-10 rounded-full bg-[#f9f9f9] border border-outline/50 overflow-hidden flex items-center justify-center shrink-0">
+                            {logoUrl ? (
+                              <img
+                                src={logoUrl}
+                                alt={`${name} 로고`}
+                                className="w-full h-full object-contain"
+                                loading="lazy"
+                              />
+                            ) : (
+                              <span className="material-symbols-outlined text-on-surface-variant text-[16px]">image</span>
+                            )}
+                          </div>
+                          <h3 className="text-xl font-bold mb-1 truncate">{name}</h3>
                         </div>
                       </div>
                       <div className="flex items-center justify-between pt-5 border-t border-outline/50">
@@ -244,12 +302,13 @@ export default function BrandPage() {
           <div className="custom-container">
             <div className="mb-12">
               <h2 className="text-3xl font-extrabold tracking-tighter mb-2">전체 브랜드 탐색</h2>
-              <p className="text-on-surface-variant font-medium">250여 개의 프리미엄 파트너사를 확인해보세요.</p>
+              <p className="text-on-surface-variant font-medium">43개의 프리미엄 파트너사를 확인해보세요.</p>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
               {randomBrands.map((b) => {
                 const name = b.name || b.brand_name || b.brandName || '브랜드';
                 const id = b.id ?? b.brandId ?? b.brand_id ?? '';
+                const logoUrl = getBrandLogoUrl(b);
                 return (
                   <div
                     key={name + '_' + id}
@@ -261,7 +320,16 @@ export default function BrandPage() {
                   >
                     <div className="flex items-center gap-4">
                       <div className="w-12 h-12 bg-[#f9f9f9] rounded-full flex items-center justify-center border border-outline/50 overflow-hidden">
-                        {/* empty image placeholder */}
+                        {logoUrl ? (
+                          <img
+                            src={logoUrl}
+                            alt={`${name} 로고`}
+                            className="w-full h-full object-contain"
+                            loading="lazy"
+                          />
+                        ) : (
+                          <span className="material-symbols-outlined text-on-surface-variant text-[18px]">image</span>
+                        )}
                       </div>
                       <div>
                         <span className="font-bold block text-sm">{name}</span>

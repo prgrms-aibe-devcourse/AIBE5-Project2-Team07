@@ -12,6 +12,7 @@ public class CompanySummaryResponse {
     private Long id;
     private String companyName;
     private String businessNumber;
+    private String companyImageUrl;
 
     public static CompanySummaryResponse from(BusinessProfile profile) {
         CompanySummaryResponse r = new CompanySummaryResponse();
@@ -19,6 +20,7 @@ public class CompanySummaryResponse {
         r.setId(profile.getId());
         r.setCompanyName(profile.getCompanyName());
         r.setBusinessNumber(profile.getBusinessNumber());
+        r.setCompanyImageUrl(profile.getCompanyImageUrl());
         return r;
     }
 }

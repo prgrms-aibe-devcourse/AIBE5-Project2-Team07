@@ -127,7 +127,15 @@ function Card({ children }) {
   return <section className="bg-white rounded-2xl border border-outline p-6">{children}</section>;
 }
 
-export default function TalentProfilePageCopied({ resumeId, applyId, applyStatus, onBack, onDecisionComplete }) {
+export default function TalentProfilePageCopied({
+  resumeId,
+  applyId,
+  applyStatus,
+  applyMessage = '',
+  canDecide = true,
+  onBack,
+  onDecisionComplete,
+}) {
   const [talentData, setTalentData] = useState(initialTalentData);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -188,10 +196,10 @@ export default function TalentProfilePageCopied({ resumeId, applyId, applyStatus
     return <div className="bg-white rounded-2xl border border-outline p-10 text-center text-red-500">{error}</div>;
   }
 
-  const canDecide = Boolean(applyId) && currentApplyStatus === 'PENDING';
+  const canUpdateDecision = Boolean(canDecide) && Boolean(applyId) && currentApplyStatus === 'PENDING';
 
   const handleDecision = async (accept) => {
-    if (!canDecide || decisionLoading) return;
+    if (!canUpdateDecision || decisionLoading) return;
 
     const confirmed = window.confirm(
       accept ? '이 지원자를 수락하시겠습니까?' : '이 지원자를 거절하시겠습니까?'
@@ -242,7 +250,7 @@ export default function TalentProfilePageCopied({ resumeId, applyId, applyStatus
               <p className="text-sm text-on-surface-variant">이메일: {talentData.email || '-'}</p>
             </div>
 
-            {canDecide && (
+            {canUpdateDecision && (
               <div className="flex items-start gap-2 shrink-0">
                 <button
                   type="button"
@@ -264,6 +272,13 @@ export default function TalentProfilePageCopied({ resumeId, applyId, applyStatus
             )}
           </div>
         </div>
+      </Card>
+
+      <Card>
+        <SectionTitle>추가 메시지</SectionTitle>
+        <p className="text-sm text-on-surface-variant whitespace-pre-wrap break-words">
+          {applyMessage || '작성된 추가 메시지가 없습니다.'}
+        </p>
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

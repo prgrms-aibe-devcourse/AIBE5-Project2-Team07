@@ -1,39 +1,76 @@
 import { requestWithAuth, getStoredMember } from './authApi';
 
-export async function getBusinessApplications(params = {}) {
+function resolveBusinessProfileId() {
     const storedMember = getStoredMember();
-    const {
-        page = 0,
-        size = 10,
-        recruitId,
-    } = params;
-
-    const businessProfileId =
+    return (
         storedMember?.businessProfileId ||
         storedMember?.businessProfile?.id ||
         storedMember?.profileId ||
-        '';
+        ''
+    );
+}
+
+async function getBusinessApplyPage(path, params = {}, defaultErrorMessage = '목록을 불러오는 중 오류가 발생했습니다.') {
+    const businessProfileId = resolveBusinessProfileId();
+    const {
+        page = 0,
+        size = 20,
+        type,
+        recruitId,
+    } = params;
 
     const searchParams = new URLSearchParams();
     searchParams.set('page', String(page));
     searchParams.set('size', String(size));
+    if (type) searchParams.set('type', String(type));
     if (recruitId) searchParams.set('recruitId', String(recruitId));
 
-    return requestWithAuth(`/applies/business/applications?${searchParams.toString()}`, {
-        method: 'GET',
-        headers: {
-            'X-Business-Profile-Id': String(businessProfileId),
-        },
-    });
+    try {
+        return await requestWithAuth(`${path}?${searchParams.toString()}`, {
+            method: 'GET',
+            headers: {
+                'X-Business-Profile-Id': String(businessProfileId),
+            },
+        });
+    } catch (error) {
+        throw new Error(error?.message || defaultErrorMessage);
+    }
+}
+
+export async function getBusinessApplications(params = {}) {
+    return getBusinessApplyPage(
+        '/applies/business/applications',
+        params,
+        '지원 목록을 불러오는 중 오류가 발생했습니다.',
+    );
+}
+
+export async function getBusinessOffers(params = {}) {
+    return getBusinessApplyPage(
+        '/applies/business/offers',
+        params,
+        '제의 목록을 불러오는 중 오류가 발생했습니다.',
+    );
+}
+
+export async function getBusinessWorks(params = {}) {
+    return getBusinessApplyPage(
+        '/applies/business/works',
+        params,
+        '근무 목록을 불러오는 중 오류가 발생했습니다.',
+    );
+}
+
+export async function getBusinessCompletedWorks(params = {}) {
+    return getBusinessApplyPage(
+        '/applies/business/reviews',
+        params,
+        '근무 완료 목록을 불러오는 중 오류가 발생했습니다.',
+    );
 }
 
 export async function decideBusinessApplication(applyId, accept) {
-    const storedMember = getStoredMember();
-    const businessProfileId =
-        storedMember?.businessProfileId ||
-        storedMember?.businessProfile?.id ||
-        storedMember?.profileId ||
-        '';
+    const businessProfileId = resolveBusinessProfileId();
 
     return requestWithAuth(`/applies/${encodeURIComponent(applyId)}/decision`, {
         method: 'PATCH',
@@ -43,6 +80,51 @@ export async function decideBusinessApplication(applyId, accept) {
         body: JSON.stringify({ accept: Boolean(accept) }),
     });
 }
+
+export async function cancelBusinessApply(applyId) {
+    const businessProfileId = resolveBusinessProfileId();
+    return requestWithAuth(`/applies/${encodeURIComponent(applyId)}`, {
+        method: 'DELETE',
+        headers: {
+            'X-Business-Profile-Id': String(businessProfileId),
+        },
+    });
+}
+
+export async function completeBusinessApply(applyId) {
+    const businessProfileId = resolveBusinessProfileId();
+    return requestWithAuth(`/applies/${encodeURIComponent(applyId)}/complete`, {
+        method: 'PATCH',
+        headers: {
+            'X-Business-Profile-Id': String(businessProfileId),
+        },
+    });
+}
+
+export async function offerToIndividualByBusiness(payload) {
+    const businessProfileId = resolveBusinessProfileId();
+
+    return requestWithAuth('/applies/offer', {
+        method: 'POST',
+        headers: {
+            'X-Business-Profile-Id': String(businessProfileId),
+        },
+        body: payload,
+    });
+}
+
+export async function offerToIndividualByBusinessAndMemberId(payload) {
+    const businessProfileId = resolveBusinessProfileId();
+
+    return requestWithAuth('/applies/offer/by-member', {
+        method: 'POST',
+        headers: {
+            'X-Business-Profile-Id': String(businessProfileId),
+        },
+        body: payload,
+    });
+}
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 function resolveMemberId(memberId) {
