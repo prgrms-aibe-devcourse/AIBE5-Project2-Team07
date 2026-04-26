@@ -81,9 +81,46 @@ export default function GlobalMemberMessagePanel({
     ? lastMessage.id ?? lastMessage.sentAt
     : null;
 
+  const messagesContainerRef = useRef(null);
+  const previousScrollHeight = useRef(0);
+  const isFetchingMore = useRef(false);
+
+  useEffect(() => {
+    isFetchingMore.current = loadingMore;
+  }, [loadingMore]);
+
   useEffect(() => {
     isInitialLoad.current = true;
+    previousScrollHeight.current = 0;
   }, [selectedRoomId]);
+
+  useEffect(() => {
+    if (
+      messagesContainerRef.current &&
+      previousScrollHeight.current > 0 &&
+      !isInitialLoad.current
+    ) {
+      const newScrollHeight = messagesContainerRef.current.scrollHeight;
+      if (newScrollHeight > previousScrollHeight.current) {
+        messagesContainerRef.current.scrollTop +=
+          newScrollHeight - previousScrollHeight.current;
+        previousScrollHeight.current = 0;
+      }
+    }
+  }, [messages]);
+
+  const handleScroll = (e) => {
+    if (
+      e.target.scrollTop <= 10 &&
+      hasMore &&
+      !loadingMore &&
+      !isFetchingMore.current
+    ) {
+      isFetchingMore.current = true;
+      previousScrollHeight.current = e.target.scrollHeight;
+      onLoadMore();
+    }
+  };
 
   useEffect(() => {
     if (lastMessageId) {
@@ -231,19 +268,18 @@ export default function GlobalMemberMessagePanel({
                   </div>
                 </div>
 
-                <div className="flex-1 min-h-0 overflow-y-auto px-3 py-3 space-y-2 bg-white">
+                <div
+                  ref={messagesContainerRef}
+                  onScroll={handleScroll}
+                  className="flex-1 min-h-0 overflow-y-auto px-3 py-3 space-y-2 bg-white"
+                >
                   {hasMore && (
-                    <div className="flex justify-center mb-2">
-                      <button
-                        type="button"
-                        onClick={onLoadMore}
-                        disabled={loadingMore}
-                        className="text-xs font-bold text-primary hover:underline disabled:opacity-50"
-                      >
-                        {loadingMore
-                          ? "이전 메시지 불러오는 중..."
-                          : "이전 메시지 더보기"}
-                      </button>
+                    <div className="flex justify-center mb-2 h-6 items-center">
+                      {loadingMore && (
+                        <span className="text-xs font-bold text-primary opacity-70">
+                          이전 메시지 불러오는 중...
+                        </span>
+                      )}
                     </div>
                   )}
 
