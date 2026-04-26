@@ -331,7 +331,7 @@ export default function GlobalMemberMessagePanel({
                   ) : (
                     messages.map((message, index) => {
                       const mine =
-                        message.senderId === currentMemberId &&
+                        String(message.senderId) === String(currentMemberId) &&
                         message.type === "TALK";
                       const systemMessage =
                         message.type === "ENTER" || message.type === "LEAVE";

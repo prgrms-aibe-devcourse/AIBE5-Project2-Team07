@@ -233,8 +233,9 @@ export default function GlobalAiChatbotButton() {
           return;
         }
 
-        setMessages(response?.messages || []);
-        setHasMore(Boolean(response?.hasNext));
+        const initialMsgs = response?.messages || [];
+        setMessages(initialMsgs);
+        setHasMore(initialMsgs.length > 0 ? Boolean(response?.hasNext) : false);
         setNextCursorId(response?.nextCursorId ?? null);
       } catch (error) {
         if (!mounted) {
@@ -299,9 +300,15 @@ export default function GlobalAiChatbotButton() {
     try {
       const response = await getChatMessages(selectedRoomId, nextCursorId, 50);
       const olderMessages = response?.messages || [];
-      setMessages((prev) => [...olderMessages, ...prev]);
-      setHasMore(Boolean(response?.hasNext));
-      setNextCursorId(response?.nextCursorId ?? null);
+      
+      if (olderMessages.length === 0) {
+        setHasMore(false);
+        setNextCursorId(null);
+      } else {
+        setMessages((prev) => [...olderMessages, ...prev]);
+        setHasMore(Boolean(response?.hasNext));
+        setNextCursorId(response?.nextCursorId ?? null);
+      }
     } catch (error) {
       setMemberError(error.message || '이전 메시지를 불러오지 못했습니다.');
     } finally {
@@ -390,7 +397,7 @@ export default function GlobalAiChatbotButton() {
         return;
       }
 
-      if (partnerUserId === currentMemberId) {
+      if (String(partnerUserId) === String(currentMemberId)) {
         setMemberError('본인에게 메시지를 보낼 수 없습니다.');
         return;
       }
