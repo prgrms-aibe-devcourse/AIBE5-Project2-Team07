@@ -178,6 +178,10 @@ export default function BusinessWorkTab() {
         }
     };
 
+    const togglePendingComplete = (applyId) => {
+        setPendingCompleteId((prev) => (prev === applyId ? null : applyId));
+    };
+
     return (
         <section className="flex-grow">
             <div className="mb-8 space-y-4">
@@ -320,14 +324,14 @@ export default function BusinessWorkTab() {
                                         {item.status === 'ACCEPTED' && (
                                             <button
                                                 type="button"
-                                                onClick={() => setPendingCompleteId(item.id)}
+                                                    onClick={() => togglePendingComplete(item.id)}
                                                 className={`px-3 py-1.5 rounded-lg border text-xs font-bold ${
                                                     pendingCompleteId === item.id
                                                         ? 'bg-primary text-white border-primary'
                                                         : 'bg-white border-outline text-on-surface-variant'
                                                 }`}
                                             >
-                                                완료 선택
+                                                    {pendingCompleteId === item.id ? '완료 해제' : '완료'}
                                             </button>
                                         )}
                                     </div>

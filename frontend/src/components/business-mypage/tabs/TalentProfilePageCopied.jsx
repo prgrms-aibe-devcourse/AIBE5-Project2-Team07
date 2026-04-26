@@ -127,7 +127,15 @@ function Card({ children }) {
   return <section className="bg-white rounded-2xl border border-outline p-6">{children}</section>;
 }
 
-export default function TalentProfilePageCopied({ resumeId, applyId, applyStatus, canDecide = true, onBack, onDecisionComplete }) {
+export default function TalentProfilePageCopied({
+  resumeId,
+  applyId,
+  applyStatus,
+  applyMessage = '',
+  canDecide = true,
+  onBack,
+  onDecisionComplete,
+}) {
   const [talentData, setTalentData] = useState(initialTalentData);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
@@ -264,6 +272,13 @@ export default function TalentProfilePageCopied({ resumeId, applyId, applyStatus
             )}
           </div>
         </div>
+      </Card>
+
+      <Card>
+        <SectionTitle>추가 메시지</SectionTitle>
+        <p className="text-sm text-on-surface-variant whitespace-pre-wrap break-words">
+          {applyMessage || '작성된 추가 메시지가 없습니다.'}
+        </p>
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
