@@ -27,7 +27,7 @@ public class RecruitGenerator {
 	// 하위 테이블도 모두 9000번대 이상 id를 사용한다.
 	private static final long START_CHILD_ID = 9000L;
 	// 공고 생성 개수 설정 (1290 이상 권장)
-	private static final int FIXED_RECRUIT_COUNT = 1290;
+	private static final int FIXED_RECRUIT_COUNT = 2580;
 	private static final long DEFAULT_REGION_ID = 1L;
 	private static final long MIN_BRAND_ID = 1L;
 	private static final long MAX_BRAND_ID = 43L;
@@ -116,8 +116,8 @@ public class RecruitGenerator {
 		for (int i = 0; i < FIXED_RECRUIT_COUNT; i++) {
 			long id = START_ID + i;
 			long childId = START_CHILD_ID + i;
-			// brand_id 규칙: 50%는 (i/30+1), 50%는 1~43 랜덤
-			long sequenceBrandId = (i / 30L) + 1L;
+			// brand_id 규칙: 50%는 (i%43+1), 50%는 1~43 랜덤
+			long sequenceBrandId = (i % 43L) + 1L;
 			long randomBrandId = randomBetween(random, MIN_BRAND_ID, MAX_BRAND_ID);
 			Long brandId = random.nextBoolean() ? sequenceBrandId : randomBrandId;
 			// business_member_id 규칙: 9XXX, 가운데 두 자리는 brand_id, 마지막 한 자리는 랜덤
