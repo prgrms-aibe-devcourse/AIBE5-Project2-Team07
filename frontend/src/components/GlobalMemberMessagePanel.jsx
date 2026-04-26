@@ -54,6 +54,20 @@ function renderMessageContent(content) {
   });
 }
 
+function formatMessageTime(dateString) {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  if (isNaN(date.getTime())) return '';
+  
+  const yyyy = date.getFullYear();
+  const mm = String(date.getMonth() + 1).padStart(2, '0');
+  const dd = String(date.getDate()).padStart(2, '0');
+  const hh = String(date.getHours()).padStart(2, '0');
+  const min = String(date.getMinutes()).padStart(2, '0');
+  
+  return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
+}
+
 export default function GlobalMemberMessagePanel({
   isOpen,
   isLoggedIn,
@@ -339,7 +353,7 @@ export default function GlobalMemberMessagePanel({
                         <div
                           key={messageKey(message, index)}
                           className={
-                            mine ? "flex justify-end" : "flex justify-start"
+                            mine ? "flex flex-col items-end" : "flex flex-col items-start"
                           }
                         >
                           <div
@@ -352,6 +366,11 @@ export default function GlobalMemberMessagePanel({
                           >
                             {renderMessageContent(message.content)}
                           </div>
+                          {message.sentAt && (
+                            <span className="text-[10px] text-on-surface-variant mt-1 px-1">
+                              {formatMessageTime(message.sentAt)}
+                            </span>
+                          )}
                         </div>
                       );
                     })
