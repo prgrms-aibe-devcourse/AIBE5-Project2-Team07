@@ -11,6 +11,7 @@ import java.time.LocalDateTime;
 public class MyChatRoomResponseDto {
     private String roomId;
     private Long partnerUserId;
+    private String partnerEmail;
     private String lastMessageContent;
 
     @JsonFormat(shape = JsonFormat.Shape.STRING, pattern = "yyyy-MM-dd HH:mm:ss", timezone = "Asia/Seoul")

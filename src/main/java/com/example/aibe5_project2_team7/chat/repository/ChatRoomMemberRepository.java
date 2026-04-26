@@ -28,6 +28,14 @@ public interface ChatRoomMemberRepository extends JpaRepository<ChatRoomMember, 
                     limit 1
                 ) as partnerUserId,
                 (
+                    select m.email
+                    from chat_room_member crm2
+                    join member m on m.id = crm2.user_id
+                    where crm2.room_id = crm.room_id
+                      and crm2.user_id <> :userId
+                    limit 1
+                ) as partnerEmail,
+                (
                     select cm.content
                     from chat_message cm
                     where cm.room_id = crm.room_id

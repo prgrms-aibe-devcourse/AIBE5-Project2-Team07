@@ -159,6 +159,7 @@ public class ChatMessageService {
                 .map(row -> new MyChatRoomResponseDto(
                         row.getRoomId(),
                         row.getPartnerUserId(),
+                        row.getPartnerEmail(),
                         row.getLastMessageContent(),
                         row.getLastMessageAt(),
                         row.getUnreadCount() == null ? 0L : row.getUnreadCount()

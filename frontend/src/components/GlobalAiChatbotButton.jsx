@@ -54,6 +54,13 @@ export default function GlobalAiChatbotButton() {
     [rooms, selectedRoomId],
   );
 
+  const totalUnreadCount = useMemo(
+    () => rooms.reduce((sum, room) => sum + Number(room?.unreadCount || 0), 0),
+    [rooms],
+  );
+
+  const unreadBadgeCount = useMemo(() => Math.min(totalUnreadCount, 100), [totalUnreadCount]);
+
   const syncMember = useCallback(() => {
     setMember(getCurrentMember());
   }, []);
@@ -100,7 +107,7 @@ export default function GlobalAiChatbotButton() {
       const roomRows = await getMyChatRooms(currentMemberId);
       const mappedRooms = (roomRows || []).map((room) => ({
         ...room,
-        displayName: `회원 #${room.partnerUserId ?? '-'}`,
+        displayName: room.partnerEmail || (room.partnerUserId ? `member${room.partnerUserId}@example.com` : '알 수 없는 회원'),
       }));
 
       setRooms(mappedRooms);
@@ -163,6 +170,7 @@ export default function GlobalAiChatbotButton() {
             email: member?.email || '',
             type: 'ENTER',
           });
+          loadRooms(selectedRoomId);
         } catch (error) {
           console.error(error);
         }
@@ -179,6 +187,20 @@ export default function GlobalAiChatbotButton() {
       loadRooms();
     }
   }, [activePanel, ensureSocketClient, isLoggedIn, loadRooms]);
+
+  useEffect(() => {
+    if (!isLoggedIn || !currentMemberId) {
+      setRooms([]);
+      return undefined;
+    }
+
+    loadRooms();
+    const intervalId = window.setInterval(() => {
+      loadRooms();
+    }, 15000);
+
+    return () => window.clearInterval(intervalId);
+  }, [currentMemberId, isLoggedIn, loadRooms]);
 
   useEffect(() => {
     return () => {
@@ -381,25 +403,32 @@ export default function GlobalAiChatbotButton() {
         >
           AI 챗봇
         </CommonButton>
-        <CommonButton
-          type="button"
-          variant="toggle"
-          size="sm"
-          fullWidth
-          className="justify-start px-3 mt-1"
-          inactiveClassName="text-on-surface hover:bg-primary-soft"
-          icon={<span className="material-symbols-outlined text-[18px]">forum</span>}
-          iconPosition="left"
-          disabled={!isLoggedIn}
-          onClick={() => {
-            if (!isLoggedIn) {
-              return;
-            }
-            setActivePanel('member');
-          }}
-        >
-          회원 메시지함
-        </CommonButton>
+        <div className="relative mt-1">
+          <CommonButton
+            type="button"
+            variant="toggle"
+            size="sm"
+            fullWidth
+            className="justify-start px-3"
+            inactiveClassName="text-on-surface hover:bg-primary-soft"
+            icon={<span className="material-symbols-outlined text-[18px]">forum</span>}
+            iconPosition="left"
+            disabled={!isLoggedIn}
+            onClick={() => {
+              if (!isLoggedIn) {
+                return;
+              }
+              setActivePanel('member');
+            }}
+          >
+            회원 메시지함
+          </CommonButton>
+          {isLoggedIn && unreadBadgeCount > 0 && (
+            <span className="absolute -top-1.5 -right-1.5 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[12px] font-bold flex items-center justify-center shadow border-2 border-white pointer-events-none">
+              {unreadBadgeCount}
+            </span>
+          )}
+        </div>
       </div>
 
       <GlobalAiChatbotPanel
@@ -435,17 +464,24 @@ export default function GlobalAiChatbotButton() {
         currentMemberType={currentMemberType}
       />
 
-      <CommonButton
-        variant="fab"
-        size="fab"
-        className="shadow-2xl"
-        aria-label="대타 메시지 도구 열기"
-        onClick={toggleLauncher}
-      >
-        <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-          {activePanel ? 'close' : 'chat_bubble'}
-        </span>
-      </CommonButton>
+      <div className="relative">
+        <CommonButton
+          variant="fab"
+          size="fab"
+          className="shadow-2xl"
+          aria-label="대타 메시지 도구 열기"
+          onClick={toggleLauncher}
+        >
+          <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>
+            {activePanel ? 'close' : 'chat_bubble'}
+          </span>
+        </CommonButton>
+        {isLoggedIn && unreadBadgeCount > 0 && (
+          <span className="absolute -top-1 -right-1 min-w-6 h-6 px-1 rounded-full bg-red-500 text-white text-[13px] font-bold flex items-center justify-center shadow-lg border-2 border-white">
+            {unreadBadgeCount}
+          </span>
+        )}
+      </div>
     </div>
   );
 }
