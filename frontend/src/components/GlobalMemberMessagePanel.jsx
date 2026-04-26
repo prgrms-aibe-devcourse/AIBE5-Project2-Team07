@@ -31,6 +31,29 @@ function messageKey(message, index) {
   );
 }
 
+function renderMessageContent(content) {
+  if (!content) return null;
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = content.split(urlRegex);
+  return parts.map((part, i) => {
+    if (part.match(urlRegex)) {
+      return (
+        <a
+          key={i}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline underline-offset-2 break-all font-bold hover:opacity-80"
+          onClick={(e) => e.stopPropagation()}
+        >
+          {part}
+        </a>
+      );
+    }
+    return <span key={i}>{part}</span>;
+  });
+}
+
 export default function GlobalMemberMessagePanel({
   isOpen,
   isLoggedIn,
@@ -327,7 +350,7 @@ export default function GlobalMemberMessagePanel({
                                 : "bg-gray-100 text-on-surface rounded-bl-md border border-outline",
                             ].join(" ")}
                           >
-                            {message.content}
+                            {renderMessageContent(message.content)}
                           </div>
                         </div>
                       );

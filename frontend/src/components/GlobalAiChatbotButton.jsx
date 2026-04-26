@@ -377,6 +377,68 @@ export default function GlobalAiChatbotButton() {
     return () => window.removeEventListener('open-direct-chat', handleOpenDirectChat);
   }, [currentMemberId, ensureSocketClient, isLoggedIn, loadRooms, navigate]);
 
+  useEffect(() => {
+    const handleSendDirectMessages = async (event) => {
+      const partnerUserId = event?.detail?.partnerUserId;
+      const messagesToSend = event?.detail?.messages;
+      if (!partnerUserId || !messagesToSend || messagesToSend.length === 0) {
+        return;
+      }
+
+      if (!isLoggedIn || !currentMemberId) {
+        navigate('/login');
+        return;
+      }
+
+      if (partnerUserId === currentMemberId) {
+        setMemberError('본인에게 메시지를 보낼 수 없습니다.');
+        return;
+      }
+
+      try {
+        setActivePanel('member');
+        ensureSocketClient();
+        const response = await createDirectRoom(currentMemberId, partnerUserId);
+        const roomId = response?.roomId;
+        await loadRooms(roomId);
+        setSelectedRoomId(roomId);
+
+        const sendMessagesWhenConnected = () => {
+          const client = clientRef.current;
+          if (!client) return;
+
+          if (client.connected) {
+            let delay = 0;
+            messagesToSend.forEach((content) => {
+              setTimeout(() => {
+                publishChat(client, {
+                  senderId: currentMemberId,
+                  receiverId: partnerUserId,
+                  roomId: roomId,
+                  email: member?.email || '',
+                  content: content,
+                  type: 'TALK',
+                });
+              }, delay);
+              delay += 300; // 300ms delay to ensure order
+            });
+            setTimeout(() => loadRooms(roomId), delay + 200);
+          } else {
+            setTimeout(sendMessagesWhenConnected, 200);
+          }
+        };
+
+        sendMessagesWhenConnected();
+      } catch (error) {
+        setMemberError(error.message || '메시지 전송에 실패했습니다.');
+        setActivePanel('member');
+      }
+    };
+
+    window.addEventListener('send-direct-messages', handleSendDirectMessages);
+    return () => window.removeEventListener('send-direct-messages', handleSendDirectMessages);
+  }, [currentMemberId, ensureSocketClient, isLoggedIn, loadRooms, member?.email, navigate]);
+
   const toggleLauncher = () => {
     setActivePanel((prev) => (prev ? null : 'menu'));
   };

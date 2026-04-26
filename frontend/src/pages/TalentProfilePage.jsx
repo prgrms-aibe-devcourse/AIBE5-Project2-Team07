@@ -476,11 +476,32 @@ export default function TalentProfilePage() {
         try {
             setOfferSubmitting(true);
             setActionError('');
+            
+            const messageText = offerMessage.trim();
+            
             await offerToIndividualByBusinessAndMemberId({
                 recruitId: Number(selectedRecruitId),
                 memberId: Number(memberIdForOffer),
-                message: offerMessage.trim(),
+                message: messageText,
             });
+
+            const selectedRecruitName = recruitOptions.find(r => String(r.id) === String(selectedRecruitId))?.title || '공고';
+            const userEmail = storedMember?.email || '회원';
+            const recruitLink = `${window.location.origin}/recruit-detail?recruitId=${selectedRecruitId}`;
+            
+            const message1 = `${userEmail}님께서 [${selectedRecruitName}] 공고를 제의합니다.\n공고 보기: ${recruitLink}`;
+            
+            const messagesToDispatch = messageText ? [message1, messageText] : [message1];
+
+            window.dispatchEvent(
+                new CustomEvent('send-direct-messages', {
+                    detail: {
+                        partnerUserId: Number(memberIdForOffer),
+                        messages: messagesToDispatch,
+                    },
+                })
+            );
+
             setShowOfferModal(false);
             setOfferMessage('');
             setActionMessage('제의가 성공적으로 전송되었습니다!');
