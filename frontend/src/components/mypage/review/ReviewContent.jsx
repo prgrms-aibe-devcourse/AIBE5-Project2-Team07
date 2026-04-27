@@ -48,6 +48,7 @@ export default function ReviewContent({ account }) {
 
     const [message, setMessage] = useState('');
     const [error, setError] = useState('');
+    const [modalError, setModalError] = useState('');
 
     const [modalOpen, setModalOpen] = useState(false);
     const [modalMode, setModalMode] = useState('create');
@@ -62,12 +63,16 @@ export default function ReviewContent({ account }) {
         labelNames: [],
     });
 
-    // 받은 리뷰 조회는 사업자/개인 모두 memberId 기준으로 조회
-    const targetIdForReceived = useMemo(() => {
-        return memberId;
-    }, [memberId]);
+    const targetIdForReceived = useMemo(() => memberId, [memberId]);
 
-    // applyId 기준으로 화면 표시용 정보 매핑
+    const showMessage = (text) => {
+        setMessage(text);
+
+        setTimeout(() => {
+            setMessage('');
+        }, 2000);
+    };
+
     const applyInfoMap = useMemo(() => {
         const map = new Map();
 
@@ -82,21 +87,46 @@ export default function ReviewContent({ account }) {
         return map;
     }, [reviewableApplies]);
 
-    // 사업자 화면에서는 개인 이름을, 개인 화면에서는 회사명을 우선 표시
     const getDisplayName = (review, tabType) => {
         const info = applyInfoMap.get(String(review.applyId));
 
         if (account?.memberType === 'BUSINESS') {
-            // 사업자 화면: 받은 리뷰/쓴 리뷰 모두 개인회원 이름 우선
-            return info?.individualName || review?.writerName || review?.targetName || `회원 #${review.targetId || review.writerId}`;
+            if (tabType === 'received') {
+                return (
+                    review?.writerName ||
+                    info?.individualName ||
+                    review?.targetName ||
+                    `회원 #${review.writerId || review.targetId}`
+                );
+            }
+
+            return (
+                info?.individualName ||
+                review?.targetName ||
+                `회원 #${review.targetId}`
+            );
         }
 
-        // 개인 화면
-        if (tabType === 'received') {
-            return info?.companyName || review?.writerName || review?.targetName || `회원 #${review.writerId || review.targetId}`;
+        if (account?.memberType === 'INDIVIDUAL') {
+            if (tabType === 'received') {
+                return (
+                    review?.writerCompanyName ||
+                    review?.companyName ||
+                    info?.companyName ||
+                    `회사 #${review.writerId || review.targetId}`
+                );
+            }
+
+            return (
+                review?.targetCompanyName ||
+                review?.companyName ||
+                info?.companyName ||
+                review?.targetName ||
+                `회사 #${review.targetId}`
+            );
         }
 
-        return info?.companyName || review?.targetName || `회원 #${review.targetId}`;
+        return review?.writerName || review?.targetName || '알 수 없음';
     };
 
     const getDisplayRecruitTitle = (review) => {
@@ -169,6 +199,7 @@ export default function ReviewContent({ account }) {
 
     const openCreateModal = () => {
         setModalMode('create');
+        setModalError('');
         setFormValue({
             reviewId: null,
             applyId: '',
@@ -184,6 +215,7 @@ export default function ReviewContent({ account }) {
 
     const openEditModal = (review) => {
         setModalMode('edit');
+        setModalError('');
         setFormValue({
             reviewId: review.id,
             applyId: String(review.applyId ?? ''),
@@ -204,23 +236,28 @@ export default function ReviewContent({ account }) {
             setLoadingAction(true);
             setMessage('');
             setError('');
+            setModalError('');
 
             if (!selectedApply) {
-                throw new Error('완료된 지원 건을 선택해주세요.');
+                setModalError('완료된 지원 건을 선택해주세요.');
+                return;
             }
 
             const targetInfo = resolveTargetInfoFromApply(account, selectedApply);
 
             if (!targetInfo.targetId) {
-                throw new Error('선택한 지원 건의 리뷰 대상 정보가 없습니다.');
+                setModalError('선택한 지원 건의 리뷰 대상 정보가 없습니다.');
+                return;
             }
 
             if (!form.content.trim()) {
-                throw new Error('리뷰 내용을 입력해주세요.');
+                setModalError('리뷰 내용을 입력해주세요.');
+                return;
             }
 
             if (!form.labelNames.length) {
-                throw new Error('리뷰 라벨을 1개 이상 선택해주세요.');
+                setModalError('리뷰 라벨을 1개 이상 선택해주세요.');
+                return;
             }
 
             await createReview({
@@ -236,10 +273,10 @@ export default function ReviewContent({ account }) {
             await loadReceivedReviews();
             await loadReviewableApplies();
 
-            setMessage('리뷰가 등록되었습니다.');
+            showMessage('리뷰가 등록되었습니다.');
             setModalOpen(false);
         } catch (err) {
-            setError(err.message || '리뷰 등록 중 오류가 발생했습니다.');
+            setModalError(err.message || '리뷰 등록 중 오류가 발생했습니다.');
         } finally {
             setLoadingAction(false);
         }
@@ -250,10 +287,22 @@ export default function ReviewContent({ account }) {
             setLoadingAction(true);
             setMessage('');
             setError('');
+            setModalError('');
 
-            if (!form.reviewId) throw new Error('수정할 reviewId가 없습니다.');
-            if (!form.content.trim()) throw new Error('리뷰 내용을 입력해주세요.');
-            if (!form.labelNames.length) throw new Error('리뷰 라벨을 1개 이상 선택해주세요.');
+            if (!form.reviewId) {
+                setModalError('수정할 reviewId가 없습니다.');
+                return;
+            }
+
+            if (!form.content.trim()) {
+                setModalError('리뷰 내용을 입력해주세요.');
+                return;
+            }
+
+            if (!form.labelNames.length) {
+                setModalError('리뷰 라벨을 1개 이상 선택해주세요.');
+                return;
+            }
 
             await updateReview(form.reviewId, {
                 rating: form.rating,
@@ -264,10 +313,10 @@ export default function ReviewContent({ account }) {
             await loadWrittenReviews();
             await loadReceivedReviews();
 
-            setMessage('리뷰가 수정되었습니다.');
+            showMessage('리뷰가 수정되었습니다.');
             setModalOpen(false);
         } catch (err) {
-            setError(err.message || '리뷰 수정 중 오류가 발생했습니다.');
+            setModalError(err.message || '리뷰 수정 중 오류가 발생했습니다.');
         } finally {
             setLoadingAction(false);
         }
@@ -287,7 +336,7 @@ export default function ReviewContent({ account }) {
             await loadWrittenReviews();
             await loadReceivedReviews();
 
-            setMessage('리뷰가 삭제되었습니다.');
+            showMessage('리뷰가 삭제되었습니다.');
         } catch (err) {
             setError(err.message || '리뷰 삭제 중 오류가 발생했습니다.');
         } finally {
@@ -313,56 +362,57 @@ export default function ReviewContent({ account }) {
                     </p>
                 </div>
 
-                {reviewTab === 'written' && (
-                    <div className="flex justify-end">
+                <div className="flex justify-end min-h-[42px]">
+                    {reviewTab === 'written' ? (
                         <button
                             onClick={openCreateModal}
                             className="bg-primary text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-[#D61F44] transition-all shadow-md shadow-primary/10"
                         >
                             리뷰 작성
                         </button>
-                    </div>
-                )}
+                    ) : (
+                        <div className="h-[42px]" />
+                    )}
+                </div>
             </header>
 
-      {/* 서브 탭 + 최신순 */}
-      <div className="flex items-center justify-between border-b border-[#EAE5E3]">
-        <div className="flex gap-2">
-          <CommonButton
-            onClick={() => setReviewTab('received')}
-            variant="toggle"
-            size="tab"
-            active={reviewTab === 'received'}
-            activeClassName="text-primary"
-            inactiveClassName="text-[#6B6766] hover:text-[#1F1D1D]"
-            className="relative rounded-none px-6"
-          >
-            내가 받은 리뷰
-            {reviewTab === 'received' && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-            )}
-          </CommonButton>
+            <div className="flex items-center justify-between border-b border-[#EAE5E3]">
+                <div className="flex gap-2">
+                    <CommonButton
+                        onClick={() => setReviewTab('received')}
+                        variant="toggle"
+                        size="tab"
+                        active={reviewTab === 'received'}
+                        activeClassName="text-primary"
+                        inactiveClassName="text-[#6B6766] hover:text-[#1F1D1D]"
+                        className="relative rounded-none px-6"
+                    >
+                        내가 받은 리뷰
+                        {reviewTab === 'received' && (
+                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                        )}
+                    </CommonButton>
 
-          <CommonButton
-            onClick={() => setReviewTab('written')}
-            variant="toggle"
-            size="tab"
-            active={reviewTab === 'written'}
-            activeClassName="text-primary"
-            inactiveClassName="text-[#6B6766] hover:text-[#1F1D1D]"
-            className="relative rounded-none px-6"
-          >
-            내가 쓴 리뷰
-            {reviewTab === 'written' && (
-              <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
-            )}
-          </CommonButton>
-        </div>
+                    <CommonButton
+                        onClick={() => setReviewTab('written')}
+                        variant="toggle"
+                        size="tab"
+                        active={reviewTab === 'written'}
+                        activeClassName="text-primary"
+                        inactiveClassName="text-[#6B6766] hover:text-[#1F1D1D]"
+                        className="relative rounded-none px-6"
+                    >
+                        내가 쓴 리뷰
+                        {reviewTab === 'written' && (
+                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-primary" />
+                        )}
+                    </CommonButton>
+                </div>
 
-        <button className="bg-white border border-[#EAE5E3] px-4 py-2 text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors mb-1">
-          최신순
-        </button>
-      </div>
+                <button className="bg-white border border-[#EAE5E3] px-4 py-2 text-xs font-bold rounded-lg hover:bg-gray-50 transition-colors mb-1">
+                    최신순
+                </button>
+            </div>
 
             {error && (
                 <div className="bg-red-50 border border-red-200 rounded-2xl p-4 text-sm font-medium text-red-600">
@@ -378,7 +428,6 @@ export default function ReviewContent({ account }) {
 
             {reviewTab === 'received' && (
                 <>
-
                     {loadingReceived ? (
                         <div className="bg-white border border-[#EAE5E3] rounded-2xl p-8 text-sm text-[#6B6766] shadow-sm">
                             받은 리뷰를 불러오는 중...
@@ -393,11 +442,6 @@ export default function ReviewContent({ account }) {
                                     >
                                         <div className="flex flex-col md:flex-row gap-6">
                                             <div className="w-full md:w-48 shrink-0">
-                                                <div className="w-16 h-16 bg-gray-50 rounded-xl border border-[#EAE5E3]/50 mb-4 flex items-center justify-center">
-                          <span className="material-symbols-outlined text-[#6B6766] text-3xl">
-                            person
-                          </span>
-                                                </div>
                                                 <h3 className="font-bold text-base text-[#1F1D1D] leading-tight mb-1">
                                                     {getDisplayName(review, 'received')}
                                                 </h3>
@@ -413,8 +457,8 @@ export default function ReviewContent({ account }) {
                                                     <div className="flex items-center justify-between mb-3">
                                                         <StarRow rating={review.rating} />
                                                         <span className="text-[10px] text-[#6B6766] font-medium">
-                              {formatDate(review.writtenAt)}
-                            </span>
+                                                            {formatDate(review.writtenAt)}
+                                                        </span>
                                                     </div>
 
                                                     <h4 className="font-bold text-[#1F1D1D] mb-2 text-sm">
@@ -428,8 +472,8 @@ export default function ReviewContent({ account }) {
                                                                     key={`${label}-${idx}`}
                                                                     className="text-[11px] font-bold bg-[#FFF0F3] text-primary px-2.5 py-0.5 rounded-full"
                                                                 >
-                                  {label}
-                                </span>
+                                                                    {label}
+                                                                </span>
                                                             ))}
                                                         </div>
                                                     )}
@@ -450,7 +494,6 @@ export default function ReviewContent({ account }) {
 
             {reviewTab === 'written' && (
                 <>
-
                     {loadingWritten ? (
                         <div className="bg-white border border-[#EAE5E3] rounded-2xl p-8 text-sm text-[#6B6766] shadow-sm">
                             작성한 리뷰를 불러오는 중...
@@ -465,13 +508,8 @@ export default function ReviewContent({ account }) {
                                     >
                                         <div className="flex flex-col md:flex-row gap-6">
                                             <div className="w-full md:w-48 shrink-0">
-                                                <div className="w-16 h-16 bg-gray-50 rounded-xl border border-[#EAE5E3]/50 mb-4 flex items-center justify-center">
-                          <span className="material-symbols-outlined text-[#6B6766] text-3xl">
-                            person
-                          </span>
-                                                </div>
                                                 <h3 className="font-bold text-base text-[#1F1D1D] leading-tight mb-1">
-                                                    {getDisplayName(review, 'received')}
+                                                    {getDisplayName(review, 'written')}
                                                 </h3>
                                                 {getDisplayRecruitTitle(review) && (
                                                     <p className="text-xs text-[#6B6766] font-medium">
@@ -485,8 +523,8 @@ export default function ReviewContent({ account }) {
                                                     <div className="flex items-center justify-between mb-3">
                                                         <StarRow rating={review.rating} />
                                                         <span className="text-[10px] text-[#6B6766] font-medium">
-                              {formatDate(review.writtenAt)}
-                            </span>
+                                                            {formatDate(review.writtenAt)}
+                                                        </span>
                                                     </div>
 
                                                     <h4 className="font-bold text-[#1F1D1D] mb-2 text-sm">
@@ -500,8 +538,8 @@ export default function ReviewContent({ account }) {
                                                                     key={`${label}-${idx}`}
                                                                     className="text-[11px] font-bold bg-[#FFF0F3] text-primary px-2.5 py-0.5 rounded-full"
                                                                 >
-                                  {label}
-                                </span>
+                                                                    {label}
+                                                                </span>
                                                             ))}
                                                         </div>
                                                     )}
@@ -540,9 +578,13 @@ export default function ReviewContent({ account }) {
                 mode={modalMode}
                 initialValue={formValue}
                 loading={loadingAction || loadingReviewableApplies}
-                onClose={() => setModalOpen(false)}
+                onClose={() => {
+                    setModalError('');
+                    setModalOpen(false);
+                }}
                 reviewableApplies={reviewableApplies}
                 accountMemberType={account?.memberType}
+                error={modalError}
                 onSubmit={(form, selectedApply) => {
                     if (modalMode === 'create') {
                         handleCreateReview(form, selectedApply);

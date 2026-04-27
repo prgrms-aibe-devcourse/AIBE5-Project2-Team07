@@ -28,3 +28,7 @@ export async function uploadCompanyLogo(file, oldUrl) {
   return uploadFile('/api/files/upload/logo', file, oldUrl ? { oldUrl } : {});
 }
 
+export async function uploadBusinessResumeFile(file) {
+  return uploadFile('/api/files/upload/resume/business', file);
+}
+

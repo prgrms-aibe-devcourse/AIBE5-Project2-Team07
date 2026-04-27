@@ -1,7 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import CommonButton from './CommonButton';
-import GlobalAiChatbotPanel from './GlobalAiChatbotPanel';
 import GlobalMemberMessagePanel from './GlobalMemberMessagePanel';
 import {
   createDirectRoom,
@@ -25,15 +24,6 @@ export default function GlobalAiChatbotButton() {
     activePanelRef.current = activePanel;
   }, [activePanel]);
 
-  const [aiInputValue, setAiInputValue] = useState('');
-  const [aiMessages, setAiMessages] = useState([
-    {
-      id: 1,
-      role: 'bot',
-      text: '안녕하세요! 대타 AI 챗봇입니다. 조건에 맞는 공고를 빠르게 찾아드릴게요.',
-    },
-  ]);
-
   const [member, setMember] = useState(() => getCurrentMember());
   const [rooms, setRooms] = useState([]);
   const [roomsLoading, setRoomsLoading] = useState(false);
@@ -49,6 +39,8 @@ export default function GlobalAiChatbotButton() {
 
   const clientRef = useRef(null);
   const currentSubscriptionRef = useRef(null);
+  const loginHintTimerRef = useRef(null);
+  const [showLoginHint, setShowLoginHint] = useState(false);
 
   const isLoggedIn = useMemo(() => isMemberLoggedIn(), [member, location.pathname]);
   const currentMemberId = useMemo(() => getCurrentMemberId(), [member, location.pathname]);
@@ -79,24 +71,6 @@ export default function GlobalAiChatbotButton() {
     window.addEventListener('storage', handleStorage);
     return () => window.removeEventListener('storage', handleStorage);
   }, [syncMember]);
-
-  const submitAiMessage = (text) => {
-    const nextText = text.trim();
-    if (!nextText) {
-      return;
-    }
-
-    setAiMessages((prev) => [
-      ...prev,
-      { id: Date.now(), role: 'user', text: nextText },
-      {
-        id: Date.now() + 1,
-        role: 'bot',
-        text: `"${nextText}" 조건으로 대타 공고를 찾는 중입니다. 원하는 지역/시간대를 추가로 알려주시면 더 정확히 추천할게요.`,
-      },
-    ]);
-    setAiInputValue('');
-  };
 
   const loadRooms = useCallback(async (preferredRoomId = null) => {
     if (!isLoggedIn || !currentMemberId) {
@@ -234,6 +208,9 @@ export default function GlobalAiChatbotButton() {
       if (clientRef.current?.active) {
         clientRef.current.deactivate();
       }
+      if (loginHintTimerRef.current) {
+        window.clearTimeout(loginHintTimerRef.current);
+      }
     };
   }, []);
 
@@ -323,7 +300,7 @@ export default function GlobalAiChatbotButton() {
     try {
       const response = await getChatMessages(selectedRoomId, nextCursorId, 50);
       const olderMessages = response?.messages || [];
-      
+
       if (olderMessages.length === 0) {
         setHasMore(false);
         setNextCursorId(null);
@@ -469,70 +446,23 @@ export default function GlobalAiChatbotButton() {
     return () => window.removeEventListener('send-direct-messages', handleSendDirectMessages);
   }, [currentMemberId, ensureSocketClient, isLoggedIn, loadRooms, member?.email, navigate]);
 
-  const toggleLauncher = () => {
-    setActivePanel((prev) => (prev ? null : 'menu'));
+  const toggleMessagePanel = () => {
+    if (!isLoggedIn) {
+      setShowLoginHint(true);
+      if (loginHintTimerRef.current) {
+        window.clearTimeout(loginHintTimerRef.current);
+      }
+      loginHintTimerRef.current = window.setTimeout(() => {
+        setShowLoginHint(false);
+      }, 3000);
+      return;
+    }
+    setShowLoginHint(false);
+    setActivePanel((prev) => (prev === 'member' ? null : 'member'));
   };
 
   return (
     <div className="fixed right-6 bottom-24 md:right-10 md:bottom-10 z-[60]">
-      <div
-        className={[
-          'absolute right-0 bottom-20 md:bottom-24 w-44 bg-white border border-outline rounded-xl shadow-xl p-2',
-          'transition-all duration-200 origin-bottom-right',
-          activePanel === 'menu' ? 'opacity-100 translate-y-0 pointer-events-auto' : 'opacity-0 translate-y-2 pointer-events-none',
-        ].join(' ')}
-      >
-        <CommonButton
-          type="button"
-          variant="toggle"
-          size="sm"
-          fullWidth
-          className="justify-start px-3"
-          inactiveClassName="text-on-surface hover:bg-primary-soft"
-          icon={<span className="material-symbols-outlined text-[18px]">smart_toy</span>}
-          iconPosition="left"
-          onClick={() => setActivePanel('ai')}
-        >
-          AI 챗봇
-        </CommonButton>
-        <div className="relative mt-1">
-          <CommonButton
-            type="button"
-            variant="toggle"
-            size="sm"
-            fullWidth
-            className="justify-start px-3"
-            inactiveClassName="text-on-surface hover:bg-primary-soft"
-            icon={<span className="material-symbols-outlined text-[18px]">forum</span>}
-            iconPosition="left"
-            disabled={!isLoggedIn}
-            onClick={() => {
-              if (!isLoggedIn) {
-                return;
-              }
-              setActivePanel('member');
-            }}
-          >
-            회원 메시지함
-          </CommonButton>
-          {isLoggedIn && unreadBadgeCount > 0 && (
-            <span className="absolute -top-1.5 -right-1.5 min-w-5 h-5 px-1 rounded-full bg-red-500 text-white text-[12px] font-bold flex items-center justify-center shadow border-2 border-white pointer-events-none">
-              {unreadBadgeCount}
-            </span>
-          )}
-        </div>
-      </div>
-
-      <GlobalAiChatbotPanel
-        isOpen={activePanel === 'ai'}
-        messages={aiMessages}
-        inputValue={aiInputValue}
-        onInputChange={setAiInputValue}
-        onSend={() => submitAiMessage(aiInputValue)}
-        onClose={() => setActivePanel(null)}
-        onQuickAction={submitAiMessage}
-      />
-
       <GlobalMemberMessagePanel
         isOpen={activePanel === 'member'}
         isLoggedIn={isLoggedIn}
@@ -557,15 +487,20 @@ export default function GlobalAiChatbotButton() {
       />
 
       <div className="relative">
+        {showLoginHint && (
+          <p className="absolute -top-12 right-0 whitespace-nowrap rounded-lg border border-outline bg-white px-3 py-1.5 text-xs font-semibold text-on-surface-variant shadow-md">
+            채팅 기능은 로그인 하면 이용할 수 있어요!
+          </p>
+        )}
         <CommonButton
           variant="fab"
           size="fab"
           className="shadow-2xl"
-          aria-label="대타 메시지 도구 열기"
-          onClick={toggleLauncher}
+          aria-label="회원 메시지함 열기"
+          onClick={toggleMessagePanel}
         >
           <span className="material-symbols-outlined text-3xl" style={{ fontVariationSettings: "'FILL' 1" }}>
-            {activePanel ? 'close' : 'chat_bubble'}
+            {activePanel === 'member' ? 'close' : 'forum'}
           </span>
         </CommonButton>
         {isLoggedIn && unreadBadgeCount > 0 && (
