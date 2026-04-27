@@ -1,15 +1,19 @@
+import { getAuthHeaders } from './authApi';
+
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
 function buildHeaders(memberId, includeJson = false) {
-  const token = localStorage.getItem('token');
-  const headers = {};
+  const headers = includeJson ? getAuthHeaders() : {};
 
   if (includeJson) {
     headers['Content-Type'] = 'application/json';
   }
 
-  if (token) {
-    headers.Authorization = `Bearer ${token}`;
+  if (!includeJson) {
+    const authHeaders = getAuthHeaders();
+    if (authHeaders.Authorization) {
+      headers.Authorization = authHeaders.Authorization;
+    }
   }
 
   if (memberId != null) {
@@ -37,6 +41,7 @@ async function parseResponse(response, defaultErrorMessage) {
 export async function addRecruitScrap(memberId, recruitId) {
   const response = await fetch(`${API_BASE}/scraps/recruits/${recruitId}`, {
     method: 'POST',
+    credentials: 'include',
     headers: buildHeaders(memberId),
   });
 
@@ -46,6 +51,7 @@ export async function addRecruitScrap(memberId, recruitId) {
 export async function removeRecruitScrap(memberId, recruitId) {
   const response = await fetch(`${API_BASE}/scraps/recruits/${recruitId}`, {
     method: 'DELETE',
+    credentials: 'include',
     headers: buildHeaders(memberId),
   });
 
@@ -65,6 +71,7 @@ export async function removeRecruitScrap(memberId, recruitId) {
 export async function getMyScrapRecruitPage(memberId, page = 0) {
   const response = await fetch(`${API_BASE}/scraps/recruits?page=${page}`, {
     method: 'GET',
+    credentials: 'include',
     headers: buildHeaders(memberId),
   });
 

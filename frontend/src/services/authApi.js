@@ -1,22 +1,38 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
+function getToken() {
+    return localStorage.getItem('token');
+}
+
 export function getStoredMember() {
     try {
         return JSON.parse(localStorage.getItem('member') || 'null');
-    } catch (e) {
+    } catch {
         return null;
     }
 }
 
+export function getAuthHeaders() {
+    const token = getToken();
+    const headers = {
+        'Content-Type': 'application/json',
+    };
+
+    if (token) {
+        headers.Authorization = `Bearer ${token}`;
+    }
+
+    return headers;
+}
+
 export async function requestWithAuth(url, options = {}) {
-    const token = localStorage.getItem('token');
     const finalUrl = url.startsWith('http') ? url : `${API_BASE}${url}`;
 
     const fetchOptions = {
         method: options.method || 'GET',
+        credentials: options.credentials || 'include',
         headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+            ...getAuthHeaders(),
             ...(options.headers || {}),
         },
     };
@@ -33,7 +49,7 @@ export async function requestWithAuth(url, options = {}) {
     let result = null;
     try {
         result = await response.json();
-    } catch (e) {
+    } catch {
         result = null;
     }
 

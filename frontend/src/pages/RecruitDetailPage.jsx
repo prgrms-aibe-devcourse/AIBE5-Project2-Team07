@@ -15,7 +15,6 @@ import { getReviewLabelNames, normalizeReview } from '../utils/mypageUtils';
 import ReviewListModal from '../components/review/ReviewListModal';
 
 const API_PREFIXES = ['/api', ''];
-const getToken = () => localStorage.getItem('token');
 
 const PERIOD_LABELS = {
   OneDay: '하루',
@@ -312,9 +311,8 @@ export default function RecruitDetailPage() {
         return;
       }
 
-      const token = getToken();
       const storedMember = getStoredMember();
-      if (!token || !storedMember || storedMember.memberType !== 'INDIVIDUAL') {
+      if (!storedMember || storedMember.memberType !== 'INDIVIDUAL') {
         return;
       }
 
@@ -347,9 +345,8 @@ export default function RecruitDetailPage() {
         return;
       }
 
-      const token = getToken();
       const storedMember = getStoredMember();
-      if (!token || !storedMember || storedMember.memberType !== 'INDIVIDUAL') {
+      if (!storedMember || storedMember.memberType !== 'INDIVIDUAL') {
         return;
       }
 
@@ -386,9 +383,8 @@ export default function RecruitDetailPage() {
   }, [recruitId]);
 
   useEffect(() => {
-    const token = getToken();
     const storedMember = getStoredMember();
-    if (!token || !storedMember || storedMember.memberType !== 'INDIVIDUAL') {
+    if (!storedMember || storedMember.memberType !== 'INDIVIDUAL') {
       setMyResume(null);
       return;
     }
@@ -527,10 +523,9 @@ export default function RecruitDetailPage() {
       return;
     }
 
-    const token = getToken();
     const storedMember = getStoredMember();
 
-    if (!token || !storedMember) {
+    if (!storedMember) {
       setShowLoginModal(true);
       return;
     }
@@ -565,10 +560,9 @@ export default function RecruitDetailPage() {
       return;
     }
 
-    const token = getToken();
     const storedMember = getStoredMember();
 
-    if (!token || !storedMember) {
+    if (!storedMember) {
       setShowLoginModal(true);
       return;
     }

@@ -125,8 +125,6 @@ export async function offerToIndividualByBusinessAndMemberId(payload) {
     });
 }
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-
 function resolveMemberId(memberId) {
     if (memberId != null) return memberId;
     const storedMember = getStoredMember();
@@ -157,21 +155,13 @@ async function getPersonalApplyPage(path, memberId, params = {}, defaultErrorMes
 }
 
 export async function submitApply(payload, memberId) {
-    const token = localStorage.getItem('token');
-    const headers = { 'Content-Type': 'application/json' };
-    if (token) headers.Authorization = `Bearer ${token}`;
-    if (memberId != null) headers['X-Member-Id'] = String(memberId);
-
-    const response = await fetch(`${API_BASE}/applies/apply`, {
+    return requestWithAuth('/applies/apply', {
         method: 'POST',
-        headers,
+        headers: {
+            ...(memberId != null ? { 'X-Member-Id': String(memberId) } : {}),
+        },
         body: JSON.stringify(payload),
     });
-
-    let result = null;
-    try { result = await response.json(); } catch { result = null; }
-    if (!response.ok) throw new Error(result?.error || result?.message || '지원서 제출 중 오류가 발생했습니다.');
-    return result;
 }
 
 export async function getMyApplications(memberId, page = 0, size = 20) {

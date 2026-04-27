@@ -4,6 +4,7 @@ import { Link, useLocation, useNavigate } from 'react-router-dom';
 export default function TopNavBar() {
   const location = useLocation();
   const navigate = useNavigate();
+  const apiBase = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/$/, '');
   const signupMenuRef = useRef(null);
 
   const [member, setMember] = useState(null);
@@ -22,15 +23,14 @@ export default function TopNavBar() {
   };
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
     const memberStr = localStorage.getItem('member');
 
-    if (token && memberStr) {
+    if (memberStr) {
       try {
         const parsedMember = JSON.parse(memberStr);
         setMember(parsedMember);
         setIsLoggedIn(true);
-      } catch (e) {
+      } catch {
         setMember(null);
         setIsLoggedIn(false);
       }
@@ -39,6 +39,22 @@ export default function TopNavBar() {
       setIsLoggedIn(false);
     }
   }, [location.pathname]);
+
+  const handleLogout = async () => {
+    try {
+      await fetch(`${apiBase}/api/auth/logout`, {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch {
+      // 쿠키 삭제 호출 실패 시에도 프론트 상태는 정리한다.
+    }
+    localStorage.removeItem('token');
+    localStorage.removeItem('member');
+    setMember(null);
+    setIsLoggedIn(false);
+    navigate('/');
+  };
 
   useEffect(() => {
     const handleClickOutside = (event) => {
@@ -53,13 +69,6 @@ export default function TopNavBar() {
     };
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('member');
-    setMember(null);
-    setIsLoggedIn(false);
-    navigate('/');
-  };
 
   const displayName = member?.name || member?.memberName || '회원';
 
