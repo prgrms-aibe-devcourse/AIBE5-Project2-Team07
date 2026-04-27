@@ -55,16 +55,16 @@ function renderMessageContent(content) {
 }
 
 function formatMessageTime(dateString) {
-  if (!dateString) return '';
+  if (!dateString) return "";
   const date = new Date(dateString);
-  if (isNaN(date.getTime())) return '';
-  
+  if (isNaN(date.getTime())) return "";
+
   const yyyy = date.getFullYear();
-  const mm = String(date.getMonth() + 1).padStart(2, '0');
-  const dd = String(date.getDate()).padStart(2, '0');
-  const hh = String(date.getHours()).padStart(2, '0');
-  const min = String(date.getMinutes()).padStart(2, '0');
-  
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  const hh = String(date.getHours()).padStart(2, "0");
+  const min = String(date.getMinutes()).padStart(2, "0");
+
   return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
 }
 
@@ -115,7 +115,7 @@ export default function GlobalMemberMessagePanel({
   const lastMessage =
     messages && messages.length > 0 ? messages[messages.length - 1] : null;
   const lastMessageId = lastMessage
-    ? lastMessage.id ?? lastMessage.sentAt
+    ? (lastMessage.id ?? lastMessage.sentAt)
     : null;
 
   const messagesContainerRef = useRef(null);
@@ -171,6 +171,14 @@ export default function GlobalMemberMessagePanel({
       }, 50);
     }
   }, [lastMessageId]);
+
+  useEffect(() => {
+    if (isOpen) {
+      setTimeout(() => {
+        scrollToBottom("auto");
+      }, 50);
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -353,7 +361,9 @@ export default function GlobalMemberMessagePanel({
                         <div
                           key={messageKey(message, index)}
                           className={
-                            mine ? "flex flex-col items-end" : "flex flex-col items-start"
+                            mine
+                              ? "flex flex-col items-end"
+                              : "flex flex-col items-start"
                           }
                         >
                           <div
@@ -404,7 +414,12 @@ export default function GlobalMemberMessagePanel({
                     rows={1}
                     style={{ minHeight: "38px", maxHeight: "120px" }}
                   />
-                  <CommonButton type="submit" size="sm" disabled={!canSend} className="mb-0.5 whitespace-nowrap">
+                  <CommonButton
+                    type="submit"
+                    size="sm"
+                    disabled={!canSend}
+                    className="mb-0.5 whitespace-nowrap"
+                  >
                     {sendLoading ? "전송 중" : "보내기"}
                   </CommonButton>
                 </form>
