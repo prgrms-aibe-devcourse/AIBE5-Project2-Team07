@@ -85,7 +85,7 @@ export default function TopNavBar() {
                           : 'text-on-surface-variant border-transparent hover:text-primary'
                   }`}
               >
-                채용정보
+                채용 정보
               </Link>
 
               <Link
@@ -96,7 +96,7 @@ export default function TopNavBar() {
                           : 'text-on-surface-variant border-transparent hover:text-primary'
                   }`}
               >
-                브랜드알바
+                브랜드 알바
               </Link>
 
               <Link
@@ -107,7 +107,7 @@ export default function TopNavBar() {
                           : 'text-on-surface-variant border-transparent hover:text-primary'
                   }`}
               >
-                인재정보
+                인재 정보
               </Link>
 
               <Link
@@ -118,7 +118,7 @@ export default function TopNavBar() {
                           : 'text-on-surface-variant border-transparent hover:text-primary'
                   }`}
               >
-                AI추천매칭
+                추천 매칭
               </Link>
 
               {isLoggedIn && (

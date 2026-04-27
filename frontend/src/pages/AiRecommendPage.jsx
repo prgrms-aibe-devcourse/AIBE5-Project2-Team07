@@ -1,74 +1,105 @@
-import React, { useEffect } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import TopNavBar from '../components/TopNavBar';
 import MobileBottomNav from '../components/MobileBottomNav';
-import AiRecommendConditionTab from './AiRecommendConditionTab';
-import AiRecommendChatTab from './AiRecommendChatTab';
 import AppFooter from '../components/AppFooter';
 import CommonButton from '../components/CommonButton';
-
-const resumeJobs = [
-  {
-    company: '블루바틀 강남점',
-    title: '주말 파트타임 바리스타',
-    pay: '시급 13,500원',
-    time: '토,일 09:00 - 15:00',
-    badge: 'D-0 TODAY',
-    rate: 'AI 매칭률 99%',
-    urgent: true,
-    logo: 'https://lh3.googleusercontent.com/aida-public/AB6AXuCFEfJf-zissEEmAZxB6wUsxepT46nfXRaPWJHvhIeMgLb9l_hmAWVhfz9zTPdBPBGPVR-fb2pfJOWcZsQLmn-Nd4IVFg5chHLxuaKXXhUxiKIEaECDp5roL95wRMISJ7uACvyVDxRxCUpDDDxjWFZMnbYRsOKrZg9HmoeM_Fm6J8yYRcdKNvAMzN9azy-oCNdRnLShTnUywxt5dOMQsAQX3iVwM3_uPRQJ-p_WKzW4ezZFDKRMye1Xfa53r68_hy0K1Fu3i887Q1Q',
-  },
-  {
-    company: '신세계백화점',
-    title: 'VIP 라운지 서비스 인턴',
-    pay: '시급 11,000원',
-    time: '평일 10:00 - 16:00',
-    badge: 'D-3',
-    rate: 'AI 매칭률 92%',
-    urgent: false,
-    logo: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBcnTVehb1s8Gukk_pxEal6x_4zWnINtINdgH8rvy5fufH1iOI9RQl16mjl2c1VcDpMfy8tYTWtnSvi5FQTES2cAhJwl5WcCoKpZZIJ8U07DvqnJ1z2rwTtv8lMGGNAl9j0dLZBtGiIOklza5OqDwtZg1ooN-zSmfbIRtzE0f0BsLgABJ-vFiHSorMn2jWIFbGJx_yk131HOrXcS1a1wC29V2cQY6Kgj2ZMR56tdSXJLQMMkOlEQv8-OnogjZ7grdHmagaCi2iFY-c',
-  },
-  {
-    company: '나이키 강남',
-    title: '매장 운영 및 고객 가이드',
-    pay: '시급 10,500원',
-    time: '주 4일 탄력근무',
-    badge: 'D-7',
-    rate: 'AI 매칭률 88%',
-    urgent: false,
-    logo: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBfQv1R2f_YSUp4vpCtQVRNu7VBMRXcXLNAiUiJxoVhzDGOXgribNveJPGWeuUulwCjUsv9kcp7zUkGsv45aIGc2PM35vgQuzrObWYy0HNemqoFiWHEwSJGJaNp5U5vo6fX7d5g4iyLdWLg2BWYfrpkIzCLd2lP1JS-FQdNMH6tVqs3FyK_LM-RQdzza0uy4Xms2MrtlzP3cjlMmnMsVc-05d2fHeTBmEkEJgIA3m0z11u9qxjJkDPCXpUagTB4UNIOkNcAiNMIY3g',
-  },
-  {
-    company: '토스 센터',
-    title: '고객 행복 센터 주말 야간',
-    pay: '시급 15,000원',
-    time: '토,일 22:00 - 06:00',
-    badge: 'D-0 TODAY',
-    rate: 'AI 매칭률 85%',
-    urgent: true,
-    logo: 'https://lh3.googleusercontent.com/aida-public/AB6AXuBsbAOuWzKO9VyNoXww0RuOZAbhZIZcqiBje4caItWVxGaNHeByv6L8ZMYttO7IP1A5EpbIvfTeoM3SL3QpMErKROlvA7toaoxwzWzigJKBEiStWERW1Vq28WMCEoSWfjVDBeuvfk3U0rza3FunaNZOFCxgWmjthx2YRd0P0O-aWIjMCi5BXLtzGbIGWeDpW_i0QOj4MsP08IXnxZRpOr6Yff0meaj3j4hKUVeNhFPIg6IOkwC1t86TF5nh0r1Lnye8ZJuamvJ2ogw',
-  },
-];
+import NearbyJobsSection from '../components/NearbyJobsSection';
+import RecommendFilterModal from '../components/RecommendFilterModal';
+import RecommendJobsSection from '../components/RecommendJobsSection';
+import { useNearbyJobs } from '../hooks/useNearbyJobs';
+import { fetchRecommendJobs } from '../services/recommendApi';
+import { RECOMMEND_DEFAULT_FILTERS } from '../constants/recommendFilterOptions';
+import { getStoredMember } from '../services/authApi';
 
 const tabs = [
-  { key: 'resume', label: '이력서 기반 추천' },
+  { key: 'nearby', label: '거리 기반 추천' },
   { key: 'condition', label: '조건 선택 추천' },
-  { key: 'chat', label: '채팅 AI 추천' },
 ];
 
 export default function AiRecommendPage() {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
-  const currentTab = searchParams.get('tab') || 'resume';
+  const currentTab = searchParams.get('tab') || 'nearby';
+  const [showRecommendLoginModal, setShowRecommendLoginModal] = useState(false);
+
+  // nearby tab state
+  const [selectedDistance, setSelectedDistance] = useState('5km');
+  const [isDistanceDropdownOpen, setIsDistanceDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
+  const { jobs: nearbyJobs, loading: nearbyLoading, error: nearbyError, fetchJobs } = useNearbyJobs();
+  const [nearbyFetched, setNearbyFetched] = useState(false);
+
+  // condition tab state
+  const [isRecommendModalOpen, setIsRecommendModalOpen] = useState(false);
+  const [recommendFilters, setRecommendFilters] = useState(RECOMMEND_DEFAULT_FILTERS);
+  const [recommendJobs, setRecommendJobs] = useState([]);
+  const [recommendLoading, setRecommendLoading] = useState(false);
+  const [recommendError, setRecommendError] = useState('');
+  const [recommendApplied, setRecommendApplied] = useState(false);
 
   useEffect(() => {
     if (!searchParams.get('tab')) {
-      setSearchParams({ tab: 'resume' }, { replace: true });
+      setSearchParams({ tab: 'nearby' }, { replace: true });
     }
   }, [searchParams, setSearchParams]);
+
+  useEffect(() => {
+    function handleClickOutside(event) {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setIsDistanceDropdownOpen(false);
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
+
+  useEffect(() => {
+    const token = localStorage.getItem('token');
+    const member = getStoredMember();
+    if (!token || !member) {
+      setShowRecommendLoginModal(true);
+    }
+  }, []);
 
   const setTab = (tabKey) => {
     setSearchParams({ tab: tabKey });
   };
+
+  function handleDistanceSelect(distance) {
+    const radiusKm = Number.parseFloat(distance.replace('km', ''));
+    setSelectedDistance(distance);
+    setIsDistanceDropdownOpen(false);
+    setNearbyFetched(true);
+    fetchJobs(radiusKm);
+  }
+
+  async function handleApplyRecommendFilters(nextFilters) {
+    const requestPayload = {
+      regionId: nextFilters.regionId ?? null,
+      workPeriod: nextFilters.workPeriod ?? [],
+      workDays: nextFilters.workDays ?? [],
+      workTime: nextFilters.workTime ?? [],
+      businessType: nextFilters.businessType ?? [],
+      salaryType: nextFilters.salaryType ?? null,
+      urgent: Boolean(nextFilters.urgent),
+      resultCount: nextFilters.resultCount ?? 20,
+    };
+    setRecommendFilters(nextFilters);
+    setIsRecommendModalOpen(false);
+    setRecommendApplied(true);
+    setRecommendLoading(true);
+    setRecommendError('');
+    setRecommendJobs([]);
+    try {
+      const data = await fetchRecommendJobs(requestPayload);
+      setRecommendJobs(Array.isArray(data) ? data : []);
+    } catch (error) {
+      setRecommendError(error.message || '맞춤형 추천 공고를 불러오는 중 오류가 발생했습니다.');
+    } finally {
+      setRecommendLoading(false);
+    }
+  }
 
   return (
     <>
@@ -81,7 +112,7 @@ export default function AiRecommendPage() {
           <p className="text-lg text-on-surface-variant font-medium">
             {currentTab === 'condition'
               ? '상세한 조건을 선택하시면 AI가 가장 긴급한 공고를 먼저 찾아드립니다.'
-              : '사용자의 성향과 경력을 분석하여 최적의 근무지를 0.1초 만에 매칭합니다.'}
+              : '내 위치를 기반으로 가까운 알바 공고를 찾아드립니다.'}
           </p>
         </header>
 
@@ -101,110 +132,115 @@ export default function AiRecommendPage() {
           ))}
         </div>
 
-        <section className={currentTab === 'resume' ? 'block' : 'hidden'}>
-          <div className="grid grid-cols-12 gap-10">
-            <div className="col-span-12 lg:col-span-4 space-y-6">
-              <div className="bg-white p-8 rounded-2xl border border-outline shadow-sm">
-                <h3 className="text-xs uppercase tracking-widest text-primary font-black mb-6">User Profile Analysis</h3>
-                <div className="space-y-6">
-                  <div>
-                    <span className="text-[10px] text-on-surface-variant uppercase font-bold block mb-2">Skills & Industry</span>
-                    <div className="flex flex-wrap gap-2">
-                      <span className="px-3 py-1 bg-primary-soft text-primary text-xs font-bold rounded-full">#바리스타</span>
-                      <span className="px-3 py-1 bg-primary-soft text-primary text-xs font-bold rounded-full">#라떼아트</span>
-                      <span className="px-3 py-1 bg-primary-soft text-primary text-xs font-bold rounded-full">#고객응대</span>
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <span className="text-[10px] text-on-surface-variant uppercase font-bold block mb-1">Preferred Time</span>
-                      <p className="text-sm font-bold text-on-surface">주말 오전 (08:00 - 14:00)</p>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-on-surface-variant uppercase font-bold block mb-1">Target Salary</span>
-                      <p className="text-sm font-bold text-on-surface">시급 12,000원 이상</p>
-                    </div>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-on-surface-variant uppercase font-bold block mb-1">Desired Address</span>
-                    <p className="text-sm font-bold flex items-center gap-1 text-on-surface">
-                      <span className="material-symbols-outlined text-sm text-primary">location_on</span>
-                      서울특별시 강남구 역삼동
-                    </p>
-                  </div>
-                </div>
-                <button className="w-full mt-8 py-4 border border-outline text-on-surface font-bold text-xs uppercase tracking-widest rounded-xl hover:bg-primary-soft hover:border-primary/30 hover:text-primary transition-all">
-                  이력서 수정하기
+        {/* 거리 기반 추천 탭 */}
+        <section className={currentTab === 'nearby' ? 'block' : 'hidden'}>
+          <div className="mb-8 flex flex-col sm:flex-row sm:items-center gap-4">
+            <h2 className="text-2xl font-extrabold tracking-tight text-on-surface">내 주변 공고</h2>
+            <div className="flex flex-wrap gap-3">
+              {['1km', '3km', '5km', '10km'].map((distance) => (
+                <button
+                  key={distance}
+                  onClick={() => handleDistanceSelect(distance)}
+                  className={`rounded-full px-6 py-2.5 text-sm font-bold whitespace-nowrap transition-colors shadow-sm ${
+                    selectedDistance === distance && nearbyFetched
+                      ? 'bg-primary text-white'
+                      : 'border border-[#e0e0e0] bg-white text-[#555555] hover:bg-gray-50'
+                  }`}
+                >
+                  {distance}
                 </button>
-              </div>
-
-              <div className="bg-primary p-8 rounded-2xl text-white shadow-xl shadow-primary/20">
-                <span className="material-symbols-outlined text-4xl mb-4" style={{ fontVariationSettings: '"FILL" 1' }}>auto_awesome</span>
-                <h4 className="text-2xl font-black mb-2 leading-tight">98% 매칭 정확도</h4>
-                <p className="text-sm text-white/80">현재 2,451개의 일자리가 당신의 조건과 완벽하게 일치합니다.</p>
-              </div>
-            </div>
-
-            <div className="col-span-12 lg:col-span-8">
-              <div className="flex justify-between items-end mb-4">
-                <h2 className="text-2xl font-black text-on-surface tracking-tight uppercase">Matched Jobs</h2>
-                <span className="text-xs font-bold text-on-surface-variant uppercase tracking-widest">Sort by: AI Score</span>
-              </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                {resumeJobs.map((job) => (
-                  <div key={job.title} className="bg-white p-7 rounded-2xl border border-outline shadow-sm hover:shadow-md">
-                    <div className="flex justify-between items-start mb-6">
-                      <div className="flex items-center gap-3">
-                        <div className="w-12 h-12 bg-outline/20 rounded-xl flex items-center justify-center overflow-hidden">
-                          <img alt="Company Logo" className="w-full h-full object-cover" src={job.logo} />
-                        </div>
-                        <div>
-                          <p className="text-[10px] font-bold text-on-surface-variant uppercase">{job.company}</p>
-                          <h3 className="font-bold text-lg leading-tight">{job.title}</h3>
-                        </div>
-                      </div>
-                      <span className={`material-symbols-outlined ${job.urgent ? 'text-primary' : 'text-on-surface-variant/40'}`} style={job.urgent ? { fontVariationSettings: '"FILL" 1' } : {}}>
-                        {job.urgent ? 'notifications_active' : 'bookmark'}
-                      </span>
-                    </div>
-                    <div className="space-y-3 mb-6">
-                      <div className="flex justify-between text-xs font-semibold"><span className="text-on-surface-variant">급여</span><span className={`font-bold ${job.urgent ? 'text-primary' : 'text-on-surface'}`}>{job.pay}</span></div>
-                      <div className="flex justify-between text-xs font-semibold"><span className="text-on-surface-variant">시간</span><span className="font-bold text-on-surface">{job.time}</span></div>
-                    </div>
-                    <div className="flex justify-between items-center">
-                      <span className={`px-2.5 py-1 text-[10px] font-bold rounded-md uppercase ${job.urgent ? 'bg-primary text-white' : 'bg-outline/30 text-on-surface-variant'}`}>{job.badge}</span>
-                      <span className="text-[10px] font-bold text-primary">{job.rate}</span>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              <CommonButton
-                variant="outline"
-                size="fullLg"
-                className="mt-10 uppercase tracking-widest font-extrabold"
-                icon={<span className="material-symbols-outlined">expand_more</span>}
-              >
-                Show more matches
-              </CommonButton>
+              ))}
             </div>
           </div>
+
+          {!nearbyFetched ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-4 text-on-surface-variant">
+              <span className="material-symbols-outlined text-5xl text-primary/40">near_me</span>
+              <p className="text-base font-bold text-on-surface">거리를 선택하면 주변 공고를 찾아드립니다.</p>
+              <p className="text-sm text-on-surface-variant">위의 거리 버튼을 눌러 내 주변 공고를 검색해 보세요.</p>
+            </div>
+          ) : (
+            <NearbyJobsSection
+              jobs={nearbyJobs}
+              loading={nearbyLoading}
+              error={nearbyError}
+              selectedDistance={selectedDistance}
+            />
+          )}
         </section>
 
+        {/* 조건 선택 추천 탭 */}
         <section className={currentTab === 'condition' ? 'block' : 'hidden'}>
-          <AiRecommendConditionTab />
-        </section>
+          <div className="mb-8 flex flex-col sm:flex-row sm:items-center gap-4">
+            <div className="flex-1">
+              <h2 className="text-2xl font-extrabold tracking-tight text-on-surface mb-1">맞춤형 추천</h2>
+              <p className="text-sm text-on-surface-variant">조건을 설정하면 맞는 공고를 추천해드립니다.</p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setIsRecommendModalOpen(true)}
+              className="flex items-center gap-2 rounded-full bg-primary text-white px-6 py-3 text-sm font-bold shadow-sm hover:bg-primary/90 transition-colors whitespace-nowrap"
+            >
+              <span className="material-symbols-outlined text-[18px]">tune</span>
+              추천 조건 설정하기
+            </button>
+          </div>
 
-        <section className={currentTab === 'chat' ? 'block' : 'hidden'}>
-          <AiRecommendChatTab />
+          {!recommendApplied ? (
+            <div className="flex flex-col items-center justify-center py-20 gap-4 text-on-surface-variant">
+              <span className="material-symbols-outlined text-5xl text-primary/40">auto_awesome</span>
+              <p className="text-base font-bold text-on-surface">아직 조건이 설정되지 않았습니다.</p>
+              <p className="text-sm text-on-surface-variant">위의 "추천 조건 설정하기" 버튼을 눌러 맞춤 공고를 찾아보세요.</p>
+              <button
+                type="button"
+                onClick={() => setIsRecommendModalOpen(true)}
+                className="mt-2 rounded-full bg-primary text-white px-8 py-3 text-sm font-bold shadow-sm hover:bg-primary/90 transition-colors"
+              >
+                조건 설정하기
+              </button>
+            </div>
+          ) : (
+            <RecommendJobsSection
+              jobs={recommendJobs}
+              loading={recommendLoading}
+              error={recommendError}
+              filters={recommendFilters}
+            />
+          )}
         </section>
       </main>
 
       <AppFooter />
-
-
       <MobileBottomNav />
+
+      <RecommendFilterModal
+        isOpen={isRecommendModalOpen}
+        initialFilters={recommendFilters}
+        onClose={() => setIsRecommendModalOpen(false)}
+        onApply={handleApplyRecommendFilters}
+      />
+
+      <div className={`${showRecommendLoginModal ? '' : 'hidden'} fixed inset-0 z-[100] flex items-center justify-center p-6`}>
+        <div className="absolute inset-0 bg-on-surface/40 backdrop-blur-sm"></div>
+        <div className="relative bg-white w-full max-w-md p-10 rounded-2xl flex flex-col items-center text-center shadow-2xl">
+          <div className="w-16 h-16 bg-primary-soft rounded-full flex items-center justify-center mb-6">
+            <span className="material-symbols-outlined text-primary text-4xl" style={{ fontVariationSettings: '"FILL" 1' }}>lock</span>
+          </div>
+          <h5 className="text-2xl font-bold mb-3">추천 매칭은 개인 회원 전용입니다</h5>
+          <p className="text-on-surface-variant mb-8 leading-relaxed font-medium">
+            개인 회원 로그인 후 추천 매칭 기능을 이용할 수 있습니다.<br />
+            로그인 후 내 주변/맞춤형 공고를 확인해 보세요.
+          </p>
+          <div className="w-full flex flex-col gap-3">
+            <CommonButton size="full" onClick={() => navigate('/login')}>
+              개인 회원 로그인
+            </CommonButton>
+            <CommonButton variant="subtle" size="full" onClick={() => setShowRecommendLoginModal(false)}>
+              닫기
+            </CommonButton>
+          </div>
+        </div>
+      </div>
     </>
   );
 }
