@@ -13,8 +13,8 @@ import java.util.List;
 public class RecruitSearchConditionDto {
     private String type;                    // ALL / SHORT / LONG
     private String keyword;                 // 검색어
-    private Integer regionId;               // 지역 ID
-    private LocalDate workDate;             // 근무 일자 (type=SHORT 일 때만 유효)
+    private List<Integer> regionId;         // 지역 ID 목록 (OR)
+    private List<LocalDate> workDate;       // 근무 일자 목록 (type=SHORT 일 때만 유효, OR)
     private List<Period> workPeriod;        // 근무 기간 필터
     private List<Times> workTime;           // 근무 시간 필터
     private List<Days> workDays;            // 근무 요일 필터

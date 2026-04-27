@@ -44,17 +44,23 @@ public class RecruitService {
         Pageable pageable = PageRequest.of(page - 1, size, sort); // 명세는 page=1 시작
 
         // type=SHORT가 아닐 때 workDate 무시
-        LocalDate workDate = "SHORT".equals(cond.getType()) ? cond.getWorkDate() : null;
+        List<java.time.LocalDate> workDates = "SHORT".equals(cond.getType()) ? nullIfEmpty(cond.getWorkDate()) : null;
+        String keyword = normalizeKeyword(cond.getKeyword());
+        List<Integer> regionIds = nullIfEmpty(cond.getRegionId());
+        List<Period> workPeriods = nullIfEmpty(cond.getWorkPeriod());
+        List<Days> workDays = nullIfEmpty(cond.getWorkDays());
+        List<Times> workTimes = nullIfEmpty(cond.getWorkTime());
+        List<BusinessTypeName> businessTypes = nullIfEmpty(cond.getBusinessType());
 
         return recruitRepository.findWithFilters(
                 cond.getType(),
-                cond.getKeyword(),
-                cond.getRegionId(),
-                workDate,
-                cond.getWorkPeriod(),
-                cond.getWorkDays(),
-                cond.getWorkTime(),
-                cond.getBusinessType(),
+                keyword,
+                regionIds,
+                workDates,
+                workPeriods,
+                workDays,
+                workTimes,
+                businessTypes,
                 cond.getMemberId(),
                 cond.isUrgent(),
                 RecruitStatus.EXPIRED,
@@ -293,6 +299,21 @@ public class RecruitService {
             return null;
         }
         return headCount;
+    }
+
+    private String normalizeKeyword(String keyword) {
+        if (keyword == null) {
+            return null;
+        }
+        String trimmed = keyword.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private <T> List<T> nullIfEmpty(List<T> values) {
+        if (values == null || values.isEmpty()) {
+            return null;
+        }
+        return values;
     }
 
     //근무기간,시간,요일,업종 컬렉션 전체 교체

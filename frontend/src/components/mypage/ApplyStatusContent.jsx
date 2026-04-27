@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import CommonButton from '../CommonButton';
 import {
   cancelMyApply,
@@ -28,10 +28,15 @@ function statusBadgeClass(status) {
   return 'bg-gray-100 text-gray-600';
 }
 
+function normalizeStatusTab(tab) {
+  return tab === 'offers' ? 'offers' : 'applications';
+}
+
 export default function ApplyStatusContent({ account }) {
   const memberId = account?.id ?? null;
+  const [searchParams, setSearchParams] = useSearchParams();
 
-  const [activeTab, setActiveTab] = useState('applications');
+  const [activeTab, setActiveTab] = useState(() => normalizeStatusTab(searchParams.get('statusType')));
   const [applications, setApplications] = useState([]);
   const [offers, setOffers] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -76,6 +81,23 @@ export default function ApplyStatusContent({ account }) {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    const nextTab = normalizeStatusTab(searchParams.get('statusType'));
+    if (nextTab !== activeTab) {
+      setActiveTab(nextTab);
+    }
+  }, [activeTab, searchParams]);
+
+  const handleActiveTabChange = (nextTab) => {
+    const normalizedTab = normalizeStatusTab(nextTab);
+    setActiveTab(normalizedTab);
+
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set('tab', 'status');
+    nextParams.set('statusType', normalizedTab);
+    setSearchParams(nextParams);
+  };
 
   const activeList = useMemo(() => {
     return activeTab === 'applications' ? applications : offers;
@@ -139,7 +161,7 @@ export default function ApplyStatusContent({ account }) {
       <div className="mb-8">
         <h1 className="text-3xl font-black tracking-tight text-[#1F1D1D]">지원/제의 현황</h1>
         <p className="text-[#6B6766] mt-1 text-sm">
-          내가 한 지원은 취소만 가능하고, 받은 제의는 수락·거절할 수 있습니다.
+          내가 한 지원과 받은 제의를 한눈에 확인하고 상태별로 바로 처리할 수 있습니다.
         </p>
       </div>
 
@@ -149,7 +171,7 @@ export default function ApplyStatusContent({ account }) {
           <button
             key={tab.key}
             type="button"
-            onClick={() => setActiveTab(tab.key)}
+            onClick={() => handleActiveTabChange(tab.key)}
             className={`relative px-6 py-3 text-sm font-bold transition-colors ${
               activeTab === tab.key ? 'text-primary' : 'text-[#6B6766] hover:text-[#1F1D1D]'
             }`}
