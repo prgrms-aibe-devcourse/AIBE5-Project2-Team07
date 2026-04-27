@@ -18,6 +18,11 @@ export default function GlobalAiChatbotButton() {
   const location = useLocation();
 
   const [activePanel, setActivePanel] = useState(null);
+  const activePanelRef = useRef(activePanel);
+
+  useEffect(() => {
+    activePanelRef.current = activePanel;
+  }, [activePanel]);
 
   const [member, setMember] = useState(() => getCurrentMember());
   const [rooms, setRooms] = useState([]);
@@ -100,6 +105,26 @@ export default function GlobalAiChatbotButton() {
     }
   }, [currentMemberId, isLoggedIn, selectedRoomId]);
 
+  const markAsReadIfViewing = useCallback((roomId, partnerUserId) => {
+    if (!roomId) return;
+    const client = clientRef.current;
+    if (activePanelRef.current === 'member' && client?.connected) {
+      try {
+        publishChat(client, {
+          senderId: currentMemberId,
+          receiverId: partnerUserId ?? null,
+          roomId: roomId,
+          email: member?.email || '',
+          type: 'ENTER',
+        });
+        setRooms((prev) => prev.map((r) => r.roomId === roomId ? { ...r, unreadCount: 0 } : r));
+        setTimeout(() => loadRooms(roomId), 300);
+      } catch (error) {
+        console.error(error);
+      }
+    }
+  }, [currentMemberId, member?.email, loadRooms]);
+
   const ensureSocketClient = useCallback(() => {
     if (clientRef.current) {
       if (!clientRef.current.active) {
@@ -110,6 +135,7 @@ export default function GlobalAiChatbotButton() {
 
     const client = createChatClient({
       email: member?.email || '',
+      memberId: currentMemberId,
       onError: (error) => {
         setMemberError(error.message || '채팅 서버 연결에 실패했습니다.');
       },
@@ -133,34 +159,34 @@ export default function GlobalAiChatbotButton() {
             }
             return [...prev, payload];
           });
-          loadRooms(selectedRoomId);
+
+          if (activePanelRef.current === 'member') {
+            markAsReadIfViewing(selectedRoomId, selectedRoom?.partnerUserId);
+          } else {
+            loadRooms(selectedRoomId);
+          }
         });
 
-        try {
-          publishChat(client, {
-            senderId: currentMemberId,
-            receiverId: selectedRoom?.partnerUserId ?? null,
-            roomId: selectedRoomId,
-            email: member?.email || '',
-            type: 'ENTER',
-          });
-          loadRooms(selectedRoomId);
-        } catch (error) {
-          console.error(error);
+        if (activePanelRef.current === 'member') {
+          markAsReadIfViewing(selectedRoomId, selectedRoom?.partnerUserId);
         }
+        loadRooms(selectedRoomId);
       }
     };
 
     client.activate();
     clientRef.current = client;
-  }, [currentMemberId, loadRooms, member?.email, selectedRoom?.partnerUserId, selectedRoomId]);
+  }, [currentMemberId, loadRooms, markAsReadIfViewing, member?.email, selectedRoom?.partnerUserId, selectedRoomId]);
 
   useEffect(() => {
     if (activePanel === 'member' && isLoggedIn) {
       ensureSocketClient();
       loadRooms();
+      if (selectedRoomId) {
+        markAsReadIfViewing(selectedRoomId, selectedRoom?.partnerUserId);
+      }
     }
-  }, [activePanel, ensureSocketClient, isLoggedIn, loadRooms]);
+  }, [activePanel, ensureSocketClient, isLoggedIn, loadRooms, selectedRoomId, selectedRoom?.partnerUserId, markAsReadIfViewing]);
 
   useEffect(() => {
     if (!isLoggedIn || !currentMemberId) {
@@ -245,19 +271,16 @@ export default function GlobalAiChatbotButton() {
           }
           return [...prev, payload];
         });
-        loadRooms(selectedRoomId);
+
+        if (activePanelRef.current === 'member') {
+          markAsReadIfViewing(selectedRoomId, selectedRoom?.partnerUserId);
+        } else {
+          loadRooms(selectedRoomId);
+        }
       });
 
-      try {
-        publishChat(client, {
-          senderId: currentMemberId,
-          receiverId: selectedRoom?.partnerUserId ?? null,
-          roomId: selectedRoomId,
-          email: member?.email || '',
-          type: 'ENTER',
-        });
-      } catch (error) {
-        console.error(error);
+      if (activePanelRef.current === 'member') {
+        markAsReadIfViewing(selectedRoomId, selectedRoom?.partnerUserId);
       }
     }
 

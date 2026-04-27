@@ -3,10 +3,13 @@ import SockJS from 'sockjs-client/dist/sockjs';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080').replace(/\/+$/, '');
 
-export function createChatClient({ email, onConnect, onError }) {
+export function createChatClient({ email, memberId, onConnect, onError }) {
   const client = new Client({
     webSocketFactory: () => new SockJS(`${API_BASE}/ws-connect`),
-    connectHeaders: email ? { email } : {},
+    connectHeaders: {
+      ...(email ? { email } : {}),
+      ...(memberId != null ? { memberId: String(memberId) } : {}),
+    },
     reconnectDelay: 3000,
     heartbeatIncoming: 10000,
     heartbeatOutgoing: 10000,
