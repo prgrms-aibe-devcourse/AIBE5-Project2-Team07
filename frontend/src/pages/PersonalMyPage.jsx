@@ -77,6 +77,7 @@ export default function PersonalMyPage() {
                 error={error}
                 onMoveInfo={() => handleTabChange('info')}
                 onMoveResume={() => handleTabChange('resume')}
+                onMoveReview={() => setActiveTab('review')}
             />
         );
 

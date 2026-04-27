@@ -9,6 +9,7 @@ import { offerToIndividualByBusinessAndMemberId } from '../services/applyApi';
 import { addBusinessScrapMemberByMemberId, checkBusinessScrapMemberByMemberId, removeBusinessScrapMemberByMemberId } from '../services/scrapMemberApi';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
+const DEFAULT_PROFILE_IMAGE = 'https://cdn-icons-png.flaticon.com/512/2815/2815428.png';
 
 const BUSINESS_TYPE_LABELS = {
     FOOD_RESTAURANT: '외식(음식점)',
@@ -165,7 +166,7 @@ function mapResumeDetailToTalent(data) {
         photo:
             data?.profileImageUrl ||
             data?.image ||
-            'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=400&q=80',
+            DEFAULT_PROFILE_IMAGE,
         name: data?.memberName ?? data?.name ?? '이름 없음',
         birthDate: data?.birthDate ?? '',
         age: calculateAge(data?.birthDate),

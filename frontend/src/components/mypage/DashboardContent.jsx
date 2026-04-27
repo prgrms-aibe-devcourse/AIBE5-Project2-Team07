@@ -1,10 +1,11 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
+import { getReviewsByTarget } from '../../services/reviewApi.js';
 import CommonButton from '../CommonButton';
 import {
     calculateProfileCompletion,
     formatDate,
     formatUpdatedLabel,
-    getInitials,
+    normalizeReview
 } from '../../utils/mypageUtils';
 import StarRow from './review/StarRow';
 
@@ -15,16 +16,66 @@ export default function DashboardContent({
                                              error,
                                              onMoveInfo,
                                              onMoveResume,
+                                             onMoveReview,
                                          }) {
     const profileCompletion = useMemo(() => {
         return calculateProfileCompletion(account, resume);
     }, [account, resume]);
+    const getReviewerDisplayName = (review) => {
+        if (account?.memberType === 'INDIVIDUAL') {
+            return (
+                review.writerCompanyName ||
+                review.companyName ||
+                review.businessName ||
+                review.writerBusinessName ||
+                review.writerName ||
+                review.reviewerName ||
+                '리뷰 작성자'
+            );
+        }
 
+        return (
+            review.writerName ||
+            review.reviewerName ||
+            review.individualName ||
+            '리뷰 작성자'
+        );
+    };
     const memberName = account?.name || '회원';
     const memberImage = account?.image || '';
     const memberRole = account?.memberType === 'INDIVIDUAL' ? '개인회원' : '회원';
+    const [dashboardReviews, setDashboardReviews] = useState([]);
+    useEffect(() => {
+        const loadDashboardReviews = async () => {
+            const memberId = account?.id || resume?.memberId;
 
-    const reviews = Array.isArray(resume?.reviews) ? resume.reviews : [];
+            if (!memberId) {
+                setDashboardReviews([]);
+                return;
+            }
+
+            try {
+                const response = await getReviewsByTarget(memberId);
+                const list = Array.isArray(response)
+                    ? response.map(normalizeReview)
+                    : [];
+
+                setDashboardReviews(list);
+            } catch (err) {
+                console.error('대시보드 최근 리뷰 조회 실패:', err);
+                setDashboardReviews([]);
+            }
+        };
+
+        loadDashboardReviews();
+    }, [account?.id, resume?.memberId]);
+
+    const reviews = dashboardReviews.length > 0
+        ? dashboardReviews
+        : Array.isArray(resume?.reviews)
+            ? resume.reviews
+            : [];
+
     const recentReviews = reviews.slice(0, 2);
 
     return (
@@ -165,16 +216,19 @@ export default function DashboardContent({
             <section>
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-bold">최근 리뷰</h3>
-                    <button className="text-xs font-bold text-[#6B6766] hover:text-primary transition-colors">
-                        전체 보기
+                    <button
+                        onClick={onMoveReview}
+                        className="text-xs font-bold text-primary hover:underline transition-colors flex items-center gap-1"
+                    >
+                        더보기
+                        <span className="material-symbols-outlined text-xs">chevron_right</span>
                     </button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {recentReviews.length > 0 ? (
                         recentReviews.map((review, index) => {
-                            const reviewerName = review.writerName || review.reviewerName || '리뷰 작성자';
-                            const initials = getInitials(reviewerName);
+                            const reviewerName = getReviewerDisplayName(review);
 
                             return (
                                 <div
@@ -195,9 +249,6 @@ export default function DashboardContent({
                                     </div>
 
                                     <div className="flex items-center gap-3 pt-4 border-t border-[#EAE5E3]/30">
-                                        <div className="w-8 h-8 rounded-full bg-[#FFF0F3] text-primary text-[10px] flex items-center justify-center font-bold">
-                                            {initials}
-                                        </div>
                                         <div>
                                             <p className="text-xs font-bold text-[#1F1D1D]">{reviewerName}</p>
                                             <p className="text-[10px] text-[#6B6766] font-medium">

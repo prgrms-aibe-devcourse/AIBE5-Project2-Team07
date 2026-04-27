@@ -386,6 +386,22 @@ export default function HumanInformationPage() {
   }
 
   function handleOpenTalentProfile(talent) {
+    let storedMember = null;
+
+    try {
+      const storedMemberRaw = localStorage.getItem('member');
+      storedMember = storedMemberRaw ? JSON.parse(storedMemberRaw) : null;
+    } catch {
+      storedMember = null;
+    }
+
+    const memberType = storedMember?.memberType;
+
+    if (!storedMember || memberType !== 'BUSINESS') {
+      setShowLoginModal(true);
+      return;
+    }
+
     const resumeId = talent?.id;
 
     if (!resumeId) {
@@ -401,11 +417,15 @@ export default function HumanInformationPage() {
     const nextTypes = next.businessTypes ?? selectedBusinessTypes;
     const nextBrands = next.brandIds ?? selectedBrandIds;
 
-    loadTalentList(selectedTab, {
-      regionIds: nextRegions,
-      businessTypes: nextTypes,
-      brandIds: nextBrands,
-    }, sortType);
+    loadTalentList(
+        selectedTab,
+        {
+          regionIds: nextRegions,
+          businessTypes: nextTypes,
+          brandIds: nextBrands,
+        },
+        sortType
+    );
   }
 
   function toggleRegion(regionId) {
@@ -869,7 +889,10 @@ export default function HumanInformationPage() {
                                   className="bg-gray-100 text-on-surface-variant text-xs font-bold px-2 py-1 rounded-full flex items-center gap-2"
                               >
                         <span>{r.label}</span>
-                        <button onClick={() => removeRegionId(r.id)} className="text-[11px] px-1 rounded-full hover:bg-gray-200">
+                        <button
+                            onClick={() => removeRegionId(r.id)}
+                            className="text-[11px] px-1 rounded-full hover:bg-gray-200"
+                        >
                           ×
                         </button>
                       </span>
@@ -881,7 +904,10 @@ export default function HumanInformationPage() {
                                   className="bg-gray-100 text-on-surface-variant text-xs font-bold px-2 py-1 rounded-full flex items-center gap-2"
                               >
                         <span>{b.label}</span>
-                        <button onClick={() => removeBusinessType(b.type)} className="text-[11px] px-1 rounded-full hover:bg-gray-200">
+                        <button
+                            onClick={() => removeBusinessType(b.type)}
+                            className="text-[11px] px-1 rounded-full hover:bg-gray-200"
+                        >
                           ×
                         </button>
                       </span>
@@ -893,7 +919,10 @@ export default function HumanInformationPage() {
                                   className="bg-primary-soft text-primary text-xs font-bold px-2 py-1 rounded-full flex items-center gap-2"
                               >
                         <span>{br.name}</span>
-                        <button onClick={() => removeBrandId(br.id)} className="text-[11px] px-1 rounded-full hover:bg-primary/20">
+                        <button
+                            onClick={() => removeBrandId(br.id)}
+                            className="text-[11px] px-1 rounded-full hover:bg-primary/20"
+                        >
                           ×
                         </button>
                       </span>
@@ -1000,7 +1029,7 @@ export default function HumanInformationPage() {
               onClick={() => setShowLoginModal(false)}
           ></div>
 
-          <div className="relative bg-white w-full max-w-md p-10 rounded-2xl flex flex-col items-center text-center shadow-2xl">
+          <div className="relative bg-white w-full max-w-md p-10 rounded-2xl flex flex-col items-center text-center shadow-2xl z-10">
             <div className="w-16 h-16 bg-primary-soft rounded-full flex items-center justify-center mb-6">
             <span
                 className="material-symbols-outlined text-primary text-4xl"
@@ -1010,17 +1039,34 @@ export default function HumanInformationPage() {
             </span>
             </div>
 
-            <h5 className="text-2xl font-bold mb-3">기업회원 전용 메뉴입니다</h5>
+            <h5 className="text-2xl font-bold mb-3">사업자 회원 전용 기능입니다</h5>
+
             <p className="text-on-surface-variant mb-8 leading-relaxed font-medium">
-              상세한 인재 프로필 정보 열람과
+              해당 기능은 사업자 회원만 이용할 수 있습니다.
               <br />
-              알바 제의는 기업회원 로그인 후 가능합니다.
+              로그인 후 이용하시겠습니까?
             </p>
 
             <div className="w-full flex flex-col gap-3">
-              <CommonButton size="full">기업회원 로그인</CommonButton>
-              <CommonButton variant="subtle" size="full">
-                기업회원 가입하기
+              <CommonButton
+                  size="full"
+                  onClick={() => {
+                    setShowLoginModal(false);
+                    navigate('/login');
+                  }}
+              >
+                로그인 하기
+              </CommonButton>
+
+              <CommonButton
+                  variant="subtle"
+                  size="full"
+                  onClick={() => {
+                    setShowLoginModal(false);
+                    navigate('/signup/business');
+                  }}
+              >
+                사업자 회원 가입하기
               </CommonButton>
             </div>
 
