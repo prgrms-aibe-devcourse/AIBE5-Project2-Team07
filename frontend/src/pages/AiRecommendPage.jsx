@@ -55,9 +55,8 @@ export default function AiRecommendPage() {
   }, []);
 
   useEffect(() => {
-    const token = localStorage.getItem('token');
     const member = getStoredMember();
-    if (!token || !member) {
+    if (!member) {
       setShowRecommendLoginModal(true);
     }
   }, []);
