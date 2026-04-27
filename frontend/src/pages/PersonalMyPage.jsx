@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import TopNavBarLoggedIn from '../components/TopNavBarLoggedIn';
 import AppFooter from '../components/AppFooter';
 
 import Sidebar from '../components/mypage/Sidebar';
 import DashboardContent from '../components/mypage/DashboardContent';
+import ApplyStatusContent from '../components/mypage/ApplyStatusContent';
 import WorkContent from '../components/mypage/WorkContent';
 import ScrapContent from '../components/mypage/ScrapContent';
 import InfoEditContent from '../components/mypage/InfoEditContent';
@@ -14,6 +16,8 @@ import { getMyAccount } from '../services/accountApi';
 import { getMyResume } from '../services/resumeApi';
 
 export default function PersonalMyPage() {
+  const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [account, setAccount] = useState(null);
   const [resume, setResume] = useState(null);
@@ -49,6 +53,27 @@ export default function PersonalMyPage() {
     loadMyPageData();
   }, []);
 
+  useEffect(() => {
+    const tab = searchParams.get('tab');
+    const allowedTabs = ['dashboard', 'status', 'work', 'resume', 'review', 'scrap', 'info'];
+
+    if (tab && allowedTabs.includes(tab) && tab !== activeTab) {
+      setActiveTab(tab);
+    }
+  }, [activeTab, searchParams]);
+
+  const handleTabChange = (nextTab, options = {}) => {
+    setActiveTab(nextTab);
+    const nextParams = new URLSearchParams();
+    if (nextTab !== 'dashboard') {
+      nextParams.set('tab', nextTab);
+    }
+    if (nextTab === 'status' && options.statusType) {
+      nextParams.set('statusType', options.statusType);
+    }
+    setSearchParams(nextParams);
+  };
+
   const renderContent = () => {
     switch (activeTab) {
       case 'dashboard':
@@ -58,13 +83,19 @@ export default function PersonalMyPage() {
                 resume={resume}
                 loading={loading}
                 error={error}
-                onMoveInfo={() => setActiveTab('info')}
-                onMoveResume={() => setActiveTab('resume')}
+                onMoveInfo={() => handleTabChange('info')}
+                onMoveResume={() => handleTabChange('resume')}
+                onMoveStatusTab={(statusType) => handleTabChange('status', { statusType })}
+                onFindRecruit={() => navigate('/recruit-information')}
+                onMoveReview={() => handleTabChange('review')}
             />
         );
 
+      case 'status':
+        return <ApplyStatusContent account={account} />;
+
       case 'work':
-        return <WorkContent />;
+        return <WorkContent account={account} />;
 
       case 'resume':
         return (
@@ -95,8 +126,11 @@ export default function PersonalMyPage() {
                 resume={resume}
                 loading={loading}
                 error={error}
-                onMoveInfo={() => setActiveTab('info')}
-                onMoveResume={() => setActiveTab('resume')}
+                onMoveInfo={() => handleTabChange('info')}
+                onMoveResume={() => handleTabChange('resume')}
+                onMoveStatusTab={(statusType) => handleTabChange('status', { statusType })}
+                onFindRecruit={() => navigate('/recruit-information')}
+                onMoveReview={() => handleTabChange('review')}
             />
         );
     }
@@ -107,7 +141,7 @@ export default function PersonalMyPage() {
         <TopNavBarLoggedIn />
 
         <main className="flex-grow w-full custom-container pt-28 pb-12 flex flex-col lg:flex-row gap-8 items-start">
-          <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} />
+          <Sidebar activeTab={activeTab} setActiveTab={handleTabChange} />
 
           <div className="flex-1 min-w-0 w-full">
             {renderContent()}

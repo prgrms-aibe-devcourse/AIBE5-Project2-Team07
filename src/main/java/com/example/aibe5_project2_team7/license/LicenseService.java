@@ -14,7 +14,25 @@ public class LicenseService {
     private final LicenseRepository licenseRepository;
     private final ResumeRepository resumeRepository;
 
-    public License create(License l) { return licenseRepository.save(l); }
+    @Transactional
+    public License create(License l) {
+        Resume resume = resumeRepository.findByMemberId(l.getMemberId())
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Resume not found for member"));
+
+        License license = new License();
+        license.setMemberId(l.getMemberId());
+        license.setLicenseName(l.getLicenseName());
+        license.setLicenseNumber(l.getLicenseNumber());
+        license.setAcquisitionDate(l.getAcquisitionDate());
+        license.setIssuedBy(l.getIssuedBy());
+        license.setLicenseFileUrl(l.getLicenseFileUrl());
+
+        license.setResume(resume); // 핵심
+
+        return licenseRepository.save(license);
+    }
 
     public License update(Long id, License l) {
         License ex = licenseRepository.findById(id).orElseThrow(() -> new RuntimeException("Not found"));

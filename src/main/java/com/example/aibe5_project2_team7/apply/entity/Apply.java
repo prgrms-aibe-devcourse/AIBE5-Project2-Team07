@@ -47,6 +47,4 @@ public class Apply {
     @Enumerated(EnumType.STRING)
     @Column(name="method", nullable = false)
     private ApplyMethod method; //온라인 or 이메일
-
-
 }

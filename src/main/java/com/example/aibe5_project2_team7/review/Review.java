@@ -12,10 +12,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 @Entity
-@Table(name = "review",
+@Table(
+        name = "review",
         uniqueConstraints = {
-                @UniqueConstraint(name = "uk_review_apply_id", columnNames = "apply_id")
-        })
+                @UniqueConstraint(name = "uq_review_apply_writer", columnNames = {"apply_id", "writer_id"})
+        }
+)
 @Getter @Setter
 @NoArgsConstructor
 public class Review extends BaseEntity {

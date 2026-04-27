@@ -188,7 +188,7 @@ export default function CareerSection({ careers, setCareers }) {
 
                                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4 items-end">
                                     <div>
-                                        <label className="text-[10px] font-bold text-[#6B6766] block mb-1.5">근무처</label>
+                                        <label className="text-[13px] font-bold text-[#6B6766] block mb-1.5">근무처</label>
                                         <input
                                             type="text"
                                             value={career.company || ''}
@@ -204,7 +204,7 @@ export default function CareerSection({ careers, setCareers }) {
                                     </div>
 
                                     <div>
-                                        <label className="text-[10px] font-bold text-[#6B6766] block mb-1.5">직무</label>
+                                        <label className="text-[13px] font-bold text-[#6B6766] block mb-1.5">직무</label>
                                         <input
                                             type="text"
                                             value={career.role || ''}
@@ -215,7 +215,7 @@ export default function CareerSection({ careers, setCareers }) {
                                     </div>
 
                                     <div>
-                                        <label className="text-[10px] font-bold text-[#6B6766] block mb-1.5">시작일</label>
+                                        <label className="text-[13px] font-bold text-[#6B6766] block mb-1.5">시작일</label>
                                         <input
                                             type="date"
                                             value={career.startDate || ''}
@@ -226,7 +226,7 @@ export default function CareerSection({ careers, setCareers }) {
 
                                     <div className="flex gap-2">
                                         <div className="flex-1">
-                                            <label className="text-[10px] font-bold text-[#6B6766] block mb-1.5">종료일</label>
+                                            <label className="text-[13px] font-bold text-[#6B6766] block mb-1.5">종료일</label>
                                             <input
                                                 type="date"
                                                 value={career.endDate || ''}

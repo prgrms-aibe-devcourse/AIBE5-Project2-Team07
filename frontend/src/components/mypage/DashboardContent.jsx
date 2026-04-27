@@ -1,10 +1,11 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useState } from 'react';
+import { getMyApplications, getMyOffers } from '../../services/applyApi';
+import { getReviewsByTarget } from '../../services/reviewApi.js';
 import CommonButton from '../CommonButton';
 import {
-    calculateProfileCompletion,
     formatDate,
     formatUpdatedLabel,
-    getInitials,
+    normalizeReview
 } from '../../utils/mypageUtils';
 import StarRow from './review/StarRow';
 
@@ -15,16 +16,114 @@ export default function DashboardContent({
                                              error,
                                              onMoveInfo,
                                              onMoveResume,
+                                             onMoveStatusTab,
+                                             onFindRecruit,
+                                             onMoveReview,
                                          }) {
-    const profileCompletion = useMemo(() => {
-        return calculateProfileCompletion(account, resume);
-    }, [account, resume]);
+    const [requestSummary, setRequestSummary] = useState({ applications: 0, offers: 0 });
+    const getTotalCount = (response) => {
+        if (Number.isFinite(Number(response?.totalElements))) {
+            return Number(response.totalElements);
+        }
+        if (Array.isArray(response?.content)) {
+            return response.content.length;
+        }
+        return 0;
+    };
+    const getReviewerDisplayName = (review) => {
+        if (account?.memberType === 'INDIVIDUAL') {
+            return (
+                review.writerCompanyName ||
+                review.companyName ||
+                review.businessName ||
+                review.writerBusinessName ||
+                review.writerName ||
+                review.reviewerName ||
+                '리뷰 작성자'
+            );
+        }
 
+        return (
+            review.writerName ||
+            review.reviewerName ||
+            review.individualName ||
+            '리뷰 작성자'
+        );
+    };
     const memberName = account?.name || '회원';
     const memberImage = account?.image || '';
     const memberRole = account?.memberType === 'INDIVIDUAL' ? '개인회원' : '회원';
+    const [dashboardReviews, setDashboardReviews] = useState([]);
 
-    const reviews = Array.isArray(resume?.reviews) ? resume.reviews : [];
+    useEffect(() => {
+        const memberId = account?.id;
+
+        if (!memberId || account?.memberType !== 'INDIVIDUAL') {
+            setRequestSummary({ applications: 0, offers: 0 });
+            return;
+        }
+
+        let mounted = true;
+
+        const loadRequestSummary = async () => {
+            try {
+                const [applicationsResponse, offersResponse] = await Promise.all([
+                    getMyApplications(memberId, 0, 1),
+                    getMyOffers(memberId, { page: 0, size: 1 }),
+                ]);
+
+                if (!mounted) return;
+
+                setRequestSummary({
+                    applications: getTotalCount(applicationsResponse),
+                    offers: getTotalCount(offersResponse),
+                });
+            } catch (err) {
+                console.error('대시보드 지원/제의 건수 조회 실패:', err);
+                if (mounted) {
+                    setRequestSummary({ applications: 0, offers: 0 });
+                }
+            }
+        };
+
+        loadRequestSummary();
+
+        return () => {
+            mounted = false;
+        };
+    }, [account?.id, account?.memberType]);
+
+    useEffect(() => {
+        const loadDashboardReviews = async () => {
+            const memberId = account?.id || resume?.memberId;
+
+            if (!memberId) {
+                setDashboardReviews([]);
+                return;
+            }
+
+            try {
+                const response = await getReviewsByTarget(memberId);
+                const list = Array.isArray(response)
+                    ? response.map(normalizeReview)
+                    : [];
+
+                setDashboardReviews(list);
+            } catch (err) {
+                console.error('대시보드 최근 리뷰 조회 실패:', err);
+                setDashboardReviews([]);
+            }
+        };
+
+        loadDashboardReviews();
+    }, [account?.id, resume?.memberId]);
+
+    const reviews = dashboardReviews.length > 0
+        ? dashboardReviews
+        : Array.isArray(resume?.reviews)
+            ? resume.reviews
+            : [];
+
     const recentReviews = reviews.slice(0, 2);
 
     return (
@@ -67,48 +166,82 @@ export default function DashboardContent({
                     </div>
                 </div>
 
-                <div className="bg-[#FFF0F3] p-10 rounded-2xl border border-primary/10 relative overflow-hidden min-h-[260px] flex flex-col justify-between">
-                    <div className="absolute top-0 right-0 p-8 opacity-10">
-            <span
-                className="material-symbols-outlined text-[120px] text-primary"
-                style={{ fontVariationSettings: "'FILL' 1" }}
-            >
-              notifications_active
-            </span>
+                <div className="xl:col-span-2 grid grid-cols-1 md:grid-cols-2 gap-6 min-h-[260px]">
+                    <div className="bg-[#FFF0F3] p-8 rounded-2xl border border-primary/10 relative overflow-hidden flex flex-col justify-between">
+                        <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none">
+                            <span
+                                className="material-symbols-outlined text-[110px] text-primary"
+                                style={{ fontVariationSettings: "'FILL' 1" }}
+                            >
+                                assignment
+                            </span>
+                        </div>
+
+                        <div className="relative z-10">
+                            <h3 className="text-sm text-primary font-bold uppercase tracking-wider mb-3">
+                                내가 한 지원
+                            </h3>
+                            <p className="text-3xl font-extrabold text-[#1F1D1D] tracking-tight leading-tight">
+                                <span className="text-primary">{requestSummary.applications}건</span>
+                                <br />
+                                지원했어요.
+                            </p>
+                            <p className="text-xs text-[#6B6766] mt-4">
+                                지원 현황을 확인하세요.
+                            </p>
+                        </div>
+
+                        <div className="mt-8 flex flex-wrap gap-3 relative z-10">
+                            <button
+                                type="button"
+                                onClick={() => onMoveStatusTab?.('applications')}
+                                className="bg-primary text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-[#D61F44] transition-all shadow-md shadow-primary/10"
+                            >
+                                지원 확인
+                            </button>
+                            <button
+                                type="button"
+                                onClick={onFindRecruit}
+                                className="bg-white text-[#1F1D1D] border border-[#EAE5E3] px-6 py-3 rounded-xl font-bold text-sm hover:bg-gray-50 transition-all"
+                            >
+                                새 공고 찾기
+                            </button>
+                        </div>
                     </div>
 
-                    <div className="z-10">
-                        <h3 className="text-sm text-primary font-bold uppercase tracking-wider mb-3">
-                            긴급 매칭 현황
-                        </h3>
-                        <p className="text-3xl font-extrabold text-[#1F1D1D] tracking-tight leading-tight">
-                            <span className="text-primary">0개</span>의 면접 요청
-                            <br />
-                            대기 중입니다.
-                        </p>
-                        <p className="text-xs text-[#6B6766] mt-4">
-                            현재 이 값은 연결 가능한 API가 없어 임시 표시 중입니다.
-                        </p>
-                    </div>
+                    <div className="bg-white p-8 rounded-2xl border border-[#EAE5E3] shadow-sm relative overflow-hidden flex flex-col justify-between">
+                        <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none">
+                            <span
+                                className="material-symbols-outlined text-[110px] text-primary"
+                                style={{ fontVariationSettings: "'FILL' 1" }}
+                            >
+                                mail
+                            </span>
+                        </div>
 
-                    <div className="mt-8 flex gap-3 z-10">
-                        <button className="bg-primary text-white px-8 py-3 rounded-xl font-bold text-sm hover:bg-[#D61F44] transition-all shadow-md shadow-primary/10">
-                            요청 확인
-                        </button>
-                        <button className="bg-white text-[#1F1D1D] border border-[#EAE5E3] px-8 py-3 rounded-xl font-bold text-sm hover:bg-gray-50 transition-all">
-                            새 공고 찾기
-                        </button>
-                    </div>
-                </div>
+                        <div className="relative z-10">
+                            <h3 className="text-sm text-primary font-bold uppercase tracking-wider mb-3">
+                                내가 받은 제의
+                            </h3>
+                            <p className="text-3xl font-extrabold text-[#1F1D1D] tracking-tight leading-tight">
+                                <span className="text-primary">{requestSummary.offers}건</span>
+                                <br />
+                                도착했어요.
+                            </p>
+                            <p className="text-xs text-[#6B6766] mt-4">
+                                받은 제의를 확인하고 수락 또는 거절을 진행하세요.
+                            </p>
+                        </div>
 
-                <div className="bg-white p-10 rounded-2xl border border-[#EAE5E3] shadow-sm min-h-[260px] flex flex-col justify-center items-center text-center">
-                    <div className="text-5xl font-black text-primary mb-3">{profileCompletion}%</div>
-                    <div className="text-sm font-bold text-[#6B6766] mb-6">프로필 완성도</div>
-                    <div className="w-full bg-[#FFF0F3] h-3 rounded-full overflow-hidden">
-                        <div
-                            className="bg-primary h-full rounded-full shadow-inner"
-                            style={{ width: `${profileCompletion}%` }}
-                        />
+                        <div className="mt-8 flex flex-wrap gap-3 relative z-10">
+                            <button
+                                type="button"
+                                onClick={() => onMoveStatusTab?.('offers')}
+                                className="bg-primary text-white px-6 py-3 rounded-xl font-bold text-sm hover:bg-[#D61F44] transition-all shadow-md shadow-primary/10"
+                            >
+                                제의 확인
+                            </button>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -165,16 +298,19 @@ export default function DashboardContent({
             <section>
                 <div className="flex items-center justify-between mb-4">
                     <h3 className="text-lg font-bold">최근 리뷰</h3>
-                    <button className="text-xs font-bold text-[#6B6766] hover:text-primary transition-colors">
-                        전체 보기
+                    <button
+                        onClick={onMoveReview}
+                        className="text-xs font-bold text-primary hover:underline transition-colors flex items-center gap-1"
+                    >
+                        더보기
+                        <span className="material-symbols-outlined text-xs">chevron_right</span>
                     </button>
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {recentReviews.length > 0 ? (
                         recentReviews.map((review, index) => {
-                            const reviewerName = review.writerName || review.reviewerName || '리뷰 작성자';
-                            const initials = getInitials(reviewerName);
+                            const reviewerName = getReviewerDisplayName(review);
 
                             return (
                                 <div
@@ -195,9 +331,6 @@ export default function DashboardContent({
                                     </div>
 
                                     <div className="flex items-center gap-3 pt-4 border-t border-[#EAE5E3]/30">
-                                        <div className="w-8 h-8 rounded-full bg-[#FFF0F3] text-primary text-[10px] flex items-center justify-center font-bold">
-                                            {initials}
-                                        </div>
                                         <div>
                                             <p className="text-xs font-bold text-[#1F1D1D]">{reviewerName}</p>
                                             <p className="text-[10px] text-[#6B6766] font-medium">

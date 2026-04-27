@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import BrandModal from '../components/BrandModal';
 import TopNavBar from '../components/TopNavBar';
 import AppFooter from '../components/AppFooter';
@@ -130,6 +131,7 @@ const urgentJobs = [
 ];
 
 export default function BrandRecruitExplorePage() {
+  const navigate = useNavigate();
   const defaultBrandSummary = {
     name: 'CU',
     description: '전국 16,000여 개의 일상을 함께하는 1등 편의점',
@@ -142,15 +144,13 @@ export default function BrandRecruitExplorePage() {
   const [isRegionOpen, setIsRegionOpen] = useState(false);
   const [isWorkConditionOpen, setIsWorkConditionOpen] = useState(false);
   const [selectedSido, setSelectedSido] = useState('서울특별시');
-  const [selectedSigungu, setSelectedSigungu] = useState(null);
+  const [, setSelectedSigungu] = useState(null);
   const [, setSelectedDong] = useState(null);
   // store options as [{ id, sido, sigungu }]
   const [sigunguOptions, setSigunguOptions] = useState([]);
-  // store selected region id (DB PK) for backend filtering
-  const [selectedRegionId, setSelectedRegionId] = useState(null);
-  // badge state: keep user-visible selected region separate so changing Sido doesn't clear the badge
-  const [badgeSido, setBadgeSido] = useState(null);
-  const [badgeSigungu, setBadgeSigungu] = useState(null);
+  // store selected region ids (DB PK) for backend filtering (multi-select)
+  const [selectedRegionIds, setSelectedRegionIds] = useState([]);
+  const [selectedRegionBadges, setSelectedRegionBadges] = useState([]);
   // work condition: selected work dates (array of 'YYYY-MM-DD')
   const [workDates, setWorkDates] = useState([]);
   const [tempDate, setTempDate] = useState('');
@@ -262,7 +262,7 @@ export default function BrandRecruitExplorePage() {
           }
         });
         setSigunguOptions(Object.values(map));
-        // do NOT clear selectedRegionId here because badge/selectedRegionId should persist
+        // keep selected regions even when changing sido
       })
       .catch(() => setSigunguOptions([]));
   }, [selectedSido]);
@@ -318,7 +318,7 @@ export default function BrandRecruitExplorePage() {
     query.set('page', String(activePage));
 
     if (applyFilters) {
-      if (selectedRegionId) query.set('region_id', String(selectedRegionId));
+      selectedRegionIds.forEach((id) => query.append('region_id', String(id)));
 
       if (endpoint === 'short' || endpoint === 'all') {
         workDates.forEach((d) => query.append('work_date', d));
@@ -396,12 +396,8 @@ export default function BrandRecruitExplorePage() {
           const resolvedRecruitType = endpoint === 'all'
             ? (recruitTypeRaw === 'long' ? 'long' : 'short')
             : endpoint;
-          const payLabelText = resolvedRecruitType === 'long'
-            ? (salaryTypeLabelMap[normalizedSalaryType] || '급여')
-            : '시급';
-          const payTypeBadgeText = resolvedRecruitType === 'long'
-            ? (salaryTypeLabelMap[normalizedSalaryType] || '')
-            : '시급';
+          const payLabelText = salaryTypeLabelMap[normalizedSalaryType] || '급여';
+          const payTypeBadgeText = salaryTypeLabelMap[normalizedSalaryType] || '';
            const scheduleText = [deadlineText, workTimeText].filter(Boolean).join(' / ');
            const workDateRaw = r?.workDate || r?.deadline || '';
            const weekdayLabels = ['일', '월', '화', '수', '목', '금', '토'];
@@ -424,6 +420,7 @@ export default function BrandRecruitExplorePage() {
              morethanoneyear: 'MoreThanOneYear',
            };
            let workDateText = '-';
+           let shortWorkPeriodDisplay = '하루\n(-)';
 
            if (typeof workDateRaw === 'string' && workDateRaw.trim()) {
              const datePart = workDateRaw.trim().split(' ')[0];
@@ -439,11 +436,14 @@ export default function BrandRecruitExplorePage() {
                if (!Number.isNaN(date.getTime())) {
                  const weekday = weekdayLabels[date.getDay()];
                  workDateText = `${match[1]}.${match[2]}.${match[3]}(${weekday})`;
+                 shortWorkPeriodDisplay = `하루\n(${match[1]}.${match[2]}.${match[3]})`;
                }
              }
 
              if (workDateText === '-') {
                workDateText = datePart.replace(/-/g, '.');
+               const dateOnly = workDateText.replace(/\([^)]*\)/g, '').trim();
+               shortWorkPeriodDisplay = `하루\n(${dateOnly || '-'})`;
              }
            }
 
@@ -512,6 +512,7 @@ export default function BrandRecruitExplorePage() {
            // ].filter(Boolean).join('\n');
 
            return {
+             recruitId: r?.id ?? r?.recruitId ?? r?.recruit_id ?? null,
              brand: r?.companyName || '기업',
              title: r?.title || '공고 제목',
              location: r?.regionName || '지역 정보 없음',
@@ -523,6 +524,7 @@ export default function BrandRecruitExplorePage() {
              urgent: r?.isUrgent === 'Y',
              recruitType: resolvedRecruitType,
              workDate: workDateText,
+             shortWorkPeriodDisplay,
              // workTimeLabel: resolvedRecruitType === 'long'
              //   ? (longWorkTimeLabel || '-')
              //   : (workTimeText || '-'),
@@ -560,8 +562,13 @@ export default function BrandRecruitExplorePage() {
   // brandId 쿼리 기반 기본 공고 조회
   useEffect(() => {
     loadBrandSummary();
-    loadRecruits({ pageOverride: 1 });
   }, []);
+
+  // 필터/탭/정렬 변경 시 자동으로 1페이지를 재조회합니다.
+  useEffect(() => {
+    setCurrentPage(1);
+    loadRecruits({ applyFilters: true, pageOverride: 1 });
+  }, [termFilter, selectedRegionIds, workDates, shiftFilters, longPeriodFilters, longDayFilters, urgentOnly, sortOption]);
 
   const handleBrandSelectFromModal = ({ brandId }) => {
     if (!brandId) return;
@@ -714,7 +721,6 @@ export default function BrandRecruitExplorePage() {
                         const next = e.target.checked;
                         setUrgentOnly(next);
                         setCurrentPage(1);
-                        loadRecruits({ applyFilters: true, pageOverride: 1, urgentOnlyOverride: next });
                       }}
                     />
                     <div className={`w-6 h-6 border-2 rounded-md flex items-center justify-center transition-all ${urgentOnly ? 'bg-primary border-primary' : 'border-outline'}`}>
@@ -956,7 +962,7 @@ export default function BrandRecruitExplorePage() {
                 </div>
               )
             ) : isRegionOpen ? (
-              <div className="bg-white rounded-2xl border-[0.5px] border-outline shadow-[0_4px_20px_-2px_rgba(0,0,0,0.05)] overflow-hidden grid grid-cols-3 h-72">
+              <div className="bg-white rounded-2xl border-[0.5px] border-outline shadow-[0_4px_20px_-2px_rgba(0,0,0,0.05)] overflow-hidden grid grid-cols-[160px_minmax(0,1fr)] h-72">
                 <div className="bg-[#f9f9f9] overflow-y-auto border-r border-outline">
                   {[
                     '서울특별시', '부산광역시', '대구광역시', '인천광역시', '광주광역시', '대전광역시',
@@ -995,61 +1001,70 @@ export default function BrandRecruitExplorePage() {
                     </div>
                   ))}
                 </div>
-                <div className="bg-white overflow-y-auto border-r border-outline">
+                <div className="bg-white overflow-y-auto p-4">
                   {sigunguOptions.length === 0 ? (
                     <div className="p-4 text-sm text-on-surface-variant">시/군/구 정보가 없습니다.</div>
                   ) : (
-                    sigunguOptions.map((opt) => (
-                      <div
-                        key={opt.sigungu}
-                        onClick={() => {
-                          setSelectedSido(opt.sido);
-                          setSelectedSigungu(opt.sigungu);
-                          setSelectedDong(null);
-                          setSelectedRegionId(opt.id);
-                          // update badge separately so it persists across sido changes
-                          setBadgeSido(opt.sido);
-                          setBadgeSigungu(opt.sigungu);
-                        }}
-                        className={
-                          'p-4 text-sm transition-colors cursor-pointer ' +
-                          (selectedSigungu === opt.sigungu ? 'font-bold bg-[#f9f9f9] text-on-surface' : 'text-on-surface-variant hover:bg-[#f9f9f9]')
-                        }
-                      >
-                        {opt.sigungu}
-                      </div>
-                    ))
+                    <div className="flex flex-wrap gap-2">
+                      {sigunguOptions.map((opt) => (
+                        <button
+                          key={opt.id}
+                          type="button"
+                          onClick={() => {
+                            setSelectedSido(opt.sido);
+                            setSelectedSigungu(opt.sigungu);
+                            setSelectedDong(null);
+                            setSelectedRegionIds((prev) => {
+                              if (prev.includes(opt.id)) {
+                                return prev.filter((id) => id !== opt.id);
+                              }
+                              return [...prev, opt.id];
+                            });
+                            setSelectedRegionBadges((prev) => {
+                              const exists = prev.some((item) => item.id === opt.id);
+                              if (exists) {
+                                return prev.filter((item) => item.id !== opt.id);
+                              }
+                              return [...prev, { id: opt.id, label: `${opt.sido} ${opt.sigungu}` }];
+                            });
+                          }}
+                          className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
+                            selectedRegionIds.includes(opt.id)
+                              ? 'bg-primary text-white border-primary'
+                              : 'bg-white border-outline text-on-surface-variant hover:bg-[#f9f9f9]'
+                          }`}
+                        >
+                          {opt.sigungu}
+                        </button>
+                      ))}
+                    </div>
                   )}
-                </div>
-                <div className="bg-white overflow-y-auto">
-                  {/* emptied */}
                 </div>
               </div>
             ) : null}
 
           {/* badge row: show selected region badge (only when sigungu selected) and other active filter badges (dates, 근무타입) - moved below selectors */}
-          {(badgeSigungu || workDates.length > 0 || shiftFilters.length > 0 || longPeriodFilters.length > 0 || longDayFilters.length > 0) && (
+          {(selectedRegionBadges.length > 0 || workDates.length > 0 || shiftFilters.length > 0 || longPeriodFilters.length > 0 || longDayFilters.length > 0) && (
             <div className="mt-3">
-              <div className="bg-white border-[0.5px] border-outline p-3 rounded-2xl flex items-center gap-2">
-                {badgeSigungu && (
-                  <div className="flex items-center gap-2 px-3 py-1 bg-white border border-outline rounded-md text-sm font-medium">
-                    <span className="text-on-surface-variant">{badgeSido}{badgeSigungu ? ` · ${badgeSigungu}` : ''}</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        // clear badge selections and related backend id
-                        setBadgeSido(null);
-                        setBadgeSigungu(null);
-                        setSelectedSigungu(null);
-                        setSelectedDong(null);
-                        setSigunguOptions([]);
-                        setSelectedRegionId(null);
-                      }}
-                      className="ml-2 text-on-surface-variant hover:text-on-surface"
-                      aria-label="선택 해제"
-                    >
-                      <span className="material-symbols-outlined text-[16px]">close</span>
-                    </button>
+              <div className="bg-white border-[0.5px] border-outline p-3 rounded-2xl flex flex-wrap items-start gap-2">
+                {selectedRegionBadges.length > 0 && (
+                  <div className="flex flex-wrap gap-2 w-full">
+                    {selectedRegionBadges.map((region) => (
+                      <div key={region.id} className="flex items-center gap-2 px-3 py-1 bg-white border border-outline rounded-md text-sm font-medium whitespace-nowrap">
+                        <span className="text-on-surface-variant">{region.label}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedRegionBadges((prev) => prev.filter((item) => item.id !== region.id));
+                            setSelectedRegionIds((prev) => prev.filter((id) => id !== region.id));
+                          }}
+                          className="ml-2 text-on-surface-variant hover:text-on-surface"
+                          aria-label="선택 해제"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">close</span>
+                        </button>
+                      </div>
+                    ))}
                   </div>
                 )}
 
@@ -1128,12 +1143,11 @@ export default function BrandRecruitExplorePage() {
                   type="button"
                   onClick={() => {
                     // clear all filters/badges
-                    setBadgeSido(null);
-                    setBadgeSigungu(null);
+                    setSelectedRegionBadges([]);
+                    setSelectedRegionIds([]);
                     setSelectedSigungu(null);
                     setSelectedDong(null);
                     setSigunguOptions([]);
-                    setSelectedRegionId(null);
                     setWorkDates([]);
                     setShiftFilters([]);
                     setLongPeriodFilters([]);
@@ -1147,19 +1161,7 @@ export default function BrandRecruitExplorePage() {
               </div>
             </div>
           )}
-          {/* 검색 버튼: 배지 영역 아래 우측 */}
-          <div className="mt-2 flex justify-end">
-            <CommonButton
-              size="md"
-              className="px-4 py-2"
-              onClick={() => {
-                setCurrentPage(1);
-                loadRecruits({ applyFilters: true, pageOverride: 1 });
-              }}
-            >
-              검색
-            </CommonButton>
-          </div>
+          {/* 검색 버튼 제거: 필터 변경 시 자동 조회 */}
           </div>
         </section>
 
@@ -1175,7 +1177,6 @@ export default function BrandRecruitExplorePage() {
                   onClick={() => {
                     setSortOption('latest');
                     setCurrentPage(1);
-                    loadRecruits({ applyFilters: true, sortOptionOverride: 'latest', pageOverride: 1 });
                   }}
                   className={`px-5 py-1.5 rounded-md text-sm font-bold shadow-sm ${
                     effectiveSortOption === 'latest' ? 'bg-white text-on-surface' : 'text-on-surface-variant hover:text-on-surface transition-colors'
@@ -1184,13 +1185,12 @@ export default function BrandRecruitExplorePage() {
                   최신순
                 </button>
 
-                {displayedRecruitType !== 'long' && (
+                {displayedRecruitType === 'short' && (
                   <button
                     type="button"
                     onClick={() => {
                       setSortOption('pay');
                       setCurrentPage(1);
-                      loadRecruits({ applyFilters: true, sortOptionOverride: 'pay', pageOverride: 1 });
                     }}
                     className={`px-5 py-1.5 rounded-md text-sm font-bold ${
                       sortOption === 'pay' ? 'bg-white text-on-surface' : 'text-on-surface-variant hover:text-on-surface transition-colors'
@@ -1205,7 +1205,6 @@ export default function BrandRecruitExplorePage() {
                   onClick={() => {
                     setSortOption('workDate');
                     setCurrentPage(1);
-                    loadRecruits({ applyFilters: true, sortOptionOverride: 'workDate', pageOverride: 1 });
                   }}
                   className={`px-5 py-1.5 rounded-md text-sm font-bold ${
                     effectiveSortOption === 'workDate' ? 'bg-white text-on-surface' : 'text-on-surface-variant hover:text-on-surface transition-colors'
@@ -1249,8 +1248,21 @@ export default function BrandRecruitExplorePage() {
 
               {!isRecruitLoading && !recruitError && recruitJobs.map((job) => (
                 <div
-                  key={`${job.brand}-${job.title}`}
-                  className={`${job.urgent ? 'bg-primary-soft' : 'bg-white'} border-[0.5px] border-outline px-6 py-5 relative group transition-colors`}
+                  key={job.recruitId ? `recruit-${job.recruitId}` : `${job.brand}-${job.title}`}
+                  role={job.recruitId ? 'button' : undefined}
+                  tabIndex={job.recruitId ? 0 : -1}
+                  onClick={() => {
+                    if (!job.recruitId) return;
+                    navigate(`/recruit-detail?recruitId=${encodeURIComponent(job.recruitId)}`);
+                  }}
+                  onKeyDown={(e) => {
+                    if (!job.recruitId) return;
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      navigate(`/recruit-detail?recruitId=${encodeURIComponent(job.recruitId)}`);
+                    }
+                  }}
+                  className={`${job.urgent ? 'bg-primary-soft' : 'bg-white'} border-[0.5px] border-outline px-6 py-5 relative group transition-colors ${job.recruitId ? 'cursor-pointer hover:bg-primary-soft/70 focus:outline-none focus:ring-2 focus:ring-primary/40' : ''}`}
                 >
                   <div className="md:hidden flex gap-6">
                     <div className={`w-16 h-16 ${job.urgent ? 'bg-white' : 'bg-[#f9f9f9]'} rounded-xl flex-shrink-0 overflow-hidden border-[0.5px] border-outline p-2`}>
@@ -1312,7 +1324,7 @@ export default function BrandRecruitExplorePage() {
                         </span>
                       )}
                     </div>
-                    <div className="text-on-surface-variant truncate text-center">{(job.recruitType || 'short') === 'short' ? job.workDate : job.longWorkPeriod}</div>
+                    <div className="text-on-surface-variant text-center whitespace-pre-line leading-tight">{(job.recruitType || 'short') === 'short' ? (job.shortWorkPeriodDisplay || '하루\n(-)') : job.longWorkPeriod}</div>
                     <div className="text-on-surface-variant text-center whitespace-pre-line leading-tight">{job.workTimeLabel}</div>
                     <div className="text-on-surface-variant truncate text-center">{job.deadlineDate || '-'}</div>
                     <div className="text-on-surface-variant truncate text-center">{job.posted}</div>
@@ -1321,7 +1333,7 @@ export default function BrandRecruitExplorePage() {
               ))}
             </div>
 
-            {totalPages > 0 && (
+            { totalPages > 0 && (
               <div className="mt-16 flex justify-center items-center gap-3">
                 <CommonButton
                   variant="pagination"

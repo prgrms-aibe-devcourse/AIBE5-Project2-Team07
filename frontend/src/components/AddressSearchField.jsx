@@ -67,6 +67,8 @@ export default function AddressSearchField({
           onAddressSelect({
             zonecode: data.zonecode,
             address: buildAddress(data),
+              sido: data.sido,
+              sigungu: data.sigungu,
           });
           foldPostcode();
           setTimeout(() => detailInputRef.current?.focus(), 0);

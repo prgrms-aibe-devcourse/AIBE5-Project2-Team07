@@ -5,8 +5,9 @@ import com.example.aibe5_project2_team7.member.Member;
 import com.example.aibe5_project2_team7.career.Career;
 import com.example.aibe5_project2_team7.license.License;
 import com.example.aibe5_project2_team7.highest_education.HighestEducation;
+import com.example.aibe5_project2_team7.member_preferred_region.MemberPreferredRegion;
 import jakarta.persistence.*;
-import lombok.Getter;
+        import lombok.Getter;
 import lombok.Setter;
 
 import java.util.ArrayList;
@@ -44,4 +45,5 @@ public class Resume extends BaseEntity {
 
     @OneToMany(mappedBy = "resume", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<HighestEducation> educations = new ArrayList<>();
+
 }

@@ -14,7 +14,7 @@ import java.util.List;
 import java.util.Map;
 
 @RestController
-@RequestMapping("/reviews")
+@RequestMapping({"/reviews", "/api/reviews"})
 @RequiredArgsConstructor
 public class ReviewController {
 
@@ -27,6 +27,12 @@ public class ReviewController {
             @AuthenticationPrincipal CustomUser user,
             @RequestBody @Valid ReviewCreateRequest request
     ) {
+        System.out.println("login user id = " + user.getId());
+        System.out.println("applyId = " + request.getApplyId());
+        System.out.println("targetId = " + request.getTargetId());
+        System.out.println("targetType = " + request.getTargetType());
+        System.out.println("rating = " + request.getRating());
+        System.out.println("labelNames = " + request.getLabelNames());
         return reviewService.createReview(user.getId(), request);
     }
 

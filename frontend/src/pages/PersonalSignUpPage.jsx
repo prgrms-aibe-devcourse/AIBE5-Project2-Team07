@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import TopNavBar from '../components/TopNavBar';
 import AppFooter from '../components/AppFooter';
 import CommonButton from '../components/CommonButton';
-import AddressSearchField from '../components/AddressSearchField';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
@@ -39,6 +38,7 @@ export default function PersonalSignupPage() {
     if (!form.phone.trim()) return '휴대전화를 입력해주세요.';
     if (!form.password.trim()) return '비밀번호를 입력해주세요.';
     if (form.password.length < 4) return '비밀번호는 4자 이상 입력해주세요.';
+    if (!form.passwordConfirm.trim()) return '비밀번호 확인을 입력해주세요.';
     if (form.password !== form.passwordConfirm) return '비밀번호 확인이 일치하지 않습니다.';
     if (!form.birthDate) return '생년월일을 입력해주세요.';
     return '';
@@ -83,7 +83,7 @@ export default function PersonalSignupPage() {
       const result = await response.json();
 
       if (!response.ok) {
-        throw new Error(result?.error || '회원가입에 실패했습니다.');
+        throw new Error(result?.error || result?.message || '회원가입에 실패했습니다.');
       }
 
       setSuccess('개인회원 가입이 완료되었습니다.');
@@ -109,10 +109,26 @@ export default function PersonalSignupPage() {
                 기본 정보를 입력하고 대타 서비스를 시작해보세요.
               </p>
 
+              <div className="grid grid-cols-2 gap-2 mb-8 p-1 rounded-2xl bg-[#F8F9FA] border border-outline">
+                <button
+                    type="button"
+                    className="px-4 py-3 rounded-xl bg-primary text-white font-bold text-sm"
+                >
+                  개인회원
+                </button>
+                <button
+                    type="button"
+                    onClick={() => navigate('/signup/business')}
+                    className="px-4 py-3 rounded-xl text-on-surface-variant font-bold text-sm hover:bg-white transition-colors"
+                >
+                  사업자회원
+                </button>
+              </div>
+
               <form className="space-y-4" onSubmit={handleSubmit}>
                 <div>
                   <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wide block mb-2">
-                    이름
+                    이름 <span className="text-red-500">*</span>
                   </label>
                   <input
                       name="name"
@@ -126,7 +142,7 @@ export default function PersonalSignupPage() {
 
                 <div>
                   <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wide block mb-2">
-                    이메일
+                    이메일 (아이디) <span className="text-red-500">*</span>
                   </label>
                   <input
                       name="email"
@@ -140,7 +156,7 @@ export default function PersonalSignupPage() {
 
                 <div>
                   <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wide block mb-2">
-                    휴대전화
+                    휴대전화 <span className="text-red-500">*</span>
                   </label>
                   <input
                       name="phone"
@@ -154,7 +170,7 @@ export default function PersonalSignupPage() {
 
                 <div>
                   <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wide block mb-2">
-                    비밀번호
+                    비밀번호 <span className="text-red-500">*</span>
                   </label>
                   <input
                       name="password"
@@ -168,7 +184,7 @@ export default function PersonalSignupPage() {
 
                 <div>
                   <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wide block mb-2">
-                    비밀번호 확인
+                    비밀번호 확인 <span className="text-red-500">*</span>
                   </label>
                   <input
                       name="passwordConfirm"
@@ -182,7 +198,7 @@ export default function PersonalSignupPage() {
 
                 <div>
                   <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wide block mb-2">
-                    생년월일
+                    생년월일 <span className="text-red-500">*</span>
                   </label>
                   <input
                       name="birthDate"
@@ -195,7 +211,7 @@ export default function PersonalSignupPage() {
 
                 <div>
                   <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wide block mb-2">
-                    성별
+                    성별 <span className="text-red-500">*</span>
                   </label>
                   <select
                       name="gender"
@@ -206,20 +222,6 @@ export default function PersonalSignupPage() {
                     <option value="MALE">남성</option>
                     <option value="FEMALE">여성</option>
                   </select>
-                </div>
-
-                <div>
-                  <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wide block mb-2">
-                    프로필 이미지 URL
-                  </label>
-                  <input
-                      name="image"
-                      type="text"
-                      value={form.image}
-                      onChange={handleChange}
-                      className="w-full bg-white border border-outline rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-primary"
-                      placeholder="선택 입력"
-                  />
                 </div>
 
                 {error && (
