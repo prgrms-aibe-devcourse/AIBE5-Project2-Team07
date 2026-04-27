@@ -79,7 +79,12 @@ export default function GlobalAiChatbotButton() {
       return [];
     }
 
-    setRoomsLoading(true);
+    setRooms((prev) => {
+      if (prev.length === 0) {
+        setRoomsLoading(true);
+      }
+      return prev;
+    });
     setMemberError('');
 
     try {
@@ -300,21 +305,24 @@ export default function GlobalAiChatbotButton() {
     try {
       const response = await getChatMessages(selectedRoomId, nextCursorId, 50);
       const olderMessages = response?.messages || [];
+      const prevIds = new Set(messages.map((m) => m.id).filter(Boolean));
+      const newMessages = olderMessages.filter((m) => !prevIds.has(m.id));
 
-      if (olderMessages.length === 0) {
+      if (newMessages.length === 0) {
         setHasMore(false);
         setNextCursorId(null);
       } else {
-        setMessages((prev) => [...olderMessages, ...prev]);
+        setMessages((prev) => [...newMessages, ...prev]);
         setHasMore(Boolean(response?.hasNext));
         setNextCursorId(response?.nextCursorId ?? null);
       }
     } catch (error) {
       setMemberError(error.message || '이전 메시지를 불러오지 못했습니다.');
+      setHasMore(false); // 에러 발생 시 무한 재요청 방지
     } finally {
       setLoadingMore(false);
     }
-  }, [loadingMore, nextCursorId, selectedRoomId]);
+  }, [loadingMore, nextCursorId, selectedRoomId, messages]);
 
   const submitMemberReply = useCallback(async () => {
     const nextText = memberReply.trim();
