@@ -29,7 +29,7 @@ public class LicenseService {
         license.setIssuedBy(l.getIssuedBy());
         license.setLicenseFileUrl(l.getLicenseFileUrl());
 
-        license.setResume(resume); // 핵심
+        license.setResume(resume);
 
         return licenseRepository.save(license);
     }

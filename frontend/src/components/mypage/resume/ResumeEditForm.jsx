@@ -229,15 +229,7 @@ export default function ResumeEditForm({
             if (!form.title.trim()) throw new Error('이력서 제목을 입력해주세요.');
             if (!form.content.trim()) throw new Error('자기소개를 입력해주세요.');
 
-            const careerIds = await syncCareers();
-            const educationIds = await syncEducations();
-            const licenseIds = await syncLicenses();
-
-            console.log('careerIds:', careerIds);
-            console.log('educationIds:', educationIds);
-            console.log('licenseIds:', licenseIds);
-
-            const payload = {
+            const basePayload = {
                 title: form.title,
                 visibility: form.visibility,
                 content: form.content,
@@ -246,20 +238,26 @@ export default function ResumeEditForm({
             };
 
             if (isCreateMode) {
-                await createResume({
-                    ...payload,
-                    careerIds,
-                    educationIds,
-                    licenseIds,
-                });
+                // 1. 이력서 먼저 생성
+                await createResume(basePayload);
+
+                // 2. 이력서가 생긴 뒤 경력/학력/자격증 생성
+                await syncCareers();
+                await syncEducations();
+                await syncLicenses();
             } else {
+                // 1. 기존 항목 수정/생성/삭제
+                await syncCareers();
+                await syncEducations();
+                await syncLicenses();
+
+                // 2. 이력서 기본 정보만 수정
                 await updateResume({
-                    ...payload,
+                    ...basePayload,
                     isPhonePublic: form.isPhonePublic,
                 });
             }
 
-            // 실시간 근무 가능 여부 저장: 항상 PATCH로 isActive 전달
             try {
                 await requestWithAuth(`/personal/${memberId}/activate`, {
                     method: 'PATCH',

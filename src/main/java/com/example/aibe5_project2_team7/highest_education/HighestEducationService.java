@@ -26,7 +26,7 @@ public class HighestEducationService {
         education.setSchoolType(e.getSchoolType());
         education.setMajor(e.getMajor());
 
-        education.setResume(resume); // 핵심
+        education.setResume(resume);
 
         return highestEducationRepository.save(education);
     }

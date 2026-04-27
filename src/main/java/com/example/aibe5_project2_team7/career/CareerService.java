@@ -29,7 +29,7 @@ public class CareerService {
         career.setEndDate(c.getEndDate());
         career.setBrandId(c.getBrandId());
 
-        career.setResume(resume); // 핵심
+        career.setResume(resume);
 
         return careerRepository.save(career);
     }
