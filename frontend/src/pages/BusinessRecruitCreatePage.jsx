@@ -10,6 +10,7 @@ import {
   getMyBusinessAccountMe,
   getMyBusinessAccountSummary,
 } from '../services/accountApi';
+import { uploadBusinessResumeFile } from '../services/fileApi';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
@@ -226,6 +227,8 @@ function BusinessRecruitCreatePage() {
   const [loadingSubmit, setLoadingSubmit] = useState(false);
   const [error, setError] = useState('');
   const [regionOptions, setRegionOptions] = useState([]);
+  const [recruitFile, setRecruitFile] = useState(null);
+  const [recruitFilePreviewName, setRecruitFilePreviewName] = useState('');
 
   const [form, setForm] = useState({
     urgent: false,
@@ -516,7 +519,14 @@ function BusinessRecruitCreatePage() {
 
     try {
       setLoadingSubmit(true);
-      await createMyBusinessRecruit(payload);
+
+      let uploadedResumeFormUrl = form.applyContact?.trim() || null;
+      if (recruitFile) {
+        const uploaded = await uploadBusinessResumeFile(recruitFile);
+        uploadedResumeFormUrl = uploaded?.url || uploadedResumeFormUrl;
+      }
+
+      await createMyBusinessRecruit({ ...payload, resumeFormUrl: uploadedResumeFormUrl });
       window.alert('공고가 등록되었습니다.');
       navigate('/dashboard?tab=recruits');
     } catch (submitError) {
@@ -708,6 +718,38 @@ function BusinessRecruitCreatePage() {
                       placeholder="이메일/연락처 입력"
                     />
                   )}
+
+                  <div className="md:col-span-2">
+                    <span className="text-xs font-bold text-on-surface-variant mb-2 block">지원 양식 첨부파일 <span className="font-normal text-gray-400">(선택)</span></span>
+                    <div className="flex items-center gap-3">
+                      <label className="cursor-pointer px-4 py-2 rounded-xl border border-outline bg-white text-sm font-bold text-on-surface-variant hover:bg-gray-50 transition-colors">
+                        파일 선택
+                        <input
+                          type="file"
+                          accept=".pdf,.doc,.docx"
+                          className="hidden"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0] || null;
+                            if (!file) { setRecruitFile(null); setRecruitFilePreviewName(''); return; }
+                            const isAllowed = /\.(pdf|doc|docx)$/i.test(file.name);
+                            if (!isAllowed) { setError('파일은 PDF, DOC, DOCX 형식만 업로드할 수 있습니다.'); e.target.value = ''; return; }
+                            setRecruitFile(file);
+                            setRecruitFilePreviewName(file.name);
+                          }}
+                        />
+                      </label>
+                      {recruitFilePreviewName ? (
+                        <span className="text-sm text-on-surface-variant flex items-center gap-1">
+                          <span className="material-symbols-outlined text-[16px] text-blue-600">attach_file</span>
+                          {recruitFilePreviewName}
+                          <button type="button" onClick={() => { setRecruitFile(null); setRecruitFilePreviewName(''); }} className="ml-1 text-gray-400 hover:text-red-500 text-xs">✕</button>
+                        </span>
+                      ) : (
+                        <span className="text-sm text-on-surface-variant">선택된 파일 없음</span>
+                      )}
+                    </div>
+                    <p className="mt-1 text-[11px] text-on-surface-variant">지원자에게 제공할 이력서 양식 또는 첨부파일을 업로드할 수 있습니다. (PDF, DOC, DOCX)</p>
+                  </div>
                 </div>
               </FormSection>
 

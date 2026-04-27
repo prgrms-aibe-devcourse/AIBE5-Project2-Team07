@@ -182,6 +182,7 @@ export default function ApplyStatusContent({ account }) {
           {activeList.length > 0 ? (
             activeList.map((item) => {
               const canDecide = activeTab === 'offers' && item.status === 'PENDING';
+              const isCancelLocked = item.status === 'ACCEPTED' || item.status === 'COMPLETED';
               const canCancel = activeTab === 'applications';
               const isActionLoading = actionLoadingId === item.id;
 
@@ -206,6 +207,22 @@ export default function ApplyStatusContent({ account }) {
                           공고 상세 보기
                           <span className="material-symbols-outlined text-xs">chevron_right</span>
                         </Link>
+                      )}
+                      {item.attachedFileUrl ? (
+                        <a
+                          href={item.attachedFileUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:underline mt-0.5"
+                        >
+                          <span className="material-symbols-outlined text-xs">attach_file</span>
+                          첨부 이력서 보기
+                        </a>
+                      ) : (
+                        <span className="inline-flex items-center gap-1 text-xs text-gray-400 mt-0.5 cursor-not-allowed select-none">
+                          <span className="material-symbols-outlined text-xs">attach_file</span>
+                          첨부파일 없음
+                        </span>
                       )}
                     </div>
 
@@ -262,9 +279,14 @@ export default function ApplyStatusContent({ account }) {
                       {canCancel && (
                         <button
                           type="button"
-                          onClick={() => handleCancel(item.id)}
-                          disabled={isActionLoading}
-                          className="px-4 py-2 rounded-xl border border-[#EAE5E3] text-xs font-bold text-[#6B6766] hover:text-red-500 hover:border-red-200 transition-colors disabled:opacity-60"
+                          onClick={() => !isCancelLocked && handleCancel(item.id)}
+                          disabled={isActionLoading || isCancelLocked}
+                          title={isCancelLocked ? '수락 또는 완료된 지원은 취소할 수 없습니다.' : undefined}
+                          className={`px-4 py-2 rounded-xl border text-xs font-bold transition-colors ${
+                            isCancelLocked
+                              ? 'border-[#EAE5E3] text-gray-300 cursor-not-allowed bg-gray-50'
+                              : 'border-[#EAE5E3] text-[#6B6766] hover:text-red-500 hover:border-red-200 disabled:opacity-60'
+                          }`}
                         >
                           취소
                         </button>

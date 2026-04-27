@@ -229,6 +229,7 @@ export default function BusinessApplicantsTab() {
                 applyId={selectedApplyId}
                 applyStatus={selectedApplyStatus}
                 applyMessage={selectedRow?.message || ''}
+                attachedFileUrl={selectedRow?.attachedFileUrl || ''}
                 canDecide={selectedApplyType !== 'OFFERS'}
                 onBack={closeApplicantDetail}
                 onDecisionComplete={handleDecisionComplete}
