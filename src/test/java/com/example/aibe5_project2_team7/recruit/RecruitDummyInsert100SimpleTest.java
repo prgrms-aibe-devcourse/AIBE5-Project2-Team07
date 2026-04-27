@@ -40,6 +40,25 @@ class RecruitDummyInsert100SimpleTest {
     @Autowired
     private NaverMapService naverMapService;
 
+
+
+    @Test
+    @DisplayName("Recruit모든데이터 경도 위도 추가하기")
+    void setAllRecruitLatLong(){
+        List<Recruit> list=recruitRepository.findAll();
+        for(Recruit r :list){
+            double coord[] = naverMapService.getCoordinates(r.getDetailAddress());
+            if(null!=coord){
+                r.setLatitude(coord[0]);
+                r.setLongitude(coord[1]);
+            }
+        }
+        recruitRepository.saveAll(list);
+        em.flush();
+        em.clear();
+        System.out.println("저장 완료 list size = "+list.size());
+    }
+
     @Test
     @DisplayName("Recruit 100개 + 연관데이터 각 1개씩 저장")
     void insertRecruitDummy100() {
@@ -77,7 +96,7 @@ class RecruitDummyInsert100SimpleTest {
         Times time = pickTime(index);
         SalaryType salaryType = pickSalaryType(index);
 
-        recruit.setBusinessMemberId((long) ((index % 20) + 1));
+        recruit.setBusinessMemberId((long) ((index % 50) + 1001));
         recruit.setTitle(buildTitle(index, seed, businessTypeName));
         recruit.setBrand(null);
         recruit.setUrgent(index % 7 == 0);

@@ -190,14 +190,14 @@ public class RecruitRecommendRepositoryImpl implements RecruitRecommendRepositor
                 .otherwise(0);
     }
 
-    // 긴급여부 일치 시 1점
+    // 긴급여부 일치 시 5점
     private NumberExpression<Integer> urgentScore(Boolean urgent) {
         if (urgent == null) {
             return zero();
         }
 
         return new CaseBuilder()
-                .when(recruit.isUrgent.eq(urgent)).then(1)
+                .when(recruit.isUrgent.eq(urgent)).then(5)
                 .otherwise(0);
     }
 
