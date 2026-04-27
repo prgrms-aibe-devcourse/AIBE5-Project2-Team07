@@ -19,7 +19,26 @@ export default function DashboardContent({
     const profileCompletion = useMemo(() => {
         return calculateProfileCompletion(account, resume);
     }, [account, resume]);
+    const getReviewerDisplayName = (review) => {
+        if (account?.memberType === 'INDIVIDUAL') {
+            return (
+                review.writerCompanyName ||
+                review.companyName ||
+                review.businessName ||
+                review.writerBusinessName ||
+                review.writerName ||
+                review.reviewerName ||
+                '리뷰 작성자'
+            );
+        }
 
+        return (
+            review.writerName ||
+            review.reviewerName ||
+            review.individualName ||
+            '리뷰 작성자'
+        );
+    };
     const memberName = account?.name || '회원';
     const memberImage = account?.image || '';
     const memberRole = account?.memberType === 'INDIVIDUAL' ? '개인회원' : '회원';
@@ -173,8 +192,7 @@ export default function DashboardContent({
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {recentReviews.length > 0 ? (
                         recentReviews.map((review, index) => {
-                            const reviewerName = review.writerName || review.reviewerName || '리뷰 작성자';
-                            const initials = getInitials(reviewerName);
+                            const reviewerName = getReviewerDisplayName(review);
 
                             return (
                                 <div
@@ -195,9 +213,6 @@ export default function DashboardContent({
                                     </div>
 
                                     <div className="flex items-center gap-3 pt-4 border-t border-[#EAE5E3]/30">
-                                        <div className="w-8 h-8 rounded-full bg-[#FFF0F3] text-primary text-[10px] flex items-center justify-center font-bold">
-                                            {initials}
-                                        </div>
                                         <div>
                                             <p className="text-xs font-bold text-[#1F1D1D]">{reviewerName}</p>
                                             <p className="text-[10px] text-[#6B6766] font-medium">

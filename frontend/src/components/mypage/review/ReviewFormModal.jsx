@@ -1,6 +1,21 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { REVIEW_LABEL_OPTIONS_BY_TARGET } from '../../../constants/reviewConstants';
 
+const LABEL_GROUPS = [
+    ['정산이 빠르다', '정산이 느리다'],
+    ['친절해요', '불친절해요'],
+    ['업무를 자세하게 알려줘요', '업무 설명이 부족해요'],
+    ['근무환경이 쾌적해요', '근무환경이 좋지 않아요'],
+    ['답변 속도가 빠르다', '답변 속도가 느리다'],
+    ['핑크를 내지 않는다', '핑크를 낸다'],
+    ['시간 약속을 잘 지킨다', '시간 약속을 잘 지키지 않는다'],
+    ['근무를 성실히 한다', '근무를 성실히 하지 않는다'],
+];
+
+function findLabelGroup(label) {
+    return LABEL_GROUPS.find((group) => group.includes(label));
+}
+
 function getApplyCardTitle(apply) {
     if (apply?.__accountMemberType === 'BUSINESS') {
         return apply?.individualName || `지원자 #${apply?.individualId ?? apply?.id ?? '-'}`;
@@ -21,6 +36,8 @@ function formatApplyDate(dateString) {
 }
 
 function getTargetTypeLabel(type) {
+    if (type === 'BUSINESS') return '기업';
+    if (type === 'INDIVIDUAL') return '개인회원';
     if (type === 'Business') return '기업';
     if (type === 'Individual') return '개인회원';
     return type || '-';
@@ -35,6 +52,7 @@ export default function ReviewFormModal({
                                             loading,
                                             reviewableApplies = [],
                                             accountMemberType,
+                                            error,
                                         }) {
     const [form, setForm] = useState(initialValue);
     const [selectedApplyId, setSelectedApplyId] = useState(initialValue?.applyId || '');
@@ -68,12 +86,27 @@ export default function ReviewFormModal({
     }, [enrichedApplies, selectedApplyId]);
 
     const toggleLabel = (label) => {
-        setForm((prev) => ({
-            ...prev,
-            labelNames: prev.labelNames.includes(label)
-                ? prev.labelNames.filter((item) => item !== label)
-                : [...prev.labelNames, label],
-        }));
+        setForm((prev) => {
+            const exists = prev.labelNames.includes(label);
+
+            if (exists) {
+                return {
+                    ...prev,
+                    labelNames: prev.labelNames.filter((item) => item !== label),
+                };
+            }
+
+            const group = findLabelGroup(label);
+
+            const filteredLabels = group
+                ? prev.labelNames.filter((item) => !group.includes(item))
+                : prev.labelNames;
+
+            return {
+                ...prev,
+                labelNames: [...filteredLabels, label],
+            };
+        });
     };
 
     const handleSelectApply = (apply) => {
@@ -149,8 +182,8 @@ export default function ReviewFormModal({
 
                                                         {active && (
                                                             <span className="material-symbols-outlined text-primary text-lg shrink-0">
-                                check_circle
-                              </span>
+                                                                check_circle
+                                                            </span>
                                                         )}
                                                     </div>
                                                 </button>
@@ -224,12 +257,12 @@ export default function ReviewFormModal({
                                         onClick={() => setForm((prev) => ({ ...prev, rating: num }))}
                                         className="text-primary"
                                     >
-                    <span
-                        className="material-symbols-outlined text-[28px]"
-                        style={num <= form.rating ? { fontVariationSettings: "'FILL' 1" } : {}}
-                    >
-                      star
-                    </span>
+                                        <span
+                                            className="material-symbols-outlined text-[28px]"
+                                            style={num <= form.rating ? { fontVariationSettings: "'FILL' 1" } : {}}
+                                        >
+                                            star
+                                        </span>
                                     </button>
                                 ))}
                             </div>
@@ -274,6 +307,14 @@ export default function ReviewFormModal({
                         </div>
                     </div>
                 </div>
+
+                {error && (
+                    <div className="px-6 pt-4">
+                        <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 text-sm font-medium text-red-600">
+                            {error}
+                        </div>
+                    </div>
+                )}
 
                 <div className="px-6 py-4 border-t border-[#EAE5E3] flex justify-end gap-2">
                     <button

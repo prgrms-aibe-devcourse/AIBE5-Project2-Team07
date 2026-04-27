@@ -13,8 +13,23 @@ import java.util.List;
 public class HighestEducationService {
     private final HighestEducationRepository highestEducationRepository;
     private final ResumeRepository resumeRepository;
+    @Transactional
+    public HighestEducation create(HighestEducation e) {
+        Resume resume = resumeRepository.findByMemberId(e.getMemberId())
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Resume not found for member"));
 
-    public HighestEducation create(HighestEducation e){ return highestEducationRepository.save(e); }
+        HighestEducation education = new HighestEducation();
+        education.setMemberId(e.getMemberId());
+        education.setSchoolName(e.getSchoolName());
+        education.setSchoolType(e.getSchoolType());
+        education.setMajor(e.getMajor());
+
+        education.setResume(resume); // 핵심
+
+        return highestEducationRepository.save(education);
+    }
     public HighestEducation update(Long id, HighestEducation e){
         HighestEducation ex = highestEducationRepository.findById(id).orElseThrow(() -> new RuntimeException("Not found"));
         ex.setSchoolName(e.getSchoolName());

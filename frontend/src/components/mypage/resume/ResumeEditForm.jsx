@@ -134,13 +134,14 @@ export default function ResumeEditForm({
             };
 
             let saved;
+
             if (item.id) {
                 saved = await updateCareer(item.id, payload);
+                keptIds.push(saved?.id ?? item.id); // 핵심
             } else {
                 saved = await createCareer(payload);
+                if (saved?.id) keptIds.push(saved.id);
             }
-
-            if (saved?.id) keptIds.push(saved.id);
         }
 
         return keptIds;
@@ -168,13 +169,14 @@ export default function ResumeEditForm({
             };
 
             let saved;
+
             if (item.id) {
                 saved = await updateEducation(item.id, payload);
+                keptIds.push(saved?.id ?? item.id); // 핵심
             } else {
                 saved = await createEducation(payload);
+                if (saved?.id) keptIds.push(saved.id);
             }
-
-            if (saved?.id) keptIds.push(saved.id);
         }
 
         return keptIds;
@@ -204,13 +206,14 @@ export default function ResumeEditForm({
             };
 
             let saved;
+
             if (item.id) {
                 saved = await updateLicense(item.id, payload);
+                keptIds.push(saved?.id ?? item.id); // 핵심
             } else {
                 saved = await createLicense(payload);
+                if (saved?.id) keptIds.push(saved.id);
             }
-
-            if (saved?.id) keptIds.push(saved.id);
         }
 
         return keptIds;
@@ -230,19 +233,25 @@ export default function ResumeEditForm({
             const educationIds = await syncEducations();
             const licenseIds = await syncLicenses();
 
+            console.log('careerIds:', careerIds);
+            console.log('educationIds:', educationIds);
+            console.log('licenseIds:', licenseIds);
+
             const payload = {
                 title: form.title,
                 visibility: form.visibility,
                 content: form.content,
-                careerIds,
-                educationIds,
-                licenseIds,
                 desiredBusinessTypes: form.desiredBusinessTypes,
                 preferredRegionIds: form.preferredRegionIds,
             };
 
             if (isCreateMode) {
-                await createResume(payload);
+                await createResume({
+                    ...payload,
+                    careerIds,
+                    educationIds,
+                    licenseIds,
+                });
             } else {
                 await updateResume({
                     ...payload,
