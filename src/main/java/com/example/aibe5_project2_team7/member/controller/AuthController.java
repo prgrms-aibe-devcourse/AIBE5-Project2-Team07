@@ -1,13 +1,19 @@
 package com.example.aibe5_project2_team7.member.controller;
 
-import com.example.aibe5_project2_team7.business_profile.BusinessProfile;
+import com.example.aibe5_project2_team7.member.CustomUser;
 import com.example.aibe5_project2_team7.business_profile.BusinessProfileRepository;
 import com.example.aibe5_project2_team7.member.Member;
 import com.example.aibe5_project2_team7.member.MemberType;
 import com.example.aibe5_project2_team7.member.service.JwtUtil;
 import com.example.aibe5_project2_team7.member.service.MemberService;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 import java.time.LocalDate;
@@ -22,6 +28,9 @@ public class AuthController {
     private final MemberService memberService;
     private final JwtUtil jwtUtil;
     private final BusinessProfileRepository businessProfileRepository;
+
+    @Value("${app.security.cookie.secure:false}")
+    private boolean secureCookie;
 
     @PostMapping("/register")
     public ResponseEntity<?> register(@RequestBody Map<String, Object> payload) {
@@ -62,7 +71,7 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Map<String, String> credentials) {
+    public ResponseEntity<?> login(@RequestBody Map<String, String> credentials, HttpServletResponse response) {
         try {
             String email = credentials.get("email");
             String password = credentials.get("password");
@@ -84,6 +93,7 @@ public class AuthController {
             }
 
             String token = jwtUtil.generateToken(email, member.getMemberType());
+            addAccessTokenCookie(response, token);
 
             Map<String, Object> memberResponse = new LinkedHashMap<>();
 
@@ -113,5 +123,59 @@ public class AuthController {
         } catch (RuntimeException e) {
             return ResponseEntity.badRequest().body(Map.of("error", e.getMessage()));
         }
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<?> logout(HttpServletResponse response) {
+        clearAccessTokenCookie(response);
+        return ResponseEntity.ok(Map.of("message", "Logout successful"));
+    }
+
+    @GetMapping("/me")
+    public ResponseEntity<?> me() {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication == null || !authentication.isAuthenticated()) {
+            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+        }
+
+        Object principal = authentication.getPrincipal();
+        String email = null;
+
+        if (principal instanceof CustomUser customUser) {
+            email = customUser.getUsername();
+        } else if (principal instanceof UserDetails userDetails) {
+            email = userDetails.getUsername();
+        } else if (principal instanceof String principalStr) {
+            email = principalStr;
+        }
+
+        if (email == null || email.isBlank() || "anonymousUser".equals(email)) {
+            return ResponseEntity.status(401).body(Map.of("error", "Unauthorized"));
+        }
+
+        try {
+            Member member = memberService.findByEmail(email);
+            return ResponseEntity.ok(Map.of("member", member));
+        } catch (RuntimeException ex) {
+            return ResponseEntity.status(404).body(Map.of("error", ex.getMessage()));
+        }
+    }
+
+    private void addAccessTokenCookie(HttpServletResponse response, String token) {
+        Cookie cookie = new Cookie("access_token", token);
+        cookie.setHttpOnly(true);
+        cookie.setSecure(secureCookie);
+        cookie.setPath("/");
+        cookie.setMaxAge(60 * 60);
+        response.addCookie(cookie);
+    }
+
+    private void clearAccessTokenCookie(HttpServletResponse response) {
+        Cookie cookie = new Cookie("access_token", "");
+        cookie.setHttpOnly(true);
+        cookie.setSecure(secureCookie);
+        cookie.setPath("/");
+        cookie.setMaxAge(0);
+        response.addCookie(cookie);
     }
 }
