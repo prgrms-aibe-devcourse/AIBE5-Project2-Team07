@@ -15,7 +15,6 @@ public class StompInterceptor implements ChannelInterceptor {
 
     private final RoomSessionManager roomSessionManager;
 
-
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
         StompHeaderAccessor accessor = MessageHeaderAccessor.getAccessor(message, StompHeaderAccessor.class);
@@ -24,23 +23,34 @@ public class StompInterceptor implements ChannelInterceptor {
             String sessionId = accessor.getSessionId();
 
             switch (accessor.getCommand()) {
-                case SUBSCRIBE: // 프론트가 구독(입장)을 시도할 때!
-                    String destination = accessor.getDestination(); // 예: /sub/room/private_A_B
+                case SUBSCRIBE -> {
+                    String destination = accessor.getDestination();
                     if (destination != null && destination.startsWith("/sub/room/")) {
                         String roomId = destination.substring("/sub/room/".length());
-
-                        // ★ 매니저에게 입장이 가능한지 물어본다. 꽉 찼으면 여기서 Exception이 터짐!
-                        roomSessionManager.addSessionToRoom(roomId, sessionId);
+                        String subscriptionId = accessor.getSubscriptionId();
+                        Long memberId = extractMemberId(accessor);
+                        roomSessionManager.addSubscription(roomId, sessionId, memberId, subscriptionId);
                     }
-                    break;
-
-                case UNSUBSCRIBE: // 방에서 나갈 때
-                case DISCONNECT:  // 브라우저를 끄거나 연결이 끊겼을 때
-                    // 매니저에게 이 세션을 방 인원에서 빼달라고 요청한다.
-                    roomSessionManager.removeSessionFromRoom(sessionId);
-                    break;
+                }
+                case UNSUBSCRIBE -> roomSessionManager.removeSubscription(sessionId, accessor.getSubscriptionId());
+                case DISCONNECT -> roomSessionManager.removeSession(sessionId);
             }
         }
-        return message; // 문제없으면 통과!
+        return message;
+    }
+
+    private Long extractMemberId(StompHeaderAccessor accessor) {
+        Object memberId = accessor.getSessionAttributes() == null ? null : accessor.getSessionAttributes().get("memberId");
+        if (memberId instanceof Long longValue) {
+            return longValue;
+        }
+        if (memberId instanceof String stringValue) {
+            try {
+                return Long.parseLong(stringValue);
+            } catch (NumberFormatException ignored) {
+                return null;
+            }
+        }
+        return null;
     }
 }
