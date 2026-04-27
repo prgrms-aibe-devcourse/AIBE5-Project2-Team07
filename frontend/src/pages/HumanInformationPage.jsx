@@ -567,7 +567,7 @@ export default function HumanInformationPage() {
               <section className="custom-container space-y-8">
                 <div className="flex items-end justify-between">
                   <div>
-                    <h2 className="text-3xl font-extrabold tracking-tighter">오늘의 프리미엄 인재</h2>
+                    <h2 className="text-3xl font-extrabold tracking-tighter">오늘의 실시간 인재</h2>
                     <p className="text-on-surface-variant font-medium mt-2">
                       지금 즉시 업무 투입이 가능한 긴급 출근 대기 인재입니다.
                     </p>
@@ -598,7 +598,7 @@ export default function HumanInformationPage() {
                         >
                           bolt
                         </span>
-                        로켓 출근
+                        즉시 출근
                       </span>
                             </div>
                             <div className="mb-5 h-20 w-20 rounded-xl overflow-hidden bg-gray-100">
