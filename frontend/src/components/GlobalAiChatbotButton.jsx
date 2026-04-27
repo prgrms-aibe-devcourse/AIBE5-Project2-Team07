@@ -28,6 +28,11 @@ export default function GlobalAiChatbotButton() {
   const [rooms, setRooms] = useState([]);
   const [roomsLoading, setRoomsLoading] = useState(false);
   const [selectedRoomId, setSelectedRoomId] = useState(null);
+  const selectedRoomIdRef = useRef(selectedRoomId);
+
+  useEffect(() => {
+    selectedRoomIdRef.current = selectedRoomId;
+  }, [selectedRoomId]);
   const [messages, setMessages] = useState([]);
   const [messagesLoading, setMessagesLoading] = useState(false);
   const [hasMore, setHasMore] = useState(false);
@@ -50,6 +55,11 @@ export default function GlobalAiChatbotButton() {
     () => rooms.find((room) => room.roomId === selectedRoomId) || null,
     [rooms, selectedRoomId],
   );
+  const selectedRoomRef = useRef(selectedRoom);
+
+  useEffect(() => {
+    selectedRoomRef.current = selectedRoom;
+  }, [selectedRoom]);
 
   const totalUnreadCount = useMemo(
     () => rooms.reduce((sum, room) => sum + Number(room?.unreadCount || 0), 0),
@@ -96,11 +106,13 @@ export default function GlobalAiChatbotButton() {
 
       setRooms(mappedRooms);
 
-      const targetRoomId =
-        preferredRoomId ||
-        (mappedRooms.some((room) => room.roomId === selectedRoomId) ? selectedRoomId : mappedRooms[0]?.roomId ?? null);
+      setSelectedRoomId((currentSelected) => {
+        return (
+          preferredRoomId ||
+          (mappedRooms.some((room) => room.roomId === currentSelected) ? currentSelected : mappedRooms[0]?.roomId ?? null)
+        );
+      });
 
-      setSelectedRoomId(targetRoomId);
       return mappedRooms;
     } catch (error) {
       setMemberError(error.message || '메시지 목록을 불러오지 못했습니다.');
@@ -108,7 +120,7 @@ export default function GlobalAiChatbotButton() {
     } finally {
       setRoomsLoading(false);
     }
-  }, [currentMemberId, isLoggedIn, selectedRoomId]);
+  }, [currentMemberId, isLoggedIn]);
 
   const markAsReadIfViewing = useCallback((roomId, partnerUserId) => {
     if (!roomId) return;
@@ -123,7 +135,7 @@ export default function GlobalAiChatbotButton() {
           type: 'ENTER',
         });
         setRooms((prev) => prev.map((r) => r.roomId === roomId ? { ...r, unreadCount: 0 } : r));
-        setTimeout(() => loadRooms(roomId), 300);
+        setTimeout(() => loadRooms(), 300);
       } catch (error) {
         console.error(error);
       }
@@ -148,9 +160,10 @@ export default function GlobalAiChatbotButton() {
 
     client.onConnect = async () => {
       setMemberError('');
-      if (selectedRoomId) {
+      const currentRoomId = selectedRoomIdRef.current;
+      if (currentRoomId) {
         currentSubscriptionRef.current?.unsubscribe?.();
-        currentSubscriptionRef.current = subscribeRoom(client, selectedRoomId, (payload) => {
+        currentSubscriptionRef.current = subscribeRoom(client, currentRoomId, (payload) => {
           setMessages((prev) => {
             const key = payload.id ?? `${payload.type}-${payload.sentAt}-${payload.content}`;
             const exists = prev.some(
@@ -166,22 +179,22 @@ export default function GlobalAiChatbotButton() {
           });
 
           if (activePanelRef.current === 'member') {
-            markAsReadIfViewing(selectedRoomId, selectedRoom?.partnerUserId);
+            markAsReadIfViewing(currentRoomId, selectedRoomRef.current?.partnerUserId);
           } else {
-            loadRooms(selectedRoomId);
+            loadRooms();
           }
         });
 
         if (activePanelRef.current === 'member') {
-          markAsReadIfViewing(selectedRoomId, selectedRoom?.partnerUserId);
+          markAsReadIfViewing(currentRoomId, selectedRoomRef.current?.partnerUserId);
         }
-        loadRooms(selectedRoomId);
+        loadRooms();
       }
     };
 
     client.activate();
     clientRef.current = client;
-  }, [currentMemberId, loadRooms, markAsReadIfViewing, member?.email, selectedRoom?.partnerUserId, selectedRoomId]);
+  }, [currentMemberId, loadRooms, markAsReadIfViewing, member?.email]);
 
   useEffect(() => {
     if (activePanel === 'member' && isLoggedIn) {
@@ -280,7 +293,7 @@ export default function GlobalAiChatbotButton() {
         if (activePanelRef.current === 'member') {
           markAsReadIfViewing(selectedRoomId, selectedRoom?.partnerUserId);
         } else {
-          loadRooms(selectedRoomId);
+          loadRooms();
         }
       });
 
@@ -350,7 +363,7 @@ export default function GlobalAiChatbotButton() {
       });
 
       setMemberReply('');
-      loadRooms(selectedRoom.roomId);
+      loadRooms();
     } catch (error) {
       setMemberError(error.message || '메시지 전송에 실패했습니다.');
     } finally {
