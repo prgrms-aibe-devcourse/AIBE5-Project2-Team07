@@ -362,16 +362,18 @@ export default function ReviewContent({ account }) {
                     </p>
                 </div>
 
-                {reviewTab === 'written' && (
-                    <div className="flex justify-end">
+                <div className="flex justify-end min-h-[42px]">
+                    {reviewTab === 'written' ? (
                         <button
                             onClick={openCreateModal}
                             className="bg-primary text-white px-5 py-2.5 rounded-xl font-bold text-sm hover:bg-[#D61F44] transition-all shadow-md shadow-primary/10"
                         >
                             리뷰 작성
                         </button>
-                    </div>
-                )}
+                    ) : (
+                        <div className="h-[42px]" />
+                    )}
+                </div>
             </header>
 
             <div className="flex items-center justify-between border-b border-[#EAE5E3]">
