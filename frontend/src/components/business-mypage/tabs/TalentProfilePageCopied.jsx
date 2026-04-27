@@ -132,6 +132,7 @@ export default function TalentProfilePageCopied({
   applyId,
   applyStatus,
   applyMessage = '',
+  attachedFileUrl = '',
   canDecide = true,
   onBack,
   onDecisionComplete,
@@ -279,6 +280,23 @@ export default function TalentProfilePageCopied({
         <p className="text-sm text-on-surface-variant whitespace-pre-wrap break-words">
           {applyMessage || '작성된 추가 메시지가 없습니다.'}
         </p>
+      </Card>
+
+      <Card>
+        <SectionTitle>첨부 이력서</SectionTitle>
+        {attachedFileUrl ? (
+          <a
+            href={attachedFileUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-xl border border-blue-200 bg-blue-50 text-sm font-bold text-blue-700 hover:bg-blue-100 transition-colors"
+          >
+            <span className="material-symbols-outlined text-[18px]">attach_file</span>
+            첨부 이력서 열기
+          </a>
+        ) : (
+          <p className="text-sm text-on-surface-variant">첨부된 이력서 파일이 없습니다.</p>
+        )}
       </Card>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

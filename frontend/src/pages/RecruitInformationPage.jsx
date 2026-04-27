@@ -177,27 +177,6 @@ function formatDate(dateText) {
   return date.toLocaleDateString('ko-KR');
 }
 
-function toYmd(dateText) {
-  if (!dateText) {
-	return '';
-  }
-
-  const raw = String(dateText);
-  if (/^\d{4}-\d{2}-\d{2}/.test(raw)) {
-	return raw.slice(0, 10);
-  }
-
-  const date = new Date(dateText);
-  if (Number.isNaN(date.getTime())) {
-	return '';
-  }
-
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${year}-${month}-${day}`;
-}
-
 export default function RecruitInformationPage() {
   const [searchParams] = useSearchParams();
   const [tabType, setTabType] = useState('ALL');
@@ -400,19 +379,16 @@ export default function RecruitInformationPage() {
 		filters.workDays.forEach((value) => params.append('workDays', value));
 		filters.businessType.forEach((value) => params.append('businessType', value));
 		if (isShortTab && shortWorkDates.length > 0) {
-		  shortWorkDates.forEach((dateValue) => params.append('deadline', dateValue));
+		  shortWorkDates.forEach((dateValue) => params.append('workDate', dateValue));
 		}
 
 		const result = await fetchJsonWithFallback(`/recruits?${params.toString()}`);
 		const rawContent = Array.isArray(result.content) ? result.content : [];
-		let content = rawContent.filter((item) => !isExpiredRecruit(item?.status));
-		if (isShortTab && shortWorkDates.length > 0) {
-		  content = content.filter((item) => shortWorkDates.includes(toYmd(item?.deadline)));
-		}
+		const content = rawContent.filter((item) => !isExpiredRecruit(item?.status));
 		setRecruitPage({
 		  content,
 		  totalPages: Math.max(result.totalPages || 1, 1),
-		  totalElements: (isShortTab && shortWorkDates.length > 0) ? content.length : (result.totalElements ?? content.length)
+		  totalElements: result.totalElements ?? content.length
 		});
 
 		setRegionMap((prev) => {

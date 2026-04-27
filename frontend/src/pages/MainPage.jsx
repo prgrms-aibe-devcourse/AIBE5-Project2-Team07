@@ -1,15 +1,9 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import TopNavBar from '../components/TopNavBar';
 import MobileBottomNav from '../components/MobileBottomNav';
 import AppFooter from '../components/AppFooter';
 import CommonButton from '../components/CommonButton';
-import NearbyJobsSection from '../components/NearbyJobsSection';
-import RecommendFilterModal from '../components/RecommendFilterModal';
-import RecommendJobsSection from '../components/RecommendJobsSection';
-import { useNearbyJobs } from '../hooks/useNearbyJobs';
-import { fetchRecommendJobs } from '../services/recommendApi';
-import { RECOMMEND_DEFAULT_FILTERS } from '../constants/recommendFilterOptions';
 import { getStoredMember } from '../services/authApi';
 import { addRecruitScrap, getMyScrapRecruitIds, removeRecruitScrap } from '../services/scrapRecruitApi';
 
@@ -82,19 +76,6 @@ function formatWorkDateLabel(deadline) {
 }
 
 export default function MainPage() {
-  // ── 모든 Hook은 함수 정의보다 먼저 ──────────────────────────────
-  // 근거리/추천 필터 상태
-  const [selectedDistance, setSelectedDistance] = useState('5km');
-  const [isDistanceDropdownOpen, setIsDistanceDropdownOpen] = useState(false);
-  const [isNearbyMode, setIsNearbyMode] = useState(false);
-  const [isRecommendMode, setIsRecommendMode] = useState(false);
-  const [isRecommendModalOpen, setIsRecommendModalOpen] = useState(false);
-  const [recommendFilters, setRecommendFilters] = useState(RECOMMEND_DEFAULT_FILTERS);
-  const [recommendJobs, setRecommendJobs] = useState([]);
-  const [recommendLoading, setRecommendLoading] = useState(false);
-  const [recommendError, setRecommendError] = useState('');
-  const dropdownRef = useRef(null);
-
   // 실제 API 데이터 / 스크랩 상태
   const [urgentJobs, setUrgentJobs] = useState([]);
   const [latestJobs, setLatestJobs] = useState([]);
@@ -106,11 +87,23 @@ export default function MainPage() {
   const [showScrapLoginModal, setShowScrapLoginModal] = useState(false);
   const [showScrapBusinessModal, setShowScrapBusinessModal] = useState(false);
 
+  // 브랜드 알바 공고 (AI 추천 공고 섹션 대체)
+  const [brandRecruits, setBrandRecruits] = useState([]);
+
   const navigate = useNavigate();
-  const { jobs: nearbyJobs, loading: nearbyLoading, error: nearbyError, fetchJobs } = useNearbyJobs();
 
   const urgentRecruitLink = '/recruit-information?tab=ALL&sort=LATEST&isUrgent=true';
   const latestRecruitLink = '/recruit-information?tab=ALL&sort=LATEST';
+
+  // brand logo helper
+  const getBrandLogoUrl = (brand) => {
+    const rawLogo = brand?.logoImagePath || brand?.logo_image_path || brand?.logoImg || brand?.logo_img || brand?.logoUrl || brand?.logo_url || brand?.brandLogo || brand?.logo || '';
+    if (!rawLogo || typeof rawLogo !== 'string') return '';
+    const trimmed = rawLogo.trim();
+    if (!trimmed) return '';
+    if (trimmed.startsWith('http://') || trimmed.startsWith('https://') || trimmed.startsWith('/')) return trimmed;
+    return `/${trimmed}`;
+  };
 
   const urgentCards = useMemo(() => urgentJobs.map((job) => ({
     id: job.id,
@@ -123,16 +116,6 @@ export default function MainPage() {
   })), [urgentJobs]);
 
   useEffect(() => {
-    function handleClickOutside(event) {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
-        setIsDistanceDropdownOpen(false);
-      }
-    }
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
-  }, []);
-
-  useEffect(() => {
     const loadMainRecruitData = async () => {
       try {
         setLoading(true);
@@ -142,6 +125,34 @@ export default function MainPage() {
           fetchJsonWithFallback('/recruits?type=ALL&page=1&size=4&sort=LATEST&isUrgent=true&urgent=true&is_urgent=true'),
           fetchJsonWithFallback('/recruits?type=ALL&page=1&size=4&sort=LATEST'),
         ]);
+
+        // brand recruits: 랜덤 3개 + 각 브랜드의 전체/일반 공고 수 추가 조회
+        try {
+          const brandRes = await fetch('/api/brand/urgent');
+          if (brandRes.ok) {
+            const brandData = await brandRes.json();
+            if (Array.isArray(brandData)) {
+              const shuffled = [...brandData].sort(() => Math.random() - 0.5);
+              const topBrands = shuffled.slice(0, 3);
+              // 각 브랜드의 전체 공고 수 조회 (일반 = 전체 - 급구)
+              const brandsWithCounts = await Promise.all(
+                topBrands.map(async (brand) => {
+                  const id = brand.brandId ?? brand.id;
+                  if (!id) return brand;
+                  try {
+                    const r = await fetch(`/api/brand/${id}/recruits?page=1&size=1`);
+                    if (r.ok) {
+                      const d = await r.json();
+                      return { ...brand, totalRecruitCount: d.total_count ?? d.totalCount ?? 0 };
+                    }
+                  } catch { /* ignore */ }
+                  return brand;
+                })
+              );
+              setBrandRecruits(brandsWithCounts);
+            }
+          }
+        } catch { /* 브랜드 공고 로드 실패 무시 */ }
 
         const urgentContent = (Array.isArray(urgentResult?.content) ? urgentResult.content : [])
           .filter((item) => !isExpiredRecruit(item?.status))
@@ -185,50 +196,7 @@ export default function MainPage() {
     loadScrapIds();
   }, []);
 
-  // ── 이벤트 핸들러 (Hook 아님) ──────────────────────────────────
-  function handleDistanceSelect(distance) {
-    const radiusKm = Number.parseFloat(distance.replace('km', ''));
-    setSelectedDistance(distance);
-    setIsDistanceDropdownOpen(false);
-    setIsNearbyMode(true);
-    setIsRecommendMode(false);
-    fetchJobs(radiusKm);
-  }
-
-  async function handleApplyRecommendFilters(nextFilters) {
-    const requestPayload = {
-      regionId: nextFilters.regionId ?? null,
-      workPeriod: nextFilters.workPeriod ?? [],
-      workDays: nextFilters.workDays ?? [],
-      workTime: nextFilters.workTime ?? [],
-      businessType: nextFilters.businessType ?? [],
-      salaryType: nextFilters.salaryType ?? null,
-      urgent: Boolean(nextFilters.urgent),
-      resultCount: nextFilters.resultCount ?? 20,
-    };
-    setRecommendFilters(nextFilters);
-    setIsRecommendModalOpen(false);
-    setIsNearbyMode(false);
-    setIsRecommendMode(true);
-    setRecommendLoading(true);
-    setRecommendError('');
-    setRecommendJobs([]);
-    try {
-      const data = await fetchRecommendJobs(requestPayload);
-      setRecommendJobs(Array.isArray(data) ? data : []);
-    } catch (error) {
-      setRecommendError(error.message || '맞춤형 추천 공고를 불러오는 중 오류가 발생했습니다.');
-    } finally {
-      setRecommendLoading(false);
-    }
-  }
-
-  function resetToAllJobs() {
-    setIsNearbyMode(false);
-    setIsRecommendMode(false);
-    setIsDistanceDropdownOpen(false);
-  }
-
+  // ── 이벤트 핸들러 ──────────────────────────────────
   const moveToRecruitDetail = (recruitId) => {
     navigate(`/recruit-detail?recruitId=${recruitId}`);
   };
@@ -314,19 +282,11 @@ export default function MainPage() {
                   알바 펑크 났어? 대타 불러!
                 </h1>
                 <p className="text-base font-medium text-white/60">
-                  평균 매칭 시간 15분. 지각 없는 검증된 인재를 바로 연결해드립니다.
+                  지각 없는 검증된 인재를 바로 연결해드립니다.
                 </p>
                 <CommonButton className="mt-2" size="lg" to={urgentRecruitLink}>
                   전체 급구 공고 보기
                 </CommonButton>
-              </div>
-              <div className="absolute right-0 top-0 bottom-0 hidden w-3/5 md:block">
-                <img
-                  alt="Professional workspace"
-                  className="h-full w-full object-cover opacity-40 mix-blend-luminosity"
-                  src="https://lh3.googleusercontent.com/aida-public/AB6AXuDTW1fdO6U3QwEHuPCuBshMpupR90GUtEDzRMsbW-yPRBz6VWTwmHT1cJZFSA4N8aQP02aoTIjMyE7ZGHFs3FZWBha6gF1mpkQ5fD4txI0eL7kDKjBvcM7U5l9rQqCw3MaiGf40d9_esIvI7YIoMbWmmZQykSB7bvLg8N36PCgxAfvjSYFmUj4Imz7Y8q6kCsQXAvT5dCrgZo41c-0U2LC4WOch0mGDZJpdp-c_0d4lR4pFpCij9EfP0liTpG_ccQwrxr0nz-zQ8DI"
-                />
-                <div className="absolute inset-0 bg-gradient-to-r from-[#1A1818] via-[#1A1818]/60 to-transparent" />
               </div>
             </div>
           </div>
@@ -396,78 +356,74 @@ export default function MainPage() {
           <div className="custom-container">
             <div className="mb-10 flex items-end justify-between">
               <div>
-                <h2 className="text-3xl font-extrabold tracking-tighter">AI 추천 공고</h2>
-                <p className="mt-2 font-medium text-on-surface-variant">내 경력과 위치를 기반으로 한 맞춤형 일자리</p>
+                <h2 className="text-3xl font-extrabold tracking-tighter">브랜드 알바 공고</h2>
+                <p className="mt-2 font-medium text-on-surface-variant">현재 모집 중인 브랜드 알바 공고를 확인해보세요</p>
               </div>
-              <Link to="/ai-recommend" className="text-primary font-bold flex items-center gap-1 group py-2">
+              <Link to="/brand" className="text-primary font-bold flex items-center gap-1 group py-2">
                 더보기 <span className="material-symbols-outlined transition-transform group-hover:translate-x-1">chevron_right</span>
               </Link>
             </div>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-              <div className="bg-white rounded-xl p-8 flex flex-col justify-between min-h-[260px] relative transition-all shadow-sm hover:shadow-md hover:-translate-y-1">
-                <div className="flex flex-col gap-2">
-                  <div className="mb-2 flex items-center gap-2">
-                    <span className="block text-sm font-bold text-primary">프리미엄 라운지</span>
-                    <div className="flex items-center gap-1 rounded-sm bg-primary px-2 py-0.5 text-[10px] font-bold text-white">
-                      <span className="material-symbols-outlined text-[12px]" style={{ fontVariationSettings: '"FILL" 1' }}>
-                        emergency
-                      </span>
-                      긴급
+              {brandRecruits.length > 0 ? brandRecruits.map((brand) => {
+                const name = brand.name || brand.brand_name || brand.brandName || '브랜드';
+                const id = brand.id ?? brand.brandId ?? brand.brand_id ?? '';
+                const logoUrl = getBrandLogoUrl(brand);
+                const urgentCnt = brand.urgentCount ?? brand.urgent_count ?? 0;
+                const totalCnt = brand.totalRecruitCount ?? brand.recruitCount ?? brand.total_count ?? brand.totalCount ?? brand.count ?? 0;
+                const normalCnt = Math.max(0, totalCnt - urgentCnt);
+                return (
+                  <div
+                    key={id || name}
+                    role="button"
+                    tabIndex={0}
+                    onClick={() => { if (id) navigate(`/brand/recruits?brandId=${encodeURIComponent(id)}`); }}
+                    onKeyDown={(e) => { if (e.key === 'Enter' && id) navigate(`/brand/recruits?brandId=${encodeURIComponent(id)}`); }}
+                    className="bg-white rounded-xl p-8 flex flex-col justify-between min-h-[220px] transition-all shadow-sm hover:shadow-md hover:-translate-y-1 cursor-pointer"
+                  >
+                    <div className="flex items-center gap-4 mb-5">
+                      <div className="w-16 h-16 bg-outline/10 rounded-xl flex items-center justify-center overflow-hidden flex-shrink-0">
+                        {logoUrl ? (
+                          <img src={logoUrl} alt={`${name} 로고`} className="w-full h-full object-contain" />
+                        ) : (
+                          <span className="material-symbols-outlined text-on-surface-variant text-3xl">store</span>
+                        )}
+                      </div>
+                      <div>
+                        <p className="text-base font-extrabold text-on-surface">{name}</p>
+                        <p className="text-sm text-on-surface-variant mt-0.5">브랜드 알바</p>
+                      </div>
+                    </div>
+                    <div className="flex gap-3 mb-5">
+                      {urgentCnt > 0 && (
+                        <div className="flex items-center gap-1.5 bg-primary-soft rounded-lg px-3 py-2">
+                          <span className="material-symbols-outlined text-primary text-[15px]" style={{ fontVariationSettings: '"FILL" 1' }}>emergency</span>
+                          <span className="text-sm font-bold text-primary">급구 {urgentCnt}건</span>
+                        </div>
+                      )}
+                      {normalCnt > 0 && (
+                        <div className="flex items-center gap-1.5 bg-outline/10 rounded-lg px-3 py-2">
+                          <span className="material-symbols-outlined text-on-surface-variant text-[15px]">work</span>
+                          <span className="text-sm font-bold text-on-surface-variant">일반 {normalCnt}건</span>
+                        </div>
+                      )}
+                      {urgentCnt === 0 && normalCnt === 0 && totalCnt === 0 && (
+                        <div className="flex items-center gap-1.5 bg-outline/10 rounded-lg px-3 py-2">
+                          <span className="material-symbols-outlined text-on-surface-variant text-[15px]">work</span>
+                          <span className="text-sm font-bold text-on-surface-variant">공고 모집 중</span>
+                        </div>
+                      )}
+                    </div>
+                    <div className="mt-auto text-right">
+                      <span className="text-sm font-bold text-primary">공고 보러가기 →</span>
                     </div>
                   </div>
-                  <h3 className="mb-2 text-xl font-bold leading-tight">청담동 하이엔드 카페 주말 오후 서빙 스태프</h3>
-                  <div className="flex gap-2 text-xs font-semibold text-on-surface-variant">
-                    <span>서울 강남구</span>
-                    <span>•</span>
-                    <span>오늘 14:00 시작</span>
-                  </div>
+                );
+              }) : (
+                // fallback: 브랜드 공고 없을 때 안내
+                <div className="col-span-full text-center text-on-surface-variant py-12">
+                  브랜드 알바 공고를 불러오는 중입니다...
                 </div>
-                <div className="mt-6 flex items-end justify-between">
-                  <span className="text-2xl font-black text-primary">
-                    15,000원
-                    <small className="ml-1 text-xs font-bold text-on-surface">/시간</small>
-                  </span>
-                  <button className="material-symbols-outlined text-on-surface-variant/40 transition-colors hover:text-primary">bookmark</button>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl p-8 flex flex-col justify-between min-h-[260px] transition-all shadow-sm hover:shadow-md hover:-translate-y-1">
-                <div className="flex flex-col gap-2">
-                  <span className="mb-2 block text-sm font-bold text-on-surface-variant">에이치 리테일</span>
-                  <h3 className="mb-2 text-xl font-bold leading-tight">강남역 인근 대형 매장 상품 진열 및 재고 관리</h3>
-                  <div className="flex gap-2 text-xs font-semibold text-on-surface-variant">
-                    <span>서울 서초구</span>
-                    <span>•</span>
-                    <span>내일부터 시작</span>
-                  </div>
-                </div>
-                <div className="mt-6 flex items-end justify-between">
-                  <span className="text-2xl font-black text-on-surface">
-                    11,500원
-                    <small className="ml-1 text-xs font-bold text-on-surface-variant">/시간</small>
-                  </span>
-                  <button className="material-symbols-outlined text-on-surface-variant/40 transition-colors hover:text-primary">bookmark</button>
-                </div>
-              </div>
-
-              <div className="bg-white rounded-xl p-8 flex flex-col justify-between min-h-[260px] transition-all shadow-sm hover:shadow-md hover:-translate-y-1">
-                <div className="flex flex-col gap-2">
-                  <span className="mb-2 block text-sm font-bold text-on-surface-variant">베이커리 온</span>
-                  <h3 className="mb-2 text-xl font-bold leading-tight">가로수길 베이커리 카페 마감 청소 및 포장 파트</h3>
-                  <div className="flex gap-2 text-xs font-semibold text-on-surface-variant">
-                    <span>서울 강남구</span>
-                    <span>•</span>
-                    <span>월-금 고정</span>
-                  </div>
-                </div>
-                <div className="mt-6 flex items-end justify-between">
-                  <span className="text-2xl font-black text-on-surface">
-                    10,500원
-                    <small className="ml-1 text-xs font-bold text-on-surface-variant">/시간</small>
-                  </span>
-                  <button className="material-symbols-outlined text-on-surface-variant/40 transition-colors hover:text-primary">bookmark</button>
-                </div>
-              </div>
+              )}
             </div>
           </div>
         </section>
@@ -477,99 +433,45 @@ export default function MainPage() {
             <div className="mb-12">
               <div className="mb-8 flex items-center justify-between">
                 <h2 className="text-3xl font-extrabold tracking-tighter">전체 공고</h2>
-                <div className="flex gap-2 rounded-lg bg-outline/20 p-1">
-                  <button className="rounded-md bg-white px-4 py-1.5 text-sm font-bold text-on-surface shadow-sm">최신순</button>
-                  <button className="rounded-md px-4 py-1.5 text-sm font-bold text-on-surface-variant transition-colors hover:text-on-surface">시급순</button>
-                </div>
               </div>
               <div className="flex flex-wrap gap-3 pb-2">
                 <button
-                  onClick={resetToAllJobs}
-                  className={`rounded-full px-6 py-2.5 text-sm font-bold whitespace-nowrap shadow-sm transition-colors ${
-                    !isNearbyMode && !isRecommendMode
-                      ? 'bg-primary text-white'
-                      : 'border border-[#e0e0e0] bg-white text-[#555555] hover:bg-gray-50'
-                  }`}
+                  className="rounded-full px-6 py-2.5 text-sm font-bold whitespace-nowrap shadow-sm transition-colors bg-primary text-white"
                 >
                   전체
                 </button>
-                <div className="relative" ref={dropdownRef}>
-                  <button
-                    onClick={() => setIsDistanceDropdownOpen(!isDistanceDropdownOpen)}
-                    className={`flex items-center gap-1 rounded-full px-6 py-2.5 text-sm font-bold whitespace-nowrap transition-colors ${
-                      isNearbyMode
-                        ? 'bg-primary text-white shadow-sm'
-                        : 'border border-[#e0e0e0] bg-white text-[#555555] hover:bg-gray-50'
-                    }`}
-                  >
-                    <span className="material-symbols-outlined text-[15px]">near_me</span>
-                    내 주변 {selectedDistance}
-                    <span className="material-symbols-outlined text-[16px]">
-                      {isDistanceDropdownOpen ? 'keyboard_arrow_up' : 'keyboard_arrow_down'}
-                    </span>
-                  </button>
-                  {isDistanceDropdownOpen ? (
-                    <div className="absolute top-full left-1/2 z-50 mt-2 w-full min-w-[120px] -translate-x-1/2 overflow-hidden rounded-xl border border-[#e0e0e0] bg-white shadow-lg">
-                      {['1km', '3km', '5km', '10km'].map((distance) => (
-                        <button
-                          key={distance}
-                          onClick={() => handleDistanceSelect(distance)}
-                          className={`w-full px-4 py-3 text-center text-sm font-bold transition-colors ${
-                            selectedDistance === distance && isNearbyMode
-                              ? 'bg-primary/10 text-primary'
-                              : 'text-[#555555] hover:bg-gray-50'
-                          }`}
-                        >
-                          {distance}
-                        </button>
-                      ))}
-                    </div>
-                  ) : null}
-                </div>
-                <button className="rounded-full border border-[#e0e0e0] bg-white px-6 py-2.5 text-sm font-bold whitespace-nowrap text-[#555555] transition-colors hover:bg-gray-50">
-                  단기 알바
-                </button>
-                <button className="rounded-full border border-[#e0e0e0] bg-white px-6 py-2.5 text-sm font-bold whitespace-nowrap text-[#555555] transition-colors hover:bg-gray-50">
-                  외국인 가능
+                <button
+                  onClick={() => { window.scrollTo(0, 0); navigate('/ai-recommend?tab=nearby'); }}
+                  className="flex items-center gap-1 rounded-full px-6 py-2.5 text-sm font-bold whitespace-nowrap transition-colors border border-[#e0e0e0] bg-white text-[#555555] hover:bg-gray-50"
+                >
+                  <span className="material-symbols-outlined text-[15px]">near_me</span>
+                  내주변 5km
                 </button>
                 <button
-                  type="button"
-                  onClick={() => setIsRecommendModalOpen(true)}
-                  className={`flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-bold whitespace-nowrap transition-colors ${
-                    isRecommendMode
-                      ? 'bg-primary text-white shadow-sm'
-                      : 'border border-[#e0e0e0] bg-white text-[#555555] hover:bg-gray-50'
-                  }`}
+                  onClick={() => { window.scrollTo(0, 0); navigate('/ai-recommend?tab=condition'); }}
+                  className="flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-bold whitespace-nowrap transition-colors border border-[#e0e0e0] bg-white text-[#555555] hover:bg-gray-50"
                 >
                   <span className="material-symbols-outlined text-[16px]">auto_awesome</span>
                   맞춤형 추천
                 </button>
+                <button
+                  onClick={() => navigate('/recruit-information')}
+                  className="flex items-center gap-2 rounded-full px-6 py-2.5 text-sm font-bold whitespace-nowrap transition-colors border border-[#e0e0e0] bg-white text-[#555555] hover:bg-gray-50"
+                >
+                  <span className="material-symbols-outlined text-[16px]">tune</span>
+                  더 자세한 필터로 검색하기
+                </button>
               </div>
             </div>
 
-            {isNearbyMode ? (
-              <NearbyJobsSection
-                jobs={nearbyJobs}
-                loading={nearbyLoading}
-                error={nearbyError}
-                selectedDistance={selectedDistance}
-              />
-            ) : isRecommendMode ? (
-              <RecommendJobsSection
-                jobs={recommendJobs}
-                loading={recommendLoading}
-                error={recommendError}
-                filters={recommendFilters}
-              />
-            ) : (
-              <>
-                <div className="hidden grid-cols-12 gap-4 border-b border-[#e8e8e8] px-6 py-4 text-xs font-bold uppercase tracking-wider text-on-surface-variant lg:grid">
-                  <div className="col-span-5">기업 및 공고명</div>
-                  <div className="col-span-2">지역</div>
-                  <div className="col-span-2">카테고리</div>
-                  <div className="col-span-2 text-right">급여 및 마감</div>
-                  <div className="col-span-1 text-right">등록</div>
-                </div>
+            <>
+              <div className="hidden grid-cols-12 gap-4 border-b border-[#e8e8e8] px-6 py-4 text-xs font-bold uppercase tracking-wider text-on-surface-variant lg:grid">
+                <div className="col-span-5">기업 및 공고명</div>
+                <div className="col-span-2">지역</div>
+                <div className="col-span-2">카테고리</div>
+                <div className="col-span-2 text-right">급여 및 마감</div>
+                <div className="col-span-1 text-right">등록</div>
+              </div>
 
                 {loading && <p className="py-8 text-on-surface-variant">전체 공고를 불러오는 중입니다...</p>}
                 {!loading && loadError && <p className="py-8 text-red-600">{loadError}</p>}
@@ -634,7 +536,6 @@ export default function MainPage() {
                   </CommonButton>
                 </div>
               </>
-            )}
 
           </div>
         </section>
@@ -642,12 +543,6 @@ export default function MainPage() {
       <AppFooter />
       <MobileBottomNav />
 
-      <RecommendFilterModal
-        isOpen={isRecommendModalOpen}
-        initialFilters={recommendFilters}
-        onClose={() => setIsRecommendModalOpen(false)}
-        onApply={handleApplyRecommendFilters}
-      />
 
       <div className={`${showScrapLoginModal ? '' : 'hidden'} fixed inset-0 z-[100] flex items-center justify-center p-6`}>
         <div className="absolute inset-0 bg-on-surface/40 backdrop-blur-sm" onClick={() => setShowScrapLoginModal(false)}></div>

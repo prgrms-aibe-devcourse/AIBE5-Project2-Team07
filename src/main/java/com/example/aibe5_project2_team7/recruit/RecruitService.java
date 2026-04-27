@@ -44,17 +44,23 @@ public class RecruitService {
         Pageable pageable = PageRequest.of(page - 1, size, sort); // 명세는 page=1 시작
 
         // type=SHORT가 아닐 때 workDate 무시
-        LocalDate workDate = "SHORT".equals(cond.getType()) ? cond.getWorkDate() : null;
+        List<java.time.LocalDate> workDates = "SHORT".equals(cond.getType()) ? nullIfEmpty(cond.getWorkDate()) : null;
+        String keyword = normalizeKeyword(cond.getKeyword());
+        List<Integer> regionIds = nullIfEmpty(cond.getRegionId());
+        List<Period> workPeriods = nullIfEmpty(cond.getWorkPeriod());
+        List<Days> workDays = nullIfEmpty(cond.getWorkDays());
+        List<Times> workTimes = nullIfEmpty(cond.getWorkTime());
+        List<BusinessTypeName> businessTypes = nullIfEmpty(cond.getBusinessType());
 
         return recruitRepository.findWithFilters(
                 cond.getType(),
-                cond.getKeyword(),
-                cond.getRegionId(),
-                workDate,
-                cond.getWorkPeriod(),
-                cond.getWorkDays(),
-                cond.getWorkTime(),
-                cond.getBusinessType(),
+                keyword,
+                regionIds,
+                workDates,
+                workPeriods,
+                workDays,
+                workTimes,
+                businessTypes,
                 cond.getMemberId(),
                 cond.isUrgent(),
                 RecruitStatus.EXPIRED,
@@ -82,9 +88,11 @@ public class RecruitService {
     public Long createRecruit(RecruitRequestDto requestDto, Long requestBusinessId) {
         Recruit newRecruit = new Recruit();
         Region region = getRegion(requestDto.getRegionId());
-        Brand brand = (requestDto.getBrandId() != null)
-                ? brandRepository.findById(requestDto.getBrandId()).orElse(null)
-                : null;
+        BusinessProfile businessProfile = businessProfileRepository.findByMemberId(requestBusinessId).orElse(null);
+        Brand brand = resolveBrandForRecruit(requestDto.getBrandId(), businessProfile);
+        validateSalary(requestDto.getSalary());
+        validateHeadCount(requestDto.getHeadCount());
+        validateOneDayRules(requestDto);
         applyRequestToRecruit(newRecruit, requestDto, region, brand);
         newRecruit.setBusinessMemberId(requestBusinessId);
         validateDeadline(requestDto.getDeadline());
@@ -151,6 +159,56 @@ public class RecruitService {
         if(deadlineDate.isBefore(LocalDate.now())) {
             throw new IllegalArgumentException("마감일은 오늘 이후여야 합니다.");
         }
+    }
+
+    private void validateSalary(int salary) {
+        if (salary <= 0) {
+            throw new IllegalArgumentException("급여는 1원 이상이어야 합니다.");
+        }
+    }
+
+    private void validateHeadCount(Integer headCount) {
+        if (headCount != null && headCount < 0) {
+            throw new IllegalArgumentException("모집인원은 0 이상의 숫자만 입력할 수 있습니다.");
+        }
+    }
+
+    private void validateOneDayRules(RecruitRequestDto requestDto) {
+        List<Period> periods = requestDto.getWorkPeriod();
+        if (periods == null || periods.isEmpty()) {
+            throw new IllegalArgumentException("근무기간은 필수입니다.");
+        }
+
+        boolean isOneDay = periods.contains(Period.OneDay);
+        if (!isOneDay) {
+            return;
+        }
+
+        if (requestDto.getSalaryType() != SalaryType.HOURLY) {
+            throw new IllegalArgumentException("단기(하루) 공고의 급여 기준은 시급만 가능합니다.");
+        }
+
+        List<Days> workDays = requestDto.getWorkDays();
+        if (workDays == null || workDays.size() != 1) {
+            throw new IllegalArgumentException("단기(하루) 공고는 근무요일을 1개만 선택할 수 있습니다.");
+        }
+    }
+
+    private Brand resolveBrandForRecruit(Long requestBrandId, BusinessProfile businessProfile) {
+        Brand profileBrand = businessProfile != null ? businessProfile.getBrandId() : null;
+        Long profileBrandId = profileBrand != null ? profileBrand.getId() : null;
+
+        if (requestBrandId != null) {
+            Brand requestBrand = brandRepository.findById(requestBrandId)
+                    .orElseThrow(() -> new IllegalArgumentException("유효하지 않은 브랜드입니다."));
+
+            if (profileBrandId != null && !profileBrandId.equals(requestBrandId)) {
+                throw new IllegalArgumentException("사업자 계정의 브랜드와 공고 브랜드가 일치하지 않습니다.");
+            }
+            return requestBrand;
+        }
+
+        return profileBrand;
     }
 
     //엔티티를 목록조회용dto로 변환 (공개 메서드 - 다른 서비스에서 재사용 가능)
@@ -229,11 +287,33 @@ public class RecruitService {
         recruit.setStatus(RecruitStatus.OPEN);
         recruit.setSalary(requestDto.getSalary());
         recruit.setSalaryType(requestDto.getSalaryType());
-        recruit.setHeadCount(requestDto.getHeadCount());
+        recruit.setHeadCount(normalizeHeadCount(requestDto.getHeadCount()));
         recruit.setRegion(region);
         recruit.setDetailAddress(requestDto.getDetailAddress());
         recruit.setDescription(requestDto.getDescription());
         recruit.setResumeFormUrl(requestDto.getResumeFormUrl());
+    }
+
+    private Integer normalizeHeadCount(Integer headCount) {
+        if (headCount == null || headCount == 0) {
+            return null;
+        }
+        return headCount;
+    }
+
+    private String normalizeKeyword(String keyword) {
+        if (keyword == null) {
+            return null;
+        }
+        String trimmed = keyword.trim();
+        return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private <T> List<T> nullIfEmpty(List<T> values) {
+        if (values == null || values.isEmpty()) {
+            return null;
+        }
+        return values;
     }
 
     //근무기간,시간,요일,업종 컬렉션 전체 교체

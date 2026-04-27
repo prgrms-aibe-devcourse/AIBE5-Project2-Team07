@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import TopNavBarLoggedIn from '../components/TopNavBarLoggedIn';
 import AppFooter from '../components/AppFooter';
 
@@ -16,6 +16,7 @@ import { getMyAccount } from '../services/accountApi';
 import { getMyResume } from '../services/resumeApi';
 
 export default function PersonalMyPage() {
+  const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const [activeTab, setActiveTab] = useState('dashboard');
   const [account, setAccount] = useState(null);
@@ -61,9 +62,16 @@ export default function PersonalMyPage() {
     }
   }, [activeTab, searchParams]);
 
-  const handleTabChange = (nextTab) => {
+  const handleTabChange = (nextTab, options = {}) => {
     setActiveTab(nextTab);
-    setSearchParams(nextTab === 'dashboard' ? {} : { tab: nextTab });
+    const nextParams = new URLSearchParams();
+    if (nextTab !== 'dashboard') {
+      nextParams.set('tab', nextTab);
+    }
+    if (nextTab === 'status' && options.statusType) {
+      nextParams.set('statusType', options.statusType);
+    }
+    setSearchParams(nextParams);
   };
 
   const renderContent = () => {
@@ -77,7 +85,9 @@ export default function PersonalMyPage() {
                 error={error}
                 onMoveInfo={() => handleTabChange('info')}
                 onMoveResume={() => handleTabChange('resume')}
-                onMoveReview={() => setActiveTab('review')}
+                onMoveStatusTab={(statusType) => handleTabChange('status', { statusType })}
+                onFindRecruit={() => navigate('/recruit-information')}
+                onMoveReview={() => handleTabChange('review')}
             />
         );
 
@@ -118,6 +128,9 @@ export default function PersonalMyPage() {
                 error={error}
                 onMoveInfo={() => handleTabChange('info')}
                 onMoveResume={() => handleTabChange('resume')}
+                onMoveStatusTab={(statusType) => handleTabChange('status', { statusType })}
+                onFindRecruit={() => navigate('/recruit-information')}
+                onMoveReview={() => handleTabChange('review')}
             />
         );
     }

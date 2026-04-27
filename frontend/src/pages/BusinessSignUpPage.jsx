@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import TopNavBar from '../components/TopNavBar';
 import AppFooter from '../components/AppFooter';
 import CommonButton from '../components/CommonButton';
+import AddressSearchField from '../components/AddressSearchField';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 
@@ -47,12 +48,14 @@ export default function BusinessSignUpPage() {
     if (!form.phone.trim()) return '휴대전화를 입력해주세요.';
     if (!form.password.trim()) return '비밀번호를 입력해주세요.';
     if (form.password.length < 4) return '비밀번호는 4자 이상 입력해주세요.';
+    if (!form.passwordConfirm.trim()) return '비밀번호 확인을 입력해주세요.';
     if (form.password !== form.passwordConfirm) return '비밀번호 확인이 일치하지 않습니다.';
     if (!form.birthDate) return '생년월일을 입력해주세요.';
     if (!form.foundedDate) return '설립일을 입력해주세요.';
     if (!form.businessNumber.trim()) return '사업자등록번호를 입력해주세요.';
     if (!form.companyPhone.trim()) return '회사 전화번호를 입력해주세요.';
     if (!form.address.trim()) return '사업장 주소를 입력해주세요.';
+    if (!form.detailAddress.trim()) return '상세 주소를 입력해주세요.';
     return '';
   };
 
@@ -151,7 +154,7 @@ export default function BusinessSignUpPage() {
               <form className="space-y-4" onSubmit={handleSubmit}>
                 <div>
                   <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wide block mb-2">
-                    상호명 / 기업명
+                    상호명 / 기업명 <span className="text-red-500">*</span>
                   </label>
                   <input
                       name="companyName"
@@ -159,13 +162,13 @@ export default function BusinessSignUpPage() {
                       value={form.companyName}
                       onChange={handleChange}
                       className="w-full bg-white border border-outline rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-primary"
-                      placeholder="예: 한강유통"
+                      placeholder="예: GS25 마포당인점"
                   />
                 </div>
 
                 <div>
                   <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wide block mb-2">
-                    담당자 이름
+                    담당자 이름 <span className="text-red-500">*</span>
                   </label>
                   <input
                       name="managerName"
@@ -179,7 +182,7 @@ export default function BusinessSignUpPage() {
 
                 <div>
                   <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wide block mb-2">
-                    이메일
+                    이메일 (아이디) <span className="text-red-500">*</span>
                   </label>
                   <input
                       name="email"
@@ -193,7 +196,7 @@ export default function BusinessSignUpPage() {
 
                 <div>
                   <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wide block mb-2">
-                    휴대전화
+                    휴대전화 <span className="text-red-500">*</span>
                   </label>
                   <input
                       name="phone"
@@ -207,7 +210,7 @@ export default function BusinessSignUpPage() {
 
                 <div>
                   <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wide block mb-2">
-                    비밀번호
+                    비밀번호 <span className="text-red-500">*</span>
                   </label>
                   <input
                       name="password"
@@ -221,7 +224,7 @@ export default function BusinessSignUpPage() {
 
                 <div>
                   <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wide block mb-2">
-                    비밀번호 확인
+                    비밀번호 확인 <span className="text-red-500">*</span>
                   </label>
                   <input
                       name="passwordConfirm"
@@ -235,7 +238,7 @@ export default function BusinessSignUpPage() {
 
                 <div>
                   <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wide block mb-2">
-                    생년월일
+                    생년월일 <span className="text-red-500">*</span>
                   </label>
                   <input
                       name="birthDate"
@@ -248,7 +251,7 @@ export default function BusinessSignUpPage() {
 
                 <div>
                   <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wide block mb-2">
-                    성별
+                    성별 <span className="text-red-500">*</span>
                   </label>
                   <select
                       name="gender"
@@ -263,7 +266,7 @@ export default function BusinessSignUpPage() {
 
                 <div>
                   <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wide block mb-2">
-                    사업자등록번호
+                    사업자등록번호 <span className="text-red-500">*</span>
                   </label>
                   <input
                       name="businessNumber"
@@ -277,7 +280,7 @@ export default function BusinessSignUpPage() {
 
                 <div>
                   <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wide block mb-2">
-                    설립일
+                    설립일 <span className="text-red-500">*</span>
                   </label>
                   <input
                       name="foundedDate"
@@ -290,7 +293,7 @@ export default function BusinessSignUpPage() {
 
                 <div>
                   <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wide block mb-2">
-                    회사 전화번호
+                    회사 전화번호 <span className="text-red-500">*</span>
                   </label>
                   <input
                       name="companyPhone"
@@ -302,70 +305,32 @@ export default function BusinessSignUpPage() {
                   />
                 </div>
 
-                <div>
-                  <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wide block mb-2">
-                    사업장 주소
-                  </label>
-                  <input
-                      name="address"
-                      type="text"
-                      value={form.address}
-                      onChange={handleChange}
-                      className="w-full bg-white border border-outline rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-primary"
-                      placeholder="기본 주소 입력"
-                  />
-                </div>
+                <AddressSearchField
+                  label="사업장 주소"
+                  addressName="address"
+                  detailName="detailAddress"
+                  addressValue={form.address}
+                  detailValue={form.detailAddress}
+                  onChange={handleChange}
+                  onAddressSelect={({ address }) => {
+                    setForm((prev) => ({
+                      ...prev,
+                      address: address || '',
+                    }));
+                  }}
+                  required
+                  addressPlaceholder="주소 검색 버튼을 눌러주세요"
+                  detailPlaceholder="상세 주소를 입력하세요"
+                />
 
                 <div>
                   <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wide block mb-2">
-                    상세 주소
-                  </label>
-                  <input
-                      name="detailAddress"
-                      type="text"
-                      value={form.detailAddress}
-                      onChange={handleChange}
-                      className="w-full bg-white border border-outline rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-primary"
-                      placeholder="상세 주소 입력"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wide block mb-2">
-                    홈페이지 URL
+                    홈페이지 URL <span className="text-on-surface-variant/70">(선택)</span>
                   </label>
                   <input
                       name="homepageUrl"
                       type="text"
                       value={form.homepageUrl}
-                      onChange={handleChange}
-                      className="w-full bg-white border border-outline rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-primary"
-                      placeholder="선택 입력"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wide block mb-2">
-                    회사 이미지 URL
-                  </label>
-                  <input
-                      name="companyImageUrl"
-                      type="text"
-                      value={form.companyImageUrl}
-                      onChange={handleChange}
-                      className="w-full bg-white border border-outline rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-primary"
-                      placeholder="선택 입력"
-                  />
-                </div>
-
-                <div>
-                  <label className="text-[11px] font-bold text-on-surface-variant uppercase tracking-wide block mb-2">
-                    계정 프로필 이미지 URL
-                  </label>
-                  <input
-                      name="image"
-                      type="text"
-                      value={form.image}
                       onChange={handleChange}
                       className="w-full bg-white border border-outline rounded-xl px-4 py-3.5 text-sm focus:outline-none focus:border-primary"
                       placeholder="선택 입력"

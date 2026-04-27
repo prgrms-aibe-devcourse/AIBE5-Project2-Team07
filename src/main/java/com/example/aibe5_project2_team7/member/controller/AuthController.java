@@ -80,7 +80,7 @@ public class AuthController {
             Member member = memberService.authenticate(email, password);
 
             if (requestedType != null && member.getMemberType() != requestedType) {
-                return ResponseEntity.badRequest().body(Map.of("error", "Member type mismatch"));
+                return ResponseEntity.badRequest().body(Map.of("error", "회원 유형이 일치하지 않습니다."));
             }
 
             String token = jwtUtil.generateToken(email, member.getMemberType());
