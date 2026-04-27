@@ -15,6 +15,125 @@ import {
 import { uploadCompanyLogo } from '../services/fileApi';
 import BusinessSidebar from '../components/business-mypage/BusinessSidebar';
 
+function normalizeRegionText(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim();
+}
+
+const SIDO_ALIAS_TO_CANONICAL = {
+  '서울': '서울특별시',
+  '서울시': '서울특별시',
+  '부산': '부산광역시',
+  '부산시': '부산광역시',
+  '대구': '대구광역시',
+  '대구시': '대구광역시',
+  '인천': '인천광역시',
+  '인천시': '인천광역시',
+  '광주': '광주광역시',
+  '광주시': '광주광역시',
+  '대전': '대전광역시',
+  '대전시': '대전광역시',
+  '울산': '울산광역시',
+  '울산시': '울산광역시',
+  '세종': '세종특별자치시',
+  '세종시': '세종특별자치시',
+  '경기': '경기도',
+  '강원': '강원특별자치도',
+  '강원도': '강원특별자치도',
+  '충북': '충청북도',
+  '충남': '충청남도',
+  '전북': '전북특별자치도',
+  '전라북도': '전북특별자치도',
+  '전남': '전라남도',
+  '경북': '경상북도',
+  '경남': '경상남도',
+  '제주': '제주특별자치도',
+  '제주도': '제주특별자치도',
+};
+
+function normalizeSidoName(value) {
+  const normalized = normalizeRegionText(value);
+  return SIDO_ALIAS_TO_CANONICAL[normalized] || normalized;
+}
+
+function extractAddressTokens(address = '') {
+  const normalizedAddress = normalizeRegionText(address).replace(/\([^)]*\)/g, '').trim();
+  if (!normalizedAddress) {
+    return { parsedSido: '', parsedSigungu: '' };
+  }
+
+  const tokens = normalizedAddress.split(' ').filter(Boolean);
+  const parsedSido = tokens[0] || '';
+
+  let parsedSigungu = tokens[1] || '';
+  if (tokens.length >= 3 && /[시군]$/u.test(tokens[1]) && /구$/u.test(tokens[2])) {
+    parsedSigungu = `${tokens[1]} ${tokens[2]}`;
+  }
+
+  return { parsedSido, parsedSigungu };
+}
+
+function extractAddressDetailFromBaseAddress(address = '') {
+  const normalizedAddress = normalizeRegionText(address);
+  if (!normalizedAddress) return '';
+
+  const { parsedSido, parsedSigungu } = extractAddressTokens(normalizedAddress);
+  if (!parsedSido) return normalizedAddress;
+
+  const tokens = normalizedAddress.split(' ').filter(Boolean);
+  const sigunguTokenCount = normalizeRegionText(parsedSigungu).split(' ').filter(Boolean).length;
+  const startIndex = Math.min(tokens.length, 1 + sigunguTokenCount);
+  return tokens.slice(startIndex).join(' ').trim();
+}
+
+function buildMemberDetailAddress(baseAddress = '', detailAddress = '') {
+  const baseDetail = extractAddressDetailFromBaseAddress(baseAddress);
+  const userDetail = normalizeRegionText(detailAddress);
+
+  return [baseDetail, userDetail].filter(Boolean).join(' ').trim();
+}
+
+function splitAddressForDisplay(address = '') {
+  const normalizedAddress = normalizeRegionText(address);
+  if (!normalizedAddress) {
+    return { baseAddress: '', detailAddress: '' };
+  }
+
+  const { parsedSido, parsedSigungu } = extractAddressTokens(normalizedAddress);
+  if (!parsedSido) {
+    return { baseAddress: normalizedAddress, detailAddress: '' };
+  }
+
+  const tokens = normalizedAddress.split(' ').filter(Boolean);
+  const sigunguTokenCount = normalizeRegionText(parsedSigungu).split(' ').filter(Boolean).length;
+  const baseTokenCount = Math.min(tokens.length, 1 + sigunguTokenCount);
+
+  return {
+    baseAddress: tokens.slice(0, baseTokenCount).join(' ').trim(),
+    detailAddress: tokens.slice(baseTokenCount).join(' ').trim(),
+  };
+}
+
+function trimLeadingOverlapWords(baseAddress = '', detailAddress = '') {
+  const normalizedBase = normalizeRegionText(baseAddress);
+  const normalizedDetail = normalizeRegionText(detailAddress);
+  if (!normalizedBase || !normalizedDetail) return normalizedDetail;
+
+  const baseTokens = normalizedBase.split(' ').filter(Boolean);
+  const detailTokens = normalizedDetail.split(' ').filter(Boolean);
+  const maxOverlap = Math.min(baseTokens.length, detailTokens.length);
+
+  for (let overlap = maxOverlap; overlap >= 1; overlap -= 1) {
+    const baseSuffix = baseTokens.slice(baseTokens.length - overlap).join(' ');
+    const detailPrefix = detailTokens.slice(0, overlap).join(' ');
+
+    if (baseSuffix === detailPrefix) {
+      return detailTokens.slice(overlap).join(' ').trim();
+    }
+  }
+
+  return normalizedDetail;
+}
+
 function BusinessCompanyEditPage() {
   const navigate = useNavigate();
 
@@ -63,7 +182,10 @@ function BusinessCompanyEditPage() {
   };
 
   const fetchSigunguOptionsBySido = async (sido) => {
-    const res = await fetch(`/api/brand/regionFilter/${encodeURIComponent(sido)}`);
+    const normalizedSido = normalizeSidoName(sido);
+    if (!normalizedSido) return [];
+
+    const res = await fetch(`/api/brand/regionFilter/${encodeURIComponent(normalizedSido)}`);
     if (!res.ok) return [];
 
     const data = await res.json();
@@ -94,36 +216,44 @@ function BusinessCompanyEditPage() {
   };
 
   const handleCompanyAddressSelect = ({ address }) => {
-    setCompanyAddressBase(address || '');
+    const nextBaseAddress = normalizeRegionText(address);
+    setCompanyAddressBase(nextBaseAddress);
+    setCompanyAddressDetail('');
   };
 
-  const handleMemberAddressSelect = async ({ address }) => {
-    const nextAddress = String(address || '').trim();
+  const handleMemberAddressSelect = async ({ address, sido, sigungu }) => {
+    const nextAddress = normalizeRegionText(address);
     setMemberAddressBase(nextAddress);
+    setMemberDetailAddress('');
 
-    const tokens = nextAddress.split(/\s+/);
-    const parsedSido = tokens[0] || '';
-    const parsedSigungu = tokens[1] || '';
+    const { parsedSido, parsedSigungu } = extractAddressTokens(nextAddress);
+    const normalizedSido = normalizeSidoName(sido || parsedSido);
+    const normalizedSigungu = normalizeRegionText(sigungu || parsedSigungu);
 
-    if (!parsedSido) {
+    if (!normalizedSido) {
       setForm((prev) => ({ ...prev, sido: '', sigungu: '' }));
       setSelectedRegionId(null);
       return;
     }
 
     try {
-      const options = await fetchSigunguOptionsBySido(parsedSido);
-      const selected = options.find((opt) => parsedSigungu && opt.sigungu.startsWith(parsedSigungu));
+      const options = await fetchSigunguOptionsBySido(normalizedSido);
+      const selected = options.find((opt) => normalizeRegionText(opt?.sigungu) === normalizedSigungu)
+        || options.find((opt) => {
+          const optionSigungu = normalizeRegionText(opt?.sigungu);
+          if (!normalizedSigungu) return false;
+          return optionSigungu.startsWith(normalizedSigungu) || normalizedSigungu.startsWith(optionSigungu);
+        });
 
       setForm((prev) => ({
         ...prev,
-        sido: parsedSido,
-        sigungu: selected?.sigungu || parsedSigungu,
+        sido: selected?.sido || normalizedSido,
+        sigungu: selected?.sigungu || normalizedSigungu,
       }));
       setSelectedRegionId(selected?.id || null);
     } catch {
       setSelectedRegionId(null);
-      setForm((prev) => ({ ...prev, sido: parsedSido, sigungu: parsedSigungu }));
+      setForm((prev) => ({ ...prev, sido: normalizedSido, sigungu: normalizedSigungu }));
     }
   };
 
@@ -170,7 +300,9 @@ function BusinessCompanyEditPage() {
       return;
     }
 
-    if (!memberDetailAddress || !memberDetailAddress.trim()) {
+    const mergedMemberDetailAddress = buildMemberDetailAddress(memberAddressBase, memberDetailAddress);
+
+    if (!mergedMemberDetailAddress) {
       window.alert('상세주소를 입력해주세요.');
       return;
     }
@@ -182,7 +314,7 @@ function BusinessCompanyEditPage() {
         name: form.contactName,
         phone: form.contactPhone,
         regionId: selectedRegionId,
-        detailAddress: memberDetailAddress.trim(),
+        detailAddress: mergedMemberDetailAddress,
       });
 
       window.alert('담당자 정보가 저장되었습니다.');
@@ -315,16 +447,27 @@ function BusinessCompanyEditPage() {
         ]);
         const brandLogoUrl = await resolveBrandLogoUrl(data?.brandId);
         const brandName = data?.brandName || '';
-        const regionName = typeof data?.regionName === 'string' ? data.regionName.trim() : '';
-        const [sido = '', ...sigunguParts] = regionName.split(' ');
-        const sigungu = sigunguParts.join(' ').trim();
+        const regionName = normalizeRegionText(data?.regionName);
+        const { parsedSido, parsedSigungu } = extractAddressTokens(regionName);
+        const normalizedSido = normalizeSidoName(parsedSido);
+        const normalizedSigungu = normalizeRegionText(parsedSigungu);
+        const {
+          baseAddress: companyBaseAddress,
+          detailAddress: companyDetailAddress,
+        } = splitAddressForDisplay(data?.companyAddress);
+        const memberDetailDisplayValue = trimLeadingOverlapWords(regionName, data?.detailAddress);
 
         let options = [];
-        if (sido) {
-          options = await fetchSigunguOptionsBySido(sido);
+        if (normalizedSido) {
+          options = await fetchSigunguOptionsBySido(normalizedSido);
         }
 
-        const selected = options.find((opt) => opt.sigungu === sigungu);
+        const selected = options.find((opt) => normalizeRegionText(opt?.sigungu) === normalizedSigungu)
+          || options.find((opt) => {
+            const optionSigungu = normalizeRegionText(opt?.sigungu);
+            if (!normalizedSigungu) return false;
+            return optionSigungu.startsWith(normalizedSigungu) || normalizedSigungu.startsWith(optionSigungu);
+          });
 
         if (mounted) {
           setForm((prev) => ({
@@ -338,13 +481,13 @@ function BusinessCompanyEditPage() {
             contactName: data?.name || prev.contactName,
             contactPhone: data?.phone || prev.contactPhone,
             contactEmail: data?.email || prev.contactEmail,
-            sido: sido || prev.sido,
-            sigungu: sigungu || prev.sigungu,
+            sido: selected?.sido || normalizedSido || prev.sido,
+            sigungu: selected?.sigungu || normalizedSigungu || prev.sigungu,
           }));
           setMemberAddressBase(regionName || '');
-          setMemberDetailAddress(data?.detailAddress || '');
-          setCompanyAddressBase(data?.companyAddress || '');
-          setCompanyAddressDetail('');
+          setMemberDetailAddress(memberDetailDisplayValue || '');
+          setCompanyAddressBase(companyBaseAddress || '');
+          setCompanyAddressDetail(companyDetailAddress || '');
           setSelectedRegionId(selected?.id || null);
           setSidebarCompanySummary({
             companyName: summary?.companyName || data?.companyName || '',
