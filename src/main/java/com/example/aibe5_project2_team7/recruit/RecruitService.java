@@ -92,7 +92,8 @@ public class RecruitService {
         replaceWorkDays(newRecruit, requestDto.getWorkDays());
         replaceWorkTimes(newRecruit, requestDto.getWorkTime());
         replaceBusinessTypes(newRecruit, requestDto.getBusinessType());
-        double coord[] = naverMapService.getCoordinates(requestDto.getDetailAddress());
+
+        double coord[] = naverMapService.getCoordinates(region.getSido()+" "+region.getSigungu()+" "+requestDto.getDetailAddress());
         newRecruit.setDetailAddress(requestDto.getDetailAddress());
         if(coord!=null) {
             newRecruit.setLatitude(coord[0]);
