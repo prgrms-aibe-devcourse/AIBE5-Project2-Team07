@@ -88,6 +88,13 @@ function isUrgentDeadline(deadline) {
   return diff >= 0 && diff <= 3;
 }
 
+function isPastDate(deadline) {
+  const target = toDateOnly(deadline);
+  if (!target) return false;
+  const today = toDateOnly(new Date());
+  return target < today;
+}
+
 function normalizeRegionText(value) {
   return String(value || '').replace(/\s+/g, ' ').trim();
 }
@@ -327,6 +334,8 @@ function BusinessRecruitCreatePage() {
 
   const urgentDeadlineValid = useMemo(() => isUrgentDeadline(form.deadline), [form.deadline]);
 
+  const isOneDayRecruit = useMemo(() => form.workPeriod === 'OneDay', [form.workPeriod]);
+
   useEffect(() => {
     if (form.urgent && form.deadline && !urgentDeadlineValid) {
       setForm((prev) => ({ ...prev, urgent: false }));
@@ -334,8 +343,39 @@ function BusinessRecruitCreatePage() {
     }
   }, [form.urgent, form.deadline, urgentDeadlineValid]);
 
+  useEffect(() => {
+    if (!isOneDayRecruit) return;
+    setForm((prev) => ({
+      ...prev,
+      payType: 'HOURLY',
+      workDays: prev.workDays.length > 1 ? [prev.workDays[0]] : prev.workDays,
+    }));
+  }, [isOneDayRecruit]);
+
   const handleChange = (event) => {
     const { name, value } = event.target;
+
+    if (name === 'recruitCount' || name === 'payAmount') {
+      const digitsOnly = String(value || '').replace(/[^\d]/g, '');
+      setForm((prev) => ({ ...prev, [name]: digitsOnly }));
+      return;
+    }
+
+    if (name === 'workPeriod') {
+      setForm((prev) => ({
+        ...prev,
+        workPeriod: value,
+        payType: value === 'OneDay' ? 'HOURLY' : prev.payType,
+        workDays: value === 'OneDay' && prev.workDays.length > 1 ? [prev.workDays[0]] : prev.workDays,
+      }));
+      return;
+    }
+
+    if (name === 'payType' && form.workPeriod === 'OneDay') {
+      setForm((prev) => ({ ...prev, payType: 'HOURLY' }));
+      return;
+    }
+
     setForm((prev) => ({ ...prev, [name]: value }));
   };
 
@@ -350,9 +390,11 @@ function BusinessRecruitCreatePage() {
   const toggleWorkDay = (day) => {
     setForm((prev) => ({
       ...prev,
-      workDays: prev.workDays.includes(day)
-        ? prev.workDays.filter((item) => item !== day)
-        : [...prev.workDays, day],
+      workDays: prev.workPeriod === 'OneDay'
+        ? (prev.workDays.includes(day) ? [] : [day])
+        : (prev.workDays.includes(day)
+          ? prev.workDays.filter((item) => item !== day)
+          : [...prev.workDays, day]),
     }));
   };
 
@@ -396,12 +438,28 @@ function BusinessRecruitCreatePage() {
       setError('마감일을 선택해주세요.');
       return;
     }
+    if (isPastDate(form.deadline)) {
+      setError('마감일은 오늘보다 이전일 수 없습니다.');
+      return;
+    }
     if (form.urgent && !urgentDeadlineValid) {
       setError('긴급 공고는 마감일이 3일 이내여야 합니다.');
       return;
     }
-    if (!form.payAmount || Number(form.payAmount) <= 0) {
+    if (!form.payAmount || !/^\d+$/.test(form.payAmount) || Number(form.payAmount) <= 0) {
       setError('급여 금액을 올바르게 입력해주세요.');
+      return;
+    }
+    if (form.recruitCount !== '' && (!/^\d+$/.test(form.recruitCount) || Number(form.recruitCount) < 0)) {
+      setError('모집인원은 0 이상의 숫자만 입력할 수 있습니다.');
+      return;
+    }
+    if (form.workPeriod === 'OneDay' && form.workDays.length !== 1) {
+      setError('단기(하루) 공고는 근무요일을 1개만 선택할 수 있습니다.');
+      return;
+    }
+    if (form.workPeriod === 'OneDay' && form.payType !== 'HOURLY') {
+      setError('단기(하루) 공고의 급여 기준은 시급만 가능합니다.');
       return;
     }
     if (!form.workDays.length) {
@@ -436,12 +494,13 @@ function BusinessRecruitCreatePage() {
 
     const payload = {
       title: form.title.trim(),
+      brandId: companySummary?.brandId ?? null,
       isUrgent: Boolean(form.urgent),
       urgent: Boolean(form.urgent),
       deadline: form.deadline,
       salary: Number(form.payAmount),
-      salaryType: form.payType,
-      headCount: Number(form.recruitCount) || 1,
+      salaryType: form.workPeriod === 'OneDay' ? 'HOURLY' : form.payType,
+      headCount: form.recruitCount === '' ? null : (Number(form.recruitCount) === 0 ? null : Number(form.recruitCount)),
       regionId: Number(resolvedRegionId),
       detailAddress: [form.workplaceAddress, form.workplaceAddressDetail].filter(Boolean).join(' ').trim() || null,
       workPeriod: [form.workPeriod],
@@ -502,7 +561,16 @@ function BusinessRecruitCreatePage() {
                     <Field label="공고 제목" name="title" value={form.title} onChange={handleChange} required />
                   </div>
                   <SelectField label="업직종" name="businessType" value={form.businessType} onChange={handleChange} options={BUSINESS_TYPE_OPTIONS} required />
-                  <Field label="모집인원" name="recruitCount" value={form.recruitCount} onChange={handleChange} type="number" required />
+                  <Field
+                    label="모집인원"
+                    name="recruitCount"
+                    value={form.recruitCount}
+                    onChange={handleChange}
+                    type="text"
+                    inputMode="numeric"
+                    disallowScientific
+                    required
+                  />
                   <div className="md:col-span-2">
                     <label className="block">
                       <span className="text-xs font-bold text-on-surface-variant mb-2 block">모집 요강</span>
@@ -522,10 +590,22 @@ function BusinessRecruitCreatePage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <SelectField label="근무기간" name="workPeriod" value={form.workPeriod} onChange={handleChange} options={WORK_PERIOD_OPTIONS} required />
                   <SelectField label="근무시간" name="workTime" value={form.workTime} onChange={handleChange} options={WORK_TIME_OPTIONS} required />
-                  <SelectField label="급여 기준" name="payType" value={form.payType} onChange={handleChange} options={SALARY_TYPE_OPTIONS} required />
-                  <Field label="급여 금액(원)" name="payAmount" value={form.payAmount} onChange={handleChange} type="number" required />
+                  <SelectField
+                    label="급여 기준"
+                    name="payType"
+                    value={form.payType}
+                    onChange={handleChange}
+                    options={SALARY_TYPE_OPTIONS}
+                    required
+                    disabled={isOneDayRecruit}
+                    helperText={isOneDayRecruit ? '단기(하루) 공고는 시급으로 고정됩니다.' : ''}
+                  />
+                  <Field label="급여 금액(원)" name="payAmount" value={form.payAmount} onChange={handleChange} type="text" inputMode="numeric" disallowScientific required />
                   <div className="md:col-span-2">
                     <span className="text-xs font-bold text-on-surface-variant mb-2 flex items-center gap-1">근무요일 <Required /></span>
+                    {isOneDayRecruit && (
+                      <p className="text-[11px] text-primary font-semibold mb-2">단기(하루) 공고는 근무요일 1개만 선택할 수 있습니다.</p>
+                    )}
                     <div className="rounded-xl border border-outline p-3">
                       <div className="flex flex-wrap gap-2">
                       {WORK_DAYS.map(({ value, label }) => {
@@ -667,7 +747,14 @@ function FormSection({ title, children }) {
   );
 }
 
-function Field({ label, name, value, onChange, type = 'text', placeholder = '', required = false }) {
+function Field({ label, name, value, onChange, type = 'text', placeholder = '', required = false, inputMode, disallowScientific = false }) {
+  const handleKeyDown = (event) => {
+    if (!disallowScientific) return;
+    if (['e', 'E', '+', '-', '.'].includes(event.key)) {
+      event.preventDefault();
+    }
+  };
+
   return (
     <label className="block">
       <span className="text-xs font-bold text-on-surface-variant mb-2 flex items-center gap-1">
@@ -678,6 +765,8 @@ function Field({ label, name, value, onChange, type = 'text', placeholder = '', 
         type={type}
         value={value}
         onChange={onChange}
+        onKeyDown={handleKeyDown}
+        inputMode={inputMode}
         placeholder={placeholder}
         className="w-full rounded-xl border border-outline bg-white px-4 py-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none"
       />
@@ -685,7 +774,7 @@ function Field({ label, name, value, onChange, type = 'text', placeholder = '', 
   );
 }
 
-function SelectField({ label, name, value, onChange, options, required = false }) {
+function SelectField({ label, name, value, onChange, options, required = false, disabled = false, helperText = '' }) {
   return (
     <label className="block">
       <span className="text-xs font-bold text-on-surface-variant mb-2 flex items-center gap-1">
@@ -695,12 +784,14 @@ function SelectField({ label, name, value, onChange, options, required = false }
         name={name}
         value={value}
         onChange={onChange}
-        className="w-full rounded-xl border border-outline bg-white px-4 py-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none"
+        disabled={disabled}
+        className={`w-full rounded-xl border border-outline bg-white px-4 py-2.5 text-sm focus:ring-1 focus:ring-primary focus:border-primary outline-none ${disabled ? 'text-on-surface-variant bg-gray-50 cursor-not-allowed' : ''}`}
       >
         {options.map((option) => (
           <option key={option.value} value={option.value}>{option.label}</option>
         ))}
       </select>
+      {helperText ? <p className="mt-1 text-[11px] text-on-surface-variant">{helperText}</p> : null}
     </label>
   );
 }
