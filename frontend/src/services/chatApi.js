@@ -1,39 +1,7 @@
 import { getStoredMember, requestWithAuth } from './authApi';
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
-
-function buildUrl(path) {
-  if (path.startsWith('http')) {
-    return path;
-  }
-  return `${API_BASE}${path}`;
-}
-
 async function requestJson(path, options = {}) {
-  if (localStorage.getItem('token')) {
-    return requestWithAuth(path, options);
-  }
-
-  const response = await fetch(buildUrl(path), {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...(options.headers || {}),
-    },
-  });
-
-  let result = null;
-  try {
-    result = await response.json();
-  } catch (error) {
-    result = null;
-  }
-
-  if (!response.ok) {
-    throw new Error(result?.error || result?.message || '요청 처리 중 오류가 발생했습니다.');
-  }
-
-  return result;
+  return requestWithAuth(path, options);
 }
 
 export function getCurrentMember() {
@@ -46,7 +14,7 @@ export function getCurrentMemberId() {
 }
 
 export function isMemberLoggedIn() {
-  return Boolean(localStorage.getItem('token') && getCurrentMemberId());
+  return Boolean(getCurrentMemberId());
 }
 
 export function getCurrentMemberType() {

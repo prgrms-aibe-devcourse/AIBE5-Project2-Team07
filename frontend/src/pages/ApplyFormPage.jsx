@@ -4,7 +4,6 @@ import TopNavBar from '../components/TopNavBar';
 import AppFooter from '../components/AppFooter';
 import CommonButton from '../components/CommonButton';
 import { getStoredMember } from '../services/authApi';
-const getToken = () => localStorage.getItem('token');
 import { getMyAccount } from '../services/accountApi';
 import { getMyResume } from '../services/resumeApi';
 import { submitApply } from '../services/applyApi';
@@ -120,7 +119,6 @@ export default function ApplyFormPage() {
 
   useEffect(() => {
     const loadApplyData = async () => {
-      const token = getToken();
       const member = getStoredMember();
 
       if (!recruitId) {
@@ -129,7 +127,7 @@ export default function ApplyFormPage() {
         return;
       }
 
-      if (!token || !member) {
+      if (!member) {
         setLoadError('로그인 후 지원서를 작성할 수 있습니다.');
         setLoading(false);
         return;

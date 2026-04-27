@@ -4,8 +4,10 @@ import com.example.aibe5_project2_team7.member.CustomUser;
 import com.example.aibe5_project2_team7.member.Member;
 import com.example.aibe5_project2_team7.member.repository.MemberRepository;
 import com.example.aibe5_project2_team7.member.service.JwtUtil;
+import com.example.aibe5_project2_team7.member.service.CustomOAuth2UserService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -34,6 +36,8 @@ import java.util.List;
 public class SecurityConfig {
 
     private final JwtUtil jwtUtil;
+    private final CustomOAuth2UserService customOAuth2UserService;
+    private final OAuth2LoginSuccessHandler oAuth2LoginSuccessHandler;
     private final MemberRepository memberRepository;
 
     @Bean
@@ -41,20 +45,23 @@ public class SecurityConfig {
         http
                 .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
+                .httpBasic(httpBasic -> httpBasic.disable())
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/auth/**","/personal/**","/human-resource/**", "/business/**").permitAll()
-                        .requestMatchers("/auth/**","/personal/**","/human-resource/**", "/api/brand/**").permitAll()
-                        .requestMatchers("/auth/**", "/api/auth/**", "/personal/**", "/api/personal/**", "/human-resource/**", "/api/human-resource/**", "/recruits/**", "/api/recruits/**", "/business/**", "/api/business/**", "/business/myrecruit/**", "/api/business/myrecruit/**", "/scraps/**", "/api/scraps/**", "/scraps/members/**", "/api/scraps/members/**", "/scraps/recruits/**", "/api/scraps/recruits/**", "/applies/**", "/api/applies/**", "/api/regions/**", "/uploads/**", "/api/reviews/**").permitAll()
-                        .requestMatchers("/api/chat/**", "/ws-connect/**", "/ws-connect").permitAll()
-                        .requestMatchers("/api/personal/**","/api/human-resource/**", "/recruits/**", "/api/recruits/**", "/api/business/**", "/business/myrecruit/**", "/api/business/myrecruit/**", "/scraps/**", "/api/scraps/**", "/scraps/members/**", "/api/scraps/members/**", "/scraps/recruits/**", "/api/scraps/recruits/**", "/applies/**", "/api/applies/**", "/api/regions/**", "/uploads/**", "/api/reviews/**").permitAll()
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/api/auth/**").permitAll()
-                        .requestMatchers("/human-resource/**").permitAll()
-                        .requestMatchers( "/reviews/**","/applies/**","/applies/personal/**","/applies/business/**").permitAll()
-                        .requestMatchers("/personal/**").authenticated()
-                        .requestMatchers("/recommend/**").permitAll()
+                        .requestMatchers("/auth/**", "/api/auth/**", "/oauth2/**", "/login/oauth2/**", "/error").permitAll()
+                        .requestMatchers("/api/chat/**", "/ws-connect/**", "/ws-connect").permitAll()
+                        .requestMatchers("/personal/**", "/api/personal/**", "/human-resource/**", "/api/human-resource/**").permitAll()
+                        .requestMatchers("/recruits/**", "/api/recruits/**").permitAll()
+                        .requestMatchers("/business/**", "/api/business/**", "/business/myrecruit/**", "/api/business/myrecruit/**").permitAll()
+                        .requestMatchers("/scraps/**", "/api/scraps/**", "/scraps/members/**", "/api/scraps/members/**", "/scraps/recruits/**", "/api/scraps/recruits/**").permitAll()
+                        .requestMatchers("/applies/**", "/api/applies/**", "/reviews/**", "/api/reviews/**").permitAll()
+                        .requestMatchers("/api/brand/**", "/api/regions/**", "/recommend/**", "/uploads/**").permitAll()
                         .anyRequest().authenticated()
+                )
+                .oauth2Login(oauth2 -> oauth2
+                        .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
+                        .successHandler(oAuth2LoginSuccessHandler)
                 )
                 .addFilterBefore(
                         new JwtAuthenticationFilter(jwtUtil, memberRepository),
@@ -67,8 +74,8 @@ public class SecurityConfig {
     @Bean
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173"));
-        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
+        configuration.setAllowedOriginPatterns(List.of("http://localhost:*"));
+        configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
 
@@ -89,12 +96,8 @@ public class SecurityConfig {
                 HttpServletResponse response,
                 FilterChain filterChain
         ) throws ServletException, IOException {
-
-            String header = request.getHeader("Authorization");
-
-            if (header != null && header.startsWith("Bearer ")) {
-                String token = header.substring(7);
-
+            String token = resolveToken(request);
+            if (token != null && !token.isBlank()) {
                 try {
                     String email = jwtUtil.extractEmail(token);
 
@@ -124,6 +127,24 @@ public class SecurityConfig {
             }
 
             filterChain.doFilter(request, response);
+        }
+
+        private String resolveToken(HttpServletRequest request) {
+            String header = request.getHeader("Authorization");
+            if (header != null && header.startsWith("Bearer ")) {
+                return header.substring(7);
+            }
+
+            Cookie[] cookies = request.getCookies();
+            if (cookies == null) {
+                return null;
+            }
+            for (Cookie cookie : cookies) {
+                if ("access_token".equals(cookie.getName())) {
+                    return cookie.getValue();
+                }
+            }
+            return null;
         }
     }
 }

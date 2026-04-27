@@ -2,10 +2,9 @@ import React from 'react';
 import { Navigate } from 'react-router-dom';
 
 export default function MyPageRouter() {
-    const token = localStorage.getItem('token');
     const memberStr = localStorage.getItem('member');
 
-    if (!token || !memberStr) {
+    if (!memberStr) {
         return <Navigate to="/login" replace />;
     }
 
@@ -23,7 +22,6 @@ export default function MyPageRouter() {
 
         return <Navigate to="/" replace />;
     } catch (e) {
-        localStorage.removeItem('token');
         localStorage.removeItem('member');
         return <Navigate to="/login" replace />;
     }

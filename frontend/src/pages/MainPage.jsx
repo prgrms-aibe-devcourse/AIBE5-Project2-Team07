@@ -7,8 +7,6 @@ import CommonButton from '../components/CommonButton';
 import { getStoredMember } from '../services/authApi';
 import { addRecruitScrap, getMyScrapRecruitIds, removeRecruitScrap } from '../services/scrapRecruitApi';
 
-const getToken = () => localStorage.getItem('token');
-
 const API_PREFIXES = ['/api', ''];
 
 const BUSINESS_LABELS = {
@@ -177,10 +175,9 @@ export default function MainPage() {
 
   useEffect(() => {
     const loadScrapIds = async () => {
-      const token = getToken();
       const member = getStoredMember();
 
-      if (!token || !member || member.memberType !== 'INDIVIDUAL') {
+      if (!member || member.memberType !== 'INDIVIDUAL') {
         setScrappedRecruitIds([]);
         return;
       }
@@ -214,10 +211,9 @@ export default function MainPage() {
     event.preventDefault();
     event.stopPropagation();
 
-    const token = getToken();
     const member = getStoredMember();
 
-    if (!token || !member) {
+    if (!member) {
       setShowScrapLoginModal(true);
       return;
     }

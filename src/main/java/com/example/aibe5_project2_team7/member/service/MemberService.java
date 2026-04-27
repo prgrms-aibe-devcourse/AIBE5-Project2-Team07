@@ -100,6 +100,11 @@ public class MemberService {
         return member;
     }
 
+    public Member findByEmail(String email) {
+        return memberRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("Member not found"));
+    }
+
     // 회원 탈퇴
     public void deleteMember(Long memberId){
         if(!memberRepository.existsById(memberId)){

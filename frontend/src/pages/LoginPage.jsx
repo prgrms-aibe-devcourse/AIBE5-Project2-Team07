@@ -9,6 +9,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080';
 export default function LoginPage() {
   const [loginType, setLoginType] = useState('personal');
   const navigate = useNavigate();
+  const backendBaseUrl = (import.meta.env.VITE_BACKEND_URL || 'http://localhost:8080').replace(/\/$/, '');
 
   const [form, setForm] = useState({
     email: '',
@@ -23,6 +24,10 @@ export default function LoginPage() {
 
   const handleSignupMove = () => {
     navigate(loginType === 'personal' ? '/signup/personal' : '/signup/business');
+  };
+
+  const handleKakaoLogin = () => {
+    window.location.assign(`${backendBaseUrl}/oauth2/authorization/kakao`);
   };
 
   const handleChange = (e) => {
@@ -160,6 +165,7 @@ export default function LoginPage() {
               <button
                   type="button"
                   className="w-full mt-4 bg-[#FEE500] text-[#191919] font-bold py-4 rounded-xl hover:brightness-95 transition-all"
+                  onClick={handleKakaoLogin}
               >
                 카카오로 로그인
               </button>
