@@ -7,7 +7,7 @@ import com.example.aibe5_project2_team7.license.License;
 import com.example.aibe5_project2_team7.highest_education.HighestEducation;
 import com.example.aibe5_project2_team7.member_preferred_region.MemberPreferredRegion;
 import jakarta.persistence.*;
-import lombok.Getter;
+        import lombok.Getter;
 import lombok.Setter;
 
 import java.util.ArrayList;
@@ -46,8 +46,4 @@ public class Resume extends BaseEntity {
     @OneToMany(mappedBy = "resume", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<HighestEducation> educations = new ArrayList<>();
 
-    // 선호지역(read-only): member_id 기준으로 MemberPreferredRegion 엔티티를 조인해서 읽기 전용으로 노출
-    @OneToMany(fetch = FetchType.LAZY)
-    @JoinColumn(name = "member_id", referencedColumnName = "member_id", insertable = false, updatable = false)
-    private List<MemberPreferredRegion> preferredRegions = new ArrayList<>();
 }

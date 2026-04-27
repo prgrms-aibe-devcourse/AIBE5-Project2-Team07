@@ -1025,7 +1025,7 @@ export default function BrandRecruitExplorePage() {
                               if (exists) {
                                 return prev.filter((item) => item.id !== opt.id);
                               }
-                              return [...prev, { id: opt.id, label: `${opt.sido} · ${opt.sigungu}` }];
+                              return [...prev, { id: opt.id, label: `${opt.sido} ${opt.sigungu}` }];
                             });
                           }}
                           className={`px-3 py-2 rounded-lg border text-sm font-medium transition-colors ${
@@ -1046,23 +1046,27 @@ export default function BrandRecruitExplorePage() {
           {/* badge row: show selected region badge (only when sigungu selected) and other active filter badges (dates, 근무타입) - moved below selectors */}
           {(selectedRegionBadges.length > 0 || workDates.length > 0 || shiftFilters.length > 0 || longPeriodFilters.length > 0 || longDayFilters.length > 0) && (
             <div className="mt-3">
-              <div className="bg-white border-[0.5px] border-outline p-3 rounded-2xl flex items-center gap-2">
-                {selectedRegionBadges.map((region) => (
-                  <div key={region.id} className="flex items-center gap-2 px-3 py-1 bg-white border border-outline rounded-md text-sm font-medium">
-                    <span className="text-on-surface-variant">{region.label}</span>
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setSelectedRegionBadges((prev) => prev.filter((item) => item.id !== region.id));
-                        setSelectedRegionIds((prev) => prev.filter((id) => id !== region.id));
-                      }}
-                      className="ml-2 text-on-surface-variant hover:text-on-surface"
-                      aria-label="선택 해제"
-                    >
-                      <span className="material-symbols-outlined text-[16px]">close</span>
-                    </button>
+              <div className="bg-white border-[0.5px] border-outline p-3 rounded-2xl flex flex-wrap items-start gap-2">
+                {selectedRegionBadges.length > 0 && (
+                  <div className="flex flex-wrap gap-2 w-full">
+                    {selectedRegionBadges.map((region) => (
+                      <div key={region.id} className="flex items-center gap-2 px-3 py-1 bg-white border border-outline rounded-md text-sm font-medium whitespace-nowrap">
+                        <span className="text-on-surface-variant">{region.label}</span>
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setSelectedRegionBadges((prev) => prev.filter((item) => item.id !== region.id));
+                            setSelectedRegionIds((prev) => prev.filter((id) => id !== region.id));
+                          }}
+                          className="ml-2 text-on-surface-variant hover:text-on-surface"
+                          aria-label="선택 해제"
+                        >
+                          <span className="material-symbols-outlined text-[16px]">close</span>
+                        </button>
+                      </div>
+                    ))}
                   </div>
-                ))}
+                )}
 
                 {workDates.length > 0 && (
                   <div className="flex flex-wrap gap-2">

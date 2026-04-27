@@ -16,13 +16,20 @@ public class CareerService {
 
     @Transactional
     public Career create(Career c) {
+        Resume resume = resumeRepository.findByMemberId(c.getMemberId())
+                .stream()
+                .findFirst()
+                .orElseThrow(() -> new RuntimeException("Resume not found for member"));
+
         Career career = new Career();
         career.setMemberId(c.getMemberId());
         career.setCompany(c.getCompany());
         career.setRole(c.getRole());
         career.setStartDate(c.getStartDate());
         career.setEndDate(c.getEndDate());
-        career.setBrandId(c.getBrandId()); // 이것도 꼭
+        career.setBrandId(c.getBrandId());
+
+        career.setResume(resume); // 핵심
 
         return careerRepository.save(career);
     }
